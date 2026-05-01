@@ -1,0 +1,101 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Réservation salles</title>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+        }
+
+        input, select {
+            margin: 5px;
+            padding: 5px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        th {
+            background: #eee;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Réservation</h2>
+
+    <form method="POST" action="/add">
+        Type: <input name="type">
+        Salle: <input name="salle">
+        Etage: <input name="etage">
+        Section: <input name="section"><br>
+
+        Titre: <input name="titre">
+        Organisateur: <input name="organisateur"><br>
+
+        Début: <input type="date" name="date_debut">
+        Fin: <input type="date" name="date_fin">
+
+        Période:
+        <select name="periode">
+            <option>Matin</option>
+            <option>Soir</option>
+        </select>
+
+        <button type="submit">Réserver</button>
+    </form>
+
+    <hr>
+
+    <h3>Filtrer par date</h3>
+
+    <form method="GET">
+        <input type="date" name="date">
+        <button type="submit">Filtrer</button>
+    </form>
+
+    <hr>
+
+    <h3>Liste des réservations</h3>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Type</th>
+            <th>Salle</th>
+            <th>Etage</th>
+            <th>Section</th>
+            <th>Titre</th>
+            <th>Organisateur</th>
+            <th>Début</th>
+            <th>Fin</th>
+            <th>Période</th>
+        </tr>
+
+        {% for r in data %}
+        <tr>
+            <td>{{ r[0] }}</td>
+            <td>{{ r[1] }}</td>
+            <td>{{ r[2] }}</td>
+            <td>{{ r[3] }}</td>
+            <td>{{ r[4] }}</td>
+            <td>{{ r[5] }}</td>
+            <td>{{ r[6] }}</td>
+            <td>{{ r[7] }}</td>
+            <td>{{ r[8] }}</td>
+            <td>{{ r[9] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</body>
+</html>
