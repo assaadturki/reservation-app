@@ -19,12 +19,10 @@ SALLES = [
 ]
 
 
-# 🔧 Connexion DB (fix Render)
 def get_db():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
 
 
-# 🔧 Création table
 def init_db():
     conn = get_db()
     cur = conn.cursor()
@@ -46,71 +44,64 @@ def init_db():
     conn.close()
 
 
-# 🔥 IMPORTANT : exécuté au démarrage (Render OK)
+# 🔥 IMPORTANT POUR RENDER
 init_db()
 
 
-# 🟢 ROUTE PRINCIPALE
 @app.route("/", methods=["GET", "POST"])
 def index():
     conn = get_db()
     cur = conn.cursor()
 
-if request.method == "POST":
-    salle = request.form.get("salle")
-    debut = request.form.get("debut")
-    fin = request.form.get("fin")
-    periode = request.form.get("periode")
+    erreur = None
 
-    # 🔥 Vérifier conflit
-    cur.execute("""
-        SELECT * FROM reservations
-        WHERE salle = ?
-        AND periode = ?
-        AND (
-            date_debut <= ? AND date_fin >= ?
-        )
-    """, (salle, periode, fin, debut))
+    if request.method == "POST":
+        salle = request.form.get("salle")
+        debut = request.form.get("debut")
+        fin = request.form.get("fin")
+        periode = request.form.get("periode")
 
-    conflit = cur.fetchone()
-
-    if conflit:
-        return render_template(
-            "index.html",
-            data=[],
-            salles=SALLES,
-            erreur="❌ Salle déjà réservée sur cette période"
-        )
-
-    # ✅ Sinon enregistrer
-    try:
+        # 🔴 Vérifier conflit
         cur.execute("""
-            INSERT INTO reservations
-            (type, salle, etage, section, titre, organisateur, date_debut, date_fin, periode)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            request.form.get("type"),
-            salle,
-            request.form.get("etage"),
-            request.form.get("section"),
-            request.form.get("titre"),
-            request.form.get("organisateur"),
-            debut,
-            fin,
-            periode
-        ))
-        conn.commit()
-    except Exception as e:
-        print("ERREUR DB:", e)
+            SELECT * FROM reservations
+            WHERE salle = ?
+            AND periode = ?
+            AND (date_debut <= ? AND date_fin >= ?)
+        """, (salle, periode, fin, debut))
 
+        conflit = cur.fetchone()
+
+        if conflit:
+            erreur = "❌ Salle déjà réservée sur cette période"
+        else:
+            try:
+                cur.execute("""
+                    INSERT INTO reservations
+                    (type, salle, etage, section, titre, organisateur, date_debut, date_fin, periode)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    request.form.get("type"),
+                    salle,
+                    request.form.get("etage"),
+                    request.form.get("section"),
+                    request.form.get("titre"),
+                    request.form.get("organisateur"),
+                    debut,
+                    fin,
+                    periode
+                ))
+                conn.commit()
+            except Exception as e:
+                erreur = str(e)
+
+    # 🔥 AFFICHAGE
     cur.execute("SELECT * FROM reservations ORDER BY id DESC")
     data = cur.fetchall()
     conn.close()
 
-    return render_template("index.html", data=data, salles=SALLES)
+    return render_template("index.html", data=data, salles=SALLES, erreur=erreur)
 
 
-# 🔧 lancement local seulement
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
