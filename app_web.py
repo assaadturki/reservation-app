@@ -56,26 +56,52 @@ def index():
     conn = get_db()
     cur = conn.cursor()
 
-    if request.method == "POST":
-        try:
-            cur.execute("""
-                INSERT INTO reservations
-                (type, salle, etage, section, titre, organisateur, date_debut, date_fin, periode)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                request.form.get("type"),
-                request.form.get("salle"),
-                request.form.get("etage"),
-                request.form.get("section"),
-                request.form.get("titre"),
-                request.form.get("organisateur"),
-                request.form.get("debut"),
-                request.form.get("fin"),
-                request.form.get("periode")
-            ))
-            conn.commit()
-        except Exception as e:
-            print("ERREUR DB:", e)
+if request.method == "POST":
+    salle = request.form.get("salle")
+    debut = request.form.get("debut")
+    fin = request.form.get("fin")
+    periode = request.form.get("periode")
+
+    # 🔥 Vérifier conflit
+    cur.execute("""
+        SELECT * FROM reservations
+        WHERE salle = ?
+        AND periode = ?
+        AND (
+            date_debut <= ? AND date_fin >= ?
+        )
+    """, (salle, periode, fin, debut))
+
+    conflit = cur.fetchone()
+
+    if conflit:
+        return render_template(
+            "index.html",
+            data=[],
+            salles=SALLES,
+            erreur="❌ Salle déjà réservée sur cette période"
+        )
+
+    # ✅ Sinon enregistrer
+    try:
+        cur.execute("""
+            INSERT INTO reservations
+            (type, salle, etage, section, titre, organisateur, date_debut, date_fin, periode)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            request.form.get("type"),
+            salle,
+            request.form.get("etage"),
+            request.form.get("section"),
+            request.form.get("titre"),
+            request.form.get("organisateur"),
+            debut,
+            fin,
+            periode
+        ))
+        conn.commit()
+    except Exception as e:
+        print("ERREUR DB:", e)
 
     cur.execute("SELECT * FROM reservations ORDER BY id DESC")
     data = cur.fetchall()
