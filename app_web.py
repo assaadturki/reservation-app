@@ -1,87 +1,81 @@
-from flask import Flask, render_template, request, redirect
-import sqlite3
 import os
+import sqlite3
+from flask import Flask, render_template, request, redirect
 
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "reservations.db")
 
+
+# 🔥 SALLES (tu peux compléter toute ta liste ici)
+SALLES = [
+    {"type": "class", "nom": "G 11", "etage": "ground floor", "default": "mix", "matin": "male", "soir": "male"},
+    {"type": "class", "nom": "G 12", "etage": "ground floor", "default": "mix", "matin": "female", "soir": "male"},
+    {"type": "class", "nom": "G 13", "etage": "ground floor", "default": "mix", "matin": "female", "soir": "male"},
+    {"type": "class", "nom": "L1 04", "etage": "first floor", "default": "mix", "matin": "female", "soir": "male"},
+    {"type": "class", "nom": "L1 05", "etage": "first floor", "default": "mix", "matin": "female", "soir": "male"},
+    {"type": "Lab", "nom": "L1 08", "etage": "first floor", "default": "mix", "matin": "female", "soir": "male"},
+]
+
+
 def get_db():
     return sqlite3.connect(DB_PATH)
 
-# créer table si absente
+
 def init_db():
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS reservations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        type TEXT,
-        salle TEXT,
-        etage TEXT,
-        section TEXT,
-        titre TEXT,
-        organisateur TEXT,
-        date_debut TEXT,
-        date_fin TEXT,
-        periode TEXT
-    )
+        CREATE TABLE IF NOT EXISTS reservations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            type TEXT,
+            salle TEXT,
+            etage TEXT,
+            section TEXT,
+            titre TEXT,
+            organisateur TEXT,
+            date_debut TEXT,
+            date_fin TEXT,
+            periode TEXT
+        )
     """)
     conn.commit()
     conn.close()
 
-init_db()
 
-# ================= PAGE PRINCIPALE =================
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
     conn = get_db()
     cur = conn.cursor()
 
-    date = request.args.get("date")
+    if request.method == "POST":
+        type_ = request.form.get("type")
+        salle = request.form.get("salle")
+        etage = request.form.get("etage")
+        section = request.form.get("section")
+        titre = request.form.get("titre")
+        organisateur = request.form.get("organisateur")
+        debut = request.form.get("debut")
+        fin = request.form.get("fin")
+        periode = request.form.get("periode")
 
-    if date:
         cur.execute("""
-        SELECT * FROM reservations
-        WHERE date_debut <= ? AND date_fin >= ?
-        """, (date, date))
-    else:
-        cur.execute("SELECT * FROM reservations")
+            INSERT INTO reservations
+            (type, salle, etage, section, titre, organisateur, date_debut, date_fin, periode)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (type_, salle, etage, section, titre, organisateur, debut, fin, periode))
 
+        conn.commit()
+
+    cur.execute("SELECT * FROM reservations ORDER BY id DESC")
     data = cur.fetchall()
     conn.close()
 
-    return render_template("index.html", data=data)
+    return render_template("index.html", data=data, salles=SALLES)
 
-# ================= AJOUT =================
-@app.route("/add", methods=["POST"])
-def add():
-    form = request.form
-
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-    INSERT INTO reservations 
-    (type, salle, etage, section, titre, organisateur, date_debut, date_fin, periode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        form["type"],
-        form["salle"],
-        form["etage"],
-        form["section"],
-        form["titre"],
-        form["organisateur"],
-        form["date_debut"],
-        form["date_fin"],
-        form["periode"]
-    ))
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    init_db()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
