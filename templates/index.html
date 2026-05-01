@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+{% if erreur %}
+<div class="alert alert-danger">
+    {{ erreur }}
+</div>
+{% endif %}
 <html>
 <head>
     <title>Réservation</title>
