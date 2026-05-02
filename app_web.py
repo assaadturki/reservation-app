@@ -179,21 +179,41 @@ def export_excel():
 
 @app.route("/import", methods=["POST"])
 def import_excel():
-    file = request.files["file"]
-    df = pd.read_excel(file)
+    file = request.files.get("file")
 
-    conn = get_db()
-    cur = conn.cursor()
+    if not file:
+        return "لم يتم اختيار ملف"
 
-    for _, row in df.iterrows():
-        cur.execute("""
-            INSERT INTO reservations
-            (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, tuple(row))
+    try:
+        import pandas as pd
 
-    conn.commit()
-    conn.close()
+        df = pd.read_excel(file)
+
+        conn = get_db()
+        cur = conn.cursor()
+
+        for _, row in df.iterrows():
+            cur.execute("""
+                INSERT INTO reservations
+                (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                row.get("type", ""),
+                row.get("etage", ""),
+                row.get("salle", ""),
+                row.get("genre", ""),
+                row.get("periode", ""),
+                str(row.get("date_debut", "")),
+                str(row.get("date_fin", "")),
+                row.get("titre", ""),
+                row.get("organisateur", "")
+            ))
+
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        return f"خطأ في الاستيراد: {e}"
 
     return redirect("/")
 
