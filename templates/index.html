@@ -38,6 +38,7 @@
 
         .btn-blue { background:#2f6de1; color:white; padding:8px; border:none; }
         .btn-green { background:#2e8b57; color:white; padding:8px; border:none; }
+        .btn-orange { background:orange; color:white; padding:8px; border:none; }
         .btn-red { background:#c0392b; color:white; padding:8px; border:none; }
 
         table {
@@ -64,12 +65,15 @@
 
 <h2>Réservation</h2>
 
-<form method="POST">
+<form method="POST" id="form">
+
+<input type="hidden" name="id" id="id">
+<input type="hidden" name="action" id="action" value="add">
 
 <div class="top-row">
 
-    <input name="titre" placeholder="Titre">
-    <input name="organisateur" placeholder="Organisateur">
+    <input name="titre" id="titre" placeholder="Titre">
+    <input name="organisateur" id="organisateur" placeholder="Organisateur">
 
     <select id="etage" name="etage">
         <option value="">Etage</option>
@@ -80,23 +84,23 @@
         <option value="fourth floor">4 eme</option>
     </select>
 
-    <select name="type">
+    <select name="type" id="type">
         <option>Class</option>
         <option>Lab</option>
     </select>
 
-    <select name="genre">
+    <select name="genre" id="genre">
         <option>Male</option>
         <option>Female</option>
     </select>
 
-    <select name="periode">
+    <select name="periode" id="periode">
         <option>Matin</option>
         <option>Soir</option>
     </select>
 
-    <input type="date" name="debut">
-    <input type="date" name="fin">
+    <input type="date" name="debut" id="debut">
+    <input type="date" name="fin" id="fin">
 
     <input id="salle_input" name="salle" placeholder="Salle" readonly>
 
@@ -110,7 +114,10 @@
 
     <div class="buttons">
         <button type="button" class="btn-blue" onclick="voirDisponibilite()">voir disponibilité</button>
-        <button type="submit" class="btn-green">Réserver</button>
+
+        <button type="submit" class="btn-green" id="saveBtn">Réserver</button>
+
+        <button type="button" class="btn-orange" onclick="activerModification()">Modifier</button>
     </div>
 
 </div>
@@ -119,7 +126,7 @@
 
 <h2>Liste</h2>
 
-<form method="POST" action="/delete" id="deleteForm">
+<form method="POST" action="/delete">
 <input type="hidden" name="id" id="delete_id">
 
 <table id="table">
@@ -130,7 +137,18 @@
 </tr>
 
 {% for r in data %}
-<tr onclick="selectRow(this, {{ r[0] }})">
+<tr onclick="selectRow(this)"
+    data-id="{{ r[0] }}"
+    data-type="{{ r[1] }}"
+    data-etage="{{ r[2] }}"
+    data-salle="{{ r[3] }}"
+    data-genre="{{ r[4] }}"
+    data-periode="{{ r[5] }}"
+    data-debut="{{ r[6] }}"
+    data-fin="{{ r[7] }}"
+    data-titre="{{ r[8] }}"
+    data-org="{{ r[9] }}"
+>
     <td>{{ r[0] }}</td>
     <td>{{ r[1] }}</td>
     <td>{{ r[2] }}</td>
@@ -171,10 +189,35 @@ function selectSalle(el) {
     document.getElementById("salle_input").value = el.innerText;
 }
 
-function selectRow(row, id) {
+function selectRow(row) {
+
     document.querySelectorAll("#table tr").forEach(r => r.classList.remove("selected-row"));
     row.classList.add("selected-row");
-    document.getElementById("delete_id").value = id;
+
+    let data = row.dataset;
+
+    document.getElementById("delete_id").value = data.id;
+
+    document.getElementById("id").value = data.id;
+    document.getElementById("type").value = data.type;
+    document.getElementById("etage").value = data.etage;
+    document.getElementById("salle_input").value = data.salle;
+    document.getElementById("genre").value = data.genre;
+    document.getElementById("periode").value = data.periode;
+    document.getElementById("debut").value = data.debut;
+    document.getElementById("fin").value = data.fin;
+    document.getElementById("titre").value = data.titre;
+    document.getElementById("organisateur").value = data.org;
+}
+
+function activerModification() {
+    if (!document.getElementById("id").value) {
+        alert("Sélectionne une ligne d'abord");
+        return;
+    }
+
+    document.getElementById("action").value = "update";
+    document.getElementById("saveBtn").innerText = "Confirmer modification";
 }
 
 </script>
