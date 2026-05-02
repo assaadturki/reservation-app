@@ -43,7 +43,6 @@ td, th {
 }
 
 tr.selected-row { background:#ffcccc; }
-.hidden { display:none; }
 </style>
 </head>
 
@@ -64,10 +63,10 @@ tr.selected-row { background:#ffcccc; }
 
 <div class="top-row">
 
-<input id="titre" placeholder="العنوان">
-<input id="organisateur" placeholder="المنظم">
+<input name="titre" id="titre" placeholder="العنوان">
+<input name="organisateur" id="organisateur" placeholder="المنظم">
 
-<select id="etage">
+<select name="etage" id="etage" onchange="chargerSalles()">
 <option value="">الطابق</option>
 <option value="ground floor">الأرضي</option>
 <option value="first floor">الأول</option>
@@ -76,30 +75,41 @@ tr.selected-row { background:#ffcccc; }
 <option value="fourth floor">الرابع</option>
 </select>
 
-<select id="type">
+<select name="type" id="type">
 <option value="">النوع</option>
 <option value="Class">قاعة</option>
 <option value="Lab">مختبر</option>
 </select>
 
-<select id="genre">
+<select name="genre" id="genre">
 <option value="">الجنس</option>
 <option value="Male">رجال</option>
 <option value="Female">نساء</option>
 </select>
 
-<select id="periode">
+<select name="periode" id="periode">
 <option value="">الفترة</option>
 <option value="Matin">صباحي</option>
 <option value="Soir">مسائي</option>
 </select>
 
-<input id="debut" type="date">
-<input id="fin" type="date">
+<input type="date" name="debut" id="debut" onchange="filtrerDate()">
+<input type="date" name="fin" id="fin">
+
+<input name="salle" id="salle_input" placeholder="القاعة" readonly>
+
+<div class="salle-box" id="salles">
+{% for s in salles %}
+<div data-etage="{{ s.etage }}" data-nom="{{ s.nom }}" onclick="selectSalle(this)">
+{{ s.nom }}
+</div>
+{% endfor %}
+</div>
 
 <div class="buttons">
 <button type="button" class="btn-blue" onclick="filtrer()">أظهر قائمة الاختيار</button>
 <button type="button" class="btn-red" onclick="deleteSelected()">حذف المحدد</button>
+<button class="btn-green">حفظ</button>
 </div>
 
 </div>
@@ -141,6 +151,50 @@ tr.selected-row { background:#ffcccc; }
 
 <script>
 
+// 🔥 تحميل القاعات حسب الطابق + إزالة المحجوز
+function chargerSalles(){
+    let etage = document.getElementById("etage").value;
+    let box = document.getElementById("salles");
+
+    if(!etage){
+        box.style.display="none";
+        return;
+    }
+
+    box.style.display="block";
+
+    let reserved = [];
+    document.querySelectorAll("#table tr").forEach((row,i)=>{
+        if(i===0) return;
+        reserved.push(row.children[4].innerText);
+    });
+
+    document.querySelectorAll("#salles div").forEach(s=>{
+        let show = s.dataset.etage === etage && !reserved.includes(s.dataset.nom);
+        s.style.display = show ? "block" : "none";
+    });
+}
+
+function selectSalle(el){
+    document.querySelectorAll("#salles div").forEach(s=>s.classList.remove("selected"));
+    el.classList.add("selected");
+    document.getElementById("salle_input").value = el.innerText;
+}
+
+// 🔥 فلترة حسب التاريخ
+function filtrerDate(){
+    let d = document.getElementById("debut").value;
+    if(!d) return;
+
+    document.querySelectorAll("#table tr").forEach((row,i)=>{
+        if(i===0) return;
+
+        let date = row.children[7].innerText;
+        row.style.display = (date === d) ? "" : "none";
+    });
+}
+
+// 🔥 القديم (ما لمسناه)
 function selectRow(row){
     row.classList.toggle("selected-row");
     let checkbox = row.querySelector(".row-check");
