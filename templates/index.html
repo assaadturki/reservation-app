@@ -4,17 +4,21 @@
 <title>Réservation</title>
 
 <style>
-body {
-    font-family: Arial;
-    margin:20px;
+body { font-family: Arial; margin:20px; }
+
+.container {
+    display:flex;
+    gap:20px;
+    max-width:1100px;
 }
 
-/* 🔥 layout horizontal */
+.left { flex:2; }
+.right { width:250px; }
+
 .row {
     display:flex;
-    gap:10px;
+    gap:8px;
     align-items:center;
-    margin-bottom:10px;
 }
 
 input, select {
@@ -22,42 +26,32 @@ input, select {
     height:30px;
 }
 
-/* tailles */
-.small { width:120px; }
-.medium { width:160px; }
-.large { width:220px; }
-
-/* droite */
-.container {
-    display:flex;
-    gap:20px;
-}
-
-.left { flex:4; }
-.right { flex:1; }
+.small { width:110px; }
+.medium { width:140px; }
+.large { width:180px; }
 
 .box {
     border:1px solid #ccc;
     padding:10px;
 }
 
-/* boutons */
 .btn {
     padding:8px 12px;
     color:white;
     border:none;
     cursor:pointer;
 }
+
 .blue { background:#2f5bea; }
 .green { background:#2e8b57; }
 .red { background:#c0392b; }
 
-/* table */
 table {
     width:100%;
     border-collapse: collapse;
     margin-top:20px;
 }
+
 th, td {
     border:1px solid #ccc;
     padding:5px;
@@ -66,8 +60,24 @@ th, td {
 </style>
 
 <script>
+let selectedRow = null;
+
 function selectSalle(val){
     document.getElementById("salle").value = val;
+}
+
+function selectRow(row, id){
+    if (selectedRow) {
+        selectedRow.style.background = "";
+        selectedRow.style.color = "";
+    }
+
+    row.style.background = "blue";
+    row.style.color = "white";
+
+    selectedRow = row;
+
+    document.getElementById("selected_id").value = id;
 }
 </script>
 
@@ -85,14 +95,10 @@ function selectSalle(val){
 
 <div class="container">
 
-<!-- LEFT -->
 <div class="left">
 
-<!-- 🔥 ligne principale -->
 <div class="row">
-
 <input class="large" name="titre" placeholder="Titre">
-
 <input class="large" name="organisateur" placeholder="Organisateur">
 
 <select class="small" name="etage">
@@ -127,18 +133,15 @@ function selectSalle(val){
 
 </div>
 
-<!-- RIGHT -->
 <div class="right">
 
 <div class="box">
 <b>Selection Salle</b><br>
-
 {% for s in salles %}
 <div onclick="selectSalle('{{ s.nom }}')" style="cursor:pointer">
 {{ s.nom }}
 </div>
 {% endfor %}
-
 </div>
 
 <br>
@@ -151,9 +154,9 @@ function selectSalle(val){
 
 </div>
 
-</form>
+<br>
 
-<h3>Liste des réservation</h3>
+<input type="hidden" id="selected_id" name="selected_id">
 
 <table>
 <tr>
@@ -167,11 +170,10 @@ function selectSalle(val){
 <th>Fin</th>
 <th>Titre</th>
 <th>Organisateur</th>
-<th>Action</th>
 </tr>
 
 {% for r in data %}
-<tr>
+<tr onclick="selectRow(this, '{{ r[0] }}')">
 <td>{{ r[0] }}</td>
 <td>{{ r[1] }}</td>
 <td>{{ r[3] }}</td>
@@ -182,17 +184,17 @@ function selectSalle(val){
 <td>{{ r[7] }}</td>
 <td>{{ r[8] }}</td>
 <td>{{ r[9] }}</td>
-
-<td>
-<form method="POST">
-<input type="hidden" name="id" value="{{ r[0] }}">
-<button class="btn red" name="action" value="delete">X</button>
-</form>
-</td>
-
 </tr>
 {% endfor %}
 </table>
+
+<br>
+
+<button class="btn red" name="action" value="delete">
+Supprimer Réservation
+</button>
+
+</form>
 
 </body>
 </html>
