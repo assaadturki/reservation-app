@@ -8,6 +8,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "reservations.db")
 
 
+# 🔥 LISTE COMPLETE DES SALLES
 SALLES = [
     {"nom": "G 11", "etage": "ground floor"},
     {"nom": "G 12", "etage": "ground floor"},
@@ -67,13 +68,16 @@ SALLES = [
 ]
 
 
+# 🔗 connexion DB
 def get_db():
     return sqlite3.connect(DB_PATH)
 
 
+# 🛠️ création table (IMPORTANT)
 def init_db():
     conn = get_db()
     cur = conn.cursor()
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS reservations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,8 +92,13 @@ def init_db():
             organisateur TEXT
         )
     """)
+
     conn.commit()
     conn.close()
+
+
+# 🔥 TRÈS IMPORTANT POUR RENDER
+init_db()
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -101,18 +110,21 @@ def index():
     if request.method == "POST":
         action = request.form.get("action")
 
+        # 🔴 DELETE
         if action == "delete":
             selected_id = request.form.get("selected_id")
             if selected_id:
                 cur.execute("DELETE FROM reservations WHERE id=?", (selected_id,))
                 conn.commit()
 
+        # 🟢 RESERVER
         elif action == "reserver":
             salle = request.form.get("salle")
             debut = request.form.get("debut")
             fin = request.form.get("fin")
             periode = request.form.get("periode")
 
+            # 🔍 vérif conflit
             cur.execute("""
                 SELECT * FROM reservations
                 WHERE salle=? AND periode=?
@@ -139,6 +151,7 @@ def index():
                 ))
                 conn.commit()
 
+    # 🔄 affichage
     cur.execute("SELECT * FROM reservations ORDER BY id DESC")
     data = cur.fetchall()
     conn.close()
@@ -146,6 +159,6 @@ def index():
     return render_template("index.html", data=data, salles=SALLES, erreur=erreur)
 
 
+# 🚀 local seulement
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)
