@@ -7,8 +7,6 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "reservations.db")
 
-
-# 🔥 SALLES
 SALLES = [
     {"nom": "G 11", "etage": "ground floor"},
     {"nom": "G 12", "etage": "ground floor"},
@@ -67,10 +65,8 @@ SALLES = [
     {"nom": "L4 36", "etage": "fourth floor"},
 ]
 
-
 def get_db():
     return sqlite3.connect(DB_PATH)
-
 
 def init_db():
     conn = get_db()
@@ -94,7 +90,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-
 @app.route("/", methods=["GET", "POST"])
 def index():
     init_db()
@@ -103,51 +98,22 @@ def index():
     cur = conn.cursor()
 
     if request.method == "POST":
-
-        action = request.form.get("action")
-        id_ = request.form.get("id")
-
-        if action == "update" and id_:
-            # 🔥 UPDATE
-            cur.execute("""
-                UPDATE reservations SET
-                type = ?, etage = ?, salle = ?, genre = ?, periode = ?,
-                date_debut = ?, date_fin = ?, titre = ?, organisateur = ?
-                WHERE id = ?
-            """, (
-                request.form.get("type"),
-                request.form.get("etage"),
-                request.form.get("salle"),
-                request.form.get("genre"),
-                request.form.get("periode"),
-                request.form.get("debut"),
-                request.form.get("fin"),
-                request.form.get("titre"),
-                request.form.get("organisateur"),
-                id_
-            ))
-
-        else:
-            # 🔥 INSERT
-            cur.execute("""
-                INSERT INTO reservations
-                (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                request.form.get("type"),
-                request.form.get("etage"),
-                request.form.get("salle"),
-                request.form.get("genre"),
-                request.form.get("periode"),
-                request.form.get("debut"),
-                request.form.get("fin"),
-                request.form.get("titre"),
-                request.form.get("organisateur"),
-            ))
-
+        cur.execute("""
+            INSERT INTO reservations
+            (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            request.form.get("type"),
+            request.form.get("etage"),
+            request.form.get("salle"),
+            request.form.get("genre"),
+            request.form.get("periode"),
+            request.form.get("debut"),
+            request.form.get("fin"),
+            request.form.get("titre"),
+            request.form.get("organisateur"),
+        ))
         conn.commit()
-        conn.close()
-
         return redirect("/")
 
     cur.execute("SELECT * FROM reservations ORDER BY id DESC")
@@ -156,19 +122,15 @@ def index():
 
     return render_template("index.html", data=data, salles=SALLES)
 
-
 @app.route("/delete", methods=["POST"])
 def delete():
     id_ = request.form.get("id")
-
     conn = get_db()
     cur = conn.cursor()
     cur.execute("DELETE FROM reservations WHERE id = ?", (id_,))
     conn.commit()
     conn.close()
-
     return redirect("/")
-
 
 if __name__ == "__main__":
     init_db()
