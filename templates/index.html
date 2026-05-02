@@ -1,50 +1,73 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html>
 <head>
-<meta charset="UTF-8">
 <title>حجز القاعات</title>
 
 <style>
 body { font-family: Arial; background:#eee; margin:20px; direction: rtl; }
 
-.top-row { display:flex; gap:10px; flex-wrap:wrap; }
+.top-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
 input, select { height:30px; padding:5px; }
 
 .salle-box {
     border:1px solid #ccc;
     background:white;
-    width:140px;
+    width:120px;
     height:260px;
     overflow-y:auto;
+    font-size:12px;
     display:none;
 }
 
-.salle-box div { padding:5px; cursor:pointer; }
+.salle-box div { padding:4px; cursor:pointer; }
 .selected { background:blue; color:white; }
 
-.btn { padding:6px; border:none; cursor:pointer; color:white; }
-.blue{background:#2f6de1}
-.green{background:#2e8b57}
-.red{background:#c0392b}
+.buttons { display:flex; flex-direction:column; gap:10px; }
 
-table { width:100%; margin-top:20px; border-collapse:collapse; background:white; }
-td, th { border:1px solid #ccc; padding:5px; text-align:center; }
+.btn-blue { background:#2f6de1; color:white; padding:8px; border:none; cursor:pointer;}
+.btn-green { background:#2e8b57; color:white; padding:8px; border:none; cursor:pointer;}
+.btn-red { background:#c0392b; color:white; padding:8px; border:none; cursor:pointer;}
+
+table {
+    width:100%;
+    margin-top:20px;
+    border-collapse:collapse;
+    background:white;
+}
+
+td, th {
+    border:1px solid #ccc;
+    padding:6px;
+    text-align:center;
+}
+
+tr.selected-row { background:#ffcccc; }
+.hidden { display:none; }
 </style>
 </head>
 
 <body>
 
-<h2>حجز القاعات</h2>
+<h2>حجز القاعة</h2>
+
+<div style="margin-bottom:10px;">
+<a href="/export"><button class="btn-blue">تصدير إكسل</button></a>
+
+<form action="/import" method="POST" enctype="multipart/form-data" style="display:inline;">
+<input type="file" name="file">
+<button class="btn-green">استيراد إكسل</button>
+</form>
+</div>
 
 <form method="POST">
 
 <div class="top-row">
 
-<input name="titre" placeholder="العنوان">
-<input name="organisateur" placeholder="المنظم">
+<input id="titre" placeholder="العنوان">
+<input id="organisateur" placeholder="المنظم">
 
-<select id="etage" name="etage">
+<select id="etage">
 <option value="">الطابق</option>
 <option value="ground floor">الأرضي</option>
 <option value="first floor">الأول</option>
@@ -53,92 +76,122 @@ td, th { border:1px solid #ccc; padding:5px; text-align:center; }
 <option value="fourth floor">الرابع</option>
 </select>
 
-<select name="type">
-<option>Class</option>
-<option>Lab</option>
+<select id="type">
+<option value="">النوع</option>
+<option value="Class">قاعة</option>
+<option value="Lab">مختبر</option>
 </select>
 
-<select name="genre">
-<option>Male</option>
-<option>Female</option>
+<select id="genre">
+<option value="">الجنس</option>
+<option value="Male">رجال</option>
+<option value="Female">نساء</option>
 </select>
 
-<select name="periode">
-<option>Matin</option>
-<option>Soir</option>
+<select id="periode">
+<option value="">الفترة</option>
+<option value="Matin">صباحي</option>
+<option value="Soir">مسائي</option>
 </select>
 
-<input type="date" name="debut">
-<input type="date" name="fin">
+<input id="debut" type="date">
+<input id="fin" type="date">
 
-<input id="salle_input" name="salle" placeholder="القاعة" readonly>
-
-<div class="salle-box" id="salles">
-{% for s in salles %}
-<div data-etage="{{ s.etage }}" onclick="selectSalle(this)">
-{{ s.nom }}
+<div class="buttons">
+<button type="button" class="btn-blue" onclick="filtrer()">أظهر قائمة الاختيار</button>
+<button type="button" class="btn-red" onclick="deleteSelected()">حذف المحدد</button>
 </div>
-{% endfor %}
-</div>
-
-<button type="button" class="btn blue" onclick="voir()">عرض القاعات</button>
-<button class="btn green">حفظ</button>
 
 </div>
 </form>
 
-<h3>قائمة الحجوزات</h3>
+<h2>قائمة الحجوزات</h2>
 
 <table id="table">
 <tr>
-<th></th><th>ID</th><th>Salle</th><th>Début</th><th>Fin</th>
+<th></th>
+<th>ID</th>
+<th>النوع</th>
+<th>الطابق</th>
+<th>القاعة</th>
+<th>الجنس</th>
+<th>الفترة</th>
+<th>البداية</th>
+<th>النهاية</th>
+<th>العنوان</th>
+<th>المنظم</th>
 </tr>
 
 {% for r in data %}
-<tr>
-<td><input type="checkbox" value="{{ r[0] }}"></td>
+<tr onclick="selectRow(this)">
+<td><input type="checkbox" class="row-check" value="{{ r[0] }}"></td>
 <td>{{ r[0] }}</td>
+<td>{{ r[1] }}</td>
+<td>{{ r[2] }}</td>
 <td>{{ r[3] }}</td>
+<td>{{ r[4] }}</td>
+<td>{{ r[5] }}</td>
 <td>{{ r[6] }}</td>
 <td>{{ r[7] }}</td>
+<td>{{ r[8] }}</td>
+<td>{{ r[9] }}</td>
 </tr>
 {% endfor %}
 </table>
 
-<button class="btn red" onclick="deleteSelected()">حذف</button>
-
 <script>
 
-function voir(){
-let etage=document.getElementById("etage").value;
-let box=document.getElementById("salles");
-
-if(!etage){alert("اختر الطابق");return;}
-
-box.style.display="block";
-
-document.querySelectorAll("#salles div").forEach(s=>{
-s.style.display = (s.dataset.etage===etage) ? "block":"none";
-});
+function selectRow(row){
+    row.classList.toggle("selected-row");
+    let checkbox = row.querySelector(".row-check");
+    checkbox.checked = !checkbox.checked;
 }
 
-function selectSalle(el){
-document.querySelectorAll("#salles div").forEach(s=>s.classList.remove("selected"));
-el.classList.add("selected");
-document.getElementById("salle_input").value=el.innerText;
+function filtrer(){
+
+    let etage = document.getElementById("etage").value;
+    let type = document.getElementById("type").value;
+    let genre = document.getElementById("genre").value;
+    let periode = document.getElementById("periode").value;
+
+    let rows = document.querySelectorAll("#table tr");
+
+    rows.forEach((row, i) => {
+        if(i === 0) return;
+
+        let cells = row.children;
+
+        let show = true;
+
+        if(etage && cells[3].innerText !== etage) show = false;
+        if(type && cells[2].innerText !== type) show = false;
+        if(genre && cells[5].innerText !== genre) show = false;
+        if(periode && cells[6].innerText !== periode) show = false;
+
+        row.style.display = show ? "" : "none";
+    });
 }
 
 function deleteSelected(){
-let ids=[];
-document.querySelectorAll("input[type=checkbox]:checked").forEach(c=>{
-ids.push(c.value);
-});
 
-fetch("/delete",{
-method:"POST",
-headers:{'Content-Type':'application/x-www-form-urlencoded'},
-body: ids.map(id=>"ids[]="+id).join("&")
-}).then(()=>location.reload());
+    let selected = document.querySelectorAll(".row-check:checked");
+
+    if(selected.length === 0){
+        alert("اختر عناصر للحذف");
+        return;
+    }
+
+    if(!confirm("هل تريد حذف المحدد؟")) return;
+
+    selected.forEach(el => {
+        fetch("/delete", {
+            method: "POST",
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: "id=" + el.value
+        }).then(() => {
+            el.closest("tr").remove();
+        });
+    });
 }
 
 </script>
