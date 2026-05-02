@@ -25,9 +25,9 @@ input, select { height:30px; padding:5px; }
 
 .buttons { display:flex; flex-direction:column; gap:10px; }
 
-.btn-blue { background:#2f6de1; color:white; padding:8px; border:none; }
-.btn-green { background:#2e8b57; color:white; padding:8px; border:none; }
-.btn-red { background:#c0392b; color:white; padding:8px; border:none; }
+.btn-blue { background:#2f6de1; color:white; padding:8px; border:none; cursor:pointer;}
+.btn-green { background:#2e8b57; color:white; padding:8px; border:none; cursor:pointer;}
+.btn-red { background:#c0392b; color:white; padding:8px; border:none; cursor:pointer;}
 
 table {
     width:100%;
@@ -42,7 +42,8 @@ td, th {
     text-align:center;
 }
 
-tr.selected-row { background:#ffdddd; }
+tr.selected-row { background:#ffcccc; }
+.hidden { display:none; }
 </style>
 </head>
 
@@ -61,15 +62,12 @@ tr.selected-row { background:#ffdddd; }
 
 <form method="POST">
 
-<input type="hidden" name="id" id="id">
-<input type="hidden" name="action" id="action">
-
 <div class="top-row">
 
-<input id="titre" name="titre" placeholder="عنوان الدورة">
-<input id="organisateur" name="organisateur" placeholder="المنظم">
+<input id="titre" placeholder="العنوان">
+<input id="organisateur" placeholder="المنظم">
 
-<select id="etage" name="etage">
+<select id="etage">
 <option value="">الطابق</option>
 <option value="ground floor">الأرضي</option>
 <option value="first floor">الأول</option>
@@ -78,37 +76,30 @@ tr.selected-row { background:#ffdddd; }
 <option value="fourth floor">الرابع</option>
 </select>
 
-<select id="type" name="type">
+<select id="type">
+<option value="">النوع</option>
 <option value="Class">قاعة</option>
 <option value="Lab">مختبر</option>
 </select>
 
-<select id="genre" name="genre">
+<select id="genre">
+<option value="">الجنس</option>
 <option value="Male">رجال</option>
 <option value="Female">نساء</option>
 </select>
 
-<select id="periode" name="periode">
+<select id="periode">
+<option value="">الفترة</option>
 <option value="Matin">صباحي</option>
 <option value="Soir">مسائي</option>
 </select>
 
-<input id="debut" type="date" name="debut">
-<input id="fin" type="date" name="fin">
-
-<input id="salle_input" name="salle" placeholder="القاعة" readonly>
-
-<div class="salle-box" id="salles">
-{% for s in salles %}
-<div data-etage="{{ s.etage }}" onclick="selectSalle(this)">
-{{ s.nom }}
-</div>
-{% endfor %}
-</div>
+<input id="debut" type="date">
+<input id="fin" type="date">
 
 <div class="buttons">
-<button type="button" class="btn-blue" onclick="voirDisponibilite()">عرض القاعات</button>
-<button type="submit" class="btn-green">حفظ / تعديل</button>
+<button type="button" class="btn-blue" onclick="filtrer()">أظهر قائمة الاختيار</button>
+<button type="button" class="btn-red" onclick="deleteSelected()">حذف المحدد</button>
 </div>
 
 </div>
@@ -116,11 +107,9 @@ tr.selected-row { background:#ffdddd; }
 
 <h2>قائمة الحجوزات</h2>
 
-<form method="POST" action="/delete">
-<input type="hidden" name="id" id="delete_id">
-
 <table id="table">
 <tr>
+<th></th>
 <th>ID</th>
 <th>النوع</th>
 <th>الطابق</th>
@@ -134,94 +123,75 @@ tr.selected-row { background:#ffdddd; }
 </tr>
 
 {% for r in data %}
-<tr onclick="selectRow(this, {{ r[0] }})">
-
+<tr onclick="selectRow(this)">
+<td><input type="checkbox" class="row-check" value="{{ r[0] }}"></td>
 <td>{{ r[0] }}</td>
-
-<td>
-{% if r[1] == 'Class' %}قاعة
-{% elif r[1] == 'Lab' %}مختبر
-{% else %}{{ r[1] }}
-{% endif %}
-</td>
-
-<td>
-{% if r[2] == 'ground floor' %}الأرضي
-{% elif r[2] == 'first floor' %}الأول
-{% elif r[2] == 'second floor' %}الثاني
-{% elif r[2] == 'third floor' %}الثالث
-{% elif r[2] == 'fourth floor' %}الرابع
-{% else %}{{ r[2] }}
-{% endif %}
-</td>
-
+<td>{{ r[1] }}</td>
+<td>{{ r[2] }}</td>
 <td>{{ r[3] }}</td>
-
-<td>
-{% if r[4] == 'Male' %}رجال
-{% elif r[4] == 'Female' %}نساء
-{% else %}{{ r[4] }}
-{% endif %}
-</td>
-
-<td>
-{% if r[5] == 'Matin' %}صباحي
-{% elif r[5] == 'Soir' %}مسائي
-{% else %}{{ r[5] }}
-{% endif %}
-</td>
-
+<td>{{ r[4] }}</td>
+<td>{{ r[5] }}</td>
 <td>{{ r[6] }}</td>
 <td>{{ r[7] }}</td>
 <td>{{ r[8] }}</td>
 <td>{{ r[9] }}</td>
-
 </tr>
 {% endfor %}
 </table>
-<br>
-<button class="btn-red">حذف المحدد</button>
-</form>
 
 <script>
 
-function voirDisponibilite(){
-let etage=document.getElementById("etage").value;
-if(!etage){alert("اختر الطابق");return;}
-
-let box=document.getElementById("salles");
-box.style.display="block";
-
-document.querySelectorAll("#salles div").forEach(s=>{
-s.style.display=s.dataset.etage===etage?"block":"none";
-});
+function selectRow(row){
+    row.classList.toggle("selected-row");
+    let checkbox = row.querySelector(".row-check");
+    checkbox.checked = !checkbox.checked;
 }
 
-function selectSalle(el){
-document.querySelectorAll("#salles div").forEach(s=>s.classList.remove("selected"));
-el.classList.add("selected");
-document.getElementById("salle_input").value=el.innerText;
+function filtrer(){
+
+    let etage = document.getElementById("etage").value;
+    let type = document.getElementById("type").value;
+    let genre = document.getElementById("genre").value;
+    let periode = document.getElementById("periode").value;
+
+    let rows = document.querySelectorAll("#table tr");
+
+    rows.forEach((row, i) => {
+        if(i === 0) return;
+
+        let cells = row.children;
+
+        let show = true;
+
+        if(etage && cells[3].innerText !== etage) show = false;
+        if(type && cells[2].innerText !== type) show = false;
+        if(genre && cells[5].innerText !== genre) show = false;
+        if(periode && cells[6].innerText !== periode) show = false;
+
+        row.style.display = show ? "" : "none";
+    });
 }
 
-function selectRow(row,id){
-document.querySelectorAll("#table tr").forEach(r=>r.classList.remove("selected-row"));
-row.classList.add("selected-row");
+function deleteSelected(){
 
-document.getElementById("delete_id").value=id;
-document.getElementById("id").value=id;
-document.getElementById("action").value="update";
+    let selected = document.querySelectorAll(".row-check:checked");
 
-let c=row.children;
+    if(selected.length === 0){
+        alert("اختر عناصر للحذف");
+        return;
+    }
 
-document.getElementById("type").value=c[1].innerText;
-document.getElementById("etage").value=c[2].innerText;
-document.getElementById("salle_input").value=c[3].innerText;
-document.getElementById("genre").value=c[4].innerText;
-document.getElementById("periode").value=c[5].innerText;
-document.getElementById("debut").value=c[6].innerText;
-document.getElementById("fin").value=c[7].innerText;
-document.getElementById("titre").value=c[8].innerText;
-document.getElementById("organisateur").value=c[9].innerText;
+    if(!confirm("هل تريد حذف المحدد؟")) return;
+
+    selected.forEach(el => {
+        fetch("/delete", {
+            method: "POST",
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: "id=" + el.value
+        }).then(() => {
+            el.closest("tr").remove();
+        });
+    });
 }
 
 </script>
