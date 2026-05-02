@@ -3,34 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <title>حجز القاعات</title>
-
 <style>
-body { font-family: Arial; direction: rtl; background:#eee; }
+body{font-family:Arial;background:#eee;margin:20px;direction:rtl}
+h2{margin-bottom:10px}
 
-.grid {
-    display:grid;
-    grid-template-columns: repeat(13, 60px);
-    gap:5px;
-    margin-bottom:20px;
-}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+input,select{height:32px;padding:5px}
 
-.salle {
-    border:1px solid #ccc;
-    padding:8px;
-    text-align:center;
-    cursor:pointer;
-}
+.buttons{display:flex;gap:10px}
+.btn{padding:8px 12px;border:none;cursor:pointer}
+.btn-blue{background:#2f6de1;color:#fff}
+.btn-green{background:#2e8b57;color:#fff}
+.btn-red{background:#c0392b;color:#fff}
 
-.dispo { background:#d4edda; }
-.occupe { background:#f8d7da; }
+#salles_container{background:#fff;border:1px solid #ccc;padding:10px;margin-bottom:10px}
+.floor{margin-bottom:10px}
+.floor h4{margin:5px 0}
+.row{display:flex;gap:5px;flex-wrap:wrap}
+.salle{width:55px;text-align:center;padding:6px;border:1px solid #aaa;background:#f5f5f5;cursor:pointer}
+.salle.dispo{background:#b8f5b8}
+.salle.occupe{background:#f5b8b8}
+.salle.selected{outline:2px solid #2f6de1}
 
-.selected-row { background:#ffe0e0; }
-
-table { width:100%; background:white; border-collapse:collapse; }
-td,th { border:1px solid #ccc; padding:5px; text-align:center; }
-
-.btn { padding:8px; border:none; cursor:pointer; }
-.blue { background:#2f6de1; color:white; }
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{border:1px solid #ccc;padding:6px;text-align:center}
+tr.selected-row{background:#ffe0e0}
 </style>
 </head>
 
@@ -38,23 +35,144 @@ td,th { border:1px solid #ccc; padding:5px; text-align:center; }
 
 <h2>حجز القاعات</h2>
 
-<div>
-<input type="date" id="debut">
-<input type="date" id="fin">
-<button class="btn blue" onclick="loadDispo()">عرض القاعات</button>
+<form method="POST" id="mainForm">
+<input type="hidden" name="id" id="id">
+<input type="hidden" name="action" id="action">
+
+<div class="toolbar">
+<input id="titre" name="titre" placeholder="عنوان الدورة">
+<input id="organisateur" name="organisateur" placeholder="المنظم">
+
+<select id="etage" name="etage">
+<option value="">الطابق</option>
+<option value="ground floor">الأرضي</option>
+<option value="first floor">الأول</option>
+<option value="second floor">الثاني</option>
+<option value="third floor">الثالث</option>
+<option value="fourth floor">الرابع</option>
+</select>
+
+<select id="type" name="type">
+<option value="">النوع</option>
+<option value="Class">قاعة</option>
+<option value="Lab">مختبر</option>
+</select>
+
+<select id="genre" name="genre">
+<option value="">الجنس</option>
+<option value="Male">رجال</option>
+<option value="Female">نساء</option>
+</select>
+
+<select id="periode" name="periode">
+<option value="">الفترة</option>
+<option value="Matin">صباحي</option>
+<option value="Soir">مسائي</option>
+</select>
+
+<input id="debut" type="date" name="debut">
+<input id="fin" type="date" name="fin">
+
+<input id="salle_input" name="salle" placeholder="القاعة" readonly>
+
+<div class="buttons">
+<button type="button" class="btn btn-blue" onclick="loadDispo()">عرض القاعات</button>
+<button type="submit" class="btn btn-green">حفظ / تعديل</button>
+</div>
 </div>
 
-<br>
+</form>
 
-<div id="grid" class="grid">
-{% for s in salles %}
-<div class="salle" data-salle="{{ s }}" onclick="assignSalle(this)">
-{{ s }}
+<!-- ===== شبكة القاعات ===== -->
+<div id="salles_container">
+
+<div class="floor">
+<h4>الطابق الأرضي</h4>
+<div class="row">
+<div class="salle" data-salle="G 11">G 11</div>
+<div class="salle" data-salle="G 12">G 12</div>
+<div class="salle" data-salle="G 13">G 13</div>
 </div>
-{% endfor %}
 </div>
 
-<h3>قائمة الحجوزات</h3>
+<div class="floor">
+<h4>الطابق الأول</h4>
+<div class="row">
+<div class="salle" data-salle="L1 04">L1 04</div>
+<div class="salle" data-salle="L1 05">L1 05</div>
+<div class="salle" data-salle="L1 08">L1 08</div>
+<div class="salle" data-salle="L1 18">L1 18</div>
+<div class="salle" data-salle="L1 19">L1 19</div>
+<div class="salle" data-salle="L1 20">L1 20</div>
+<div class="salle" data-salle="L1 21">L1 21</div>
+<div class="salle" data-salle="L1 22">L1 22</div>
+<div class="salle" data-salle="L1 26">L1 26</div>
+</div>
+</div>
+
+<div class="floor">
+<h4>الطابق الثاني</h4>
+<div class="row">
+<div class="salle" data-salle="L2 08">L2 08</div>
+<div class="salle" data-salle="L2 09">L2 09</div>
+<div class="salle" data-salle="L2 10">L2 10</div>
+<div class="salle" data-salle="L2 11">L2 11</div>
+<div class="salle" data-salle="L2 14">L2 14</div>
+<div class="salle" data-salle="L2 28">L2 28</div>
+<div class="salle" data-salle="L2 29">L2 29</div>
+<div class="salle" data-salle="L2 30">L2 30</div>
+<div class="salle" data-salle="L2 31">L2 31</div>
+<div class="salle" data-salle="L2 32">L2 32</div>
+<div class="salle" data-salle="L2 33">L2 33</div>
+<div class="salle" data-salle="L2 34">L2 34</div>
+<div class="salle" data-salle="L2 35">L2 35</div>
+</div>
+</div>
+
+<div class="floor">
+<h4>الطابق الثالث</h4>
+<div class="row">
+<div class="salle" data-salle="L3 08">L3 08</div>
+<div class="salle" data-salle="L3 09">L3 09</div>
+<div class="salle" data-salle="L3 10">L3 10</div>
+<div class="salle" data-salle="L3 11">L3 11</div>
+<div class="salle" data-salle="L3 13">L3 13</div>
+<div class="salle" data-salle="L3 27">L3 27</div>
+<div class="salle" data-salle="L3 28">L3 28</div>
+<div class="salle" data-salle="L3 29">L3 29</div>
+<div class="salle" data-salle="L3 30">L3 30</div>
+<div class="salle" data-salle="L3 31">L3 31</div>
+<div class="salle" data-salle="L3 32">L3 32</div>
+<div class="salle" data-salle="L3 33">L3 33</div>
+<div class="salle" data-salle="L3 34">L3 34</div>
+</div>
+</div>
+
+<div class="floor">
+<h4>الطابق الرابع</h4>
+<div class="row">
+<div class="salle" data-salle="L4 08">L4 08</div>
+<div class="salle" data-salle="L4 09">L4 09</div>
+<div class="salle" data-salle="L4 10">L4 10</div>
+<div class="salle" data-salle="L4 11">L4 11</div>
+<div class="salle" data-salle="L4 14">L4 14</div>
+<div class="salle" data-salle="L4 29">L4 29</div>
+<div class="salle" data-salle="L4 30">L4 30</div>
+<div class="salle" data-salle="L4 31">L4 31</div>
+<div class="salle" data-salle="L4 32">L4 32</div>
+<div class="salle" data-salle="L4 33">L4 33</div>
+<div class="salle" data-salle="L4 34">L4 34</div>
+<div class="salle" data-salle="L4 35">L4 35</div>
+<div class="salle" data-salle="L4 36">L4 36</div>
+</div>
+</div>
+
+</div>
+
+<h2>قائمة الحجوزات</h2>
+
+<form method="POST" action="/delete" id="deleteForm">
+<input type="hidden" name="id" id="delete_id">
 
 <table id="table">
 <tr>
@@ -71,57 +189,54 @@ td,th { border:1px solid #ccc; padding:5px; text-align:center; }
 {% endfor %}
 </table>
 
-<script>
+<br>
+<button type="submit" class="btn btn-red">حذف المحدد</button>
+</form>
 
+<script>
 let selectedId = null;
 
-function selectRow(row, id){
+function selectRow(row,id){
     document.querySelectorAll("#table tr").forEach(r=>r.classList.remove("selected-row"));
     row.classList.add("selected-row");
     selectedId = id;
+    document.getElementById("delete_id").value = id;
 }
 
 function loadDispo(){
-    let debut = document.getElementById("debut").value;
-    let fin = document.getElementById("fin").value;
+    let debut=document.getElementById("debut").value;
+    let fin=document.getElementById("fin").value;
 
-    fetch("/disponibilite", {
+    fetch("/disponibilite",{
         method:"POST",
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({debut:debut, fin:fin})
+        body:JSON.stringify({debut:debut,fin:fin})
     })
     .then(res=>res.json())
     .then(data=>{
         document.querySelectorAll(".salle").forEach(el=>{
-            let nom = el.dataset.salle;
-
-            if(data.occupees.includes(nom)){
-                el.classList.remove("dispo");
+            let s=el.dataset.salle;
+            el.classList.remove("dispo","occupe");
+            if(data.occupees.includes(s)){
                 el.classList.add("occupe");
-            } else {
-                el.classList.remove("occupe");
+            }else{
                 el.classList.add("dispo");
             }
         });
     });
 }
 
-function assignSalle(el){
-    if(!selectedId){
-        alert("اختر حجز من الجدول");
-        return;
+document.querySelectorAll(".salle").forEach(el=>{
+    el.onclick=function(){
+        if(!selectedId){ alert("اختر حجز من الجدول"); return; }
+
+        fetch("/assign",{
+            method:"POST",
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({id:selectedId,salle:el.dataset.salle})
+        }).then(()=>location.reload());
     }
-
-    fetch("/assign", {
-        method:"POST",
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-            id: selectedId,
-            salle: el.dataset.salle
-        })
-    }).then(()=>location.reload());
-}
-
+});
 </script>
 
 </body>
