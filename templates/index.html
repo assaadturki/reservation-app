@@ -1,217 +1,235 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Réservation</title>
+    <title>Réservation</title>
 
-<style>
-body { font-family: Arial; background:#f5f5f5; margin:20px; }
+    <style>
+        body {
+            font-family: Arial;
+            background: #eee;
+            margin: 20px;
+        }
 
-.container {
-    display:grid;
-    grid-template-columns: 1fr 250px;
-    gap:20px;
-}
+        h2 {
+            margin-bottom: 10px;
+        }
 
-.form-row {
-    display:flex;
-    gap:10px;
-    margin-bottom:10px;
-}
+        /* ===== LIGNE PRINCIPALE ===== */
+        .top-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-input, select {
-    height:32px;
-    padding:5px;
-    border:1px solid #ccc;
-}
+        input, select {
+            height: 30px;
+            padding: 5px;
+            min-width: 120px;
+        }
 
-.w1 { width:180px; }
-.w2 { width:200px; }
-.w3 { width:140px; }
+        .small {
+            width: 100px;
+        }
 
-.box {
-    background:white;
-    border:1px solid #ccc;
-    padding:10px;
-    height:200px;
-    overflow:auto;
-}
+        .date {
+            width: 140px;
+        }
 
-.box div { padding:4px; cursor:pointer; }
-.box div:hover { background:#eee; }
+        /* ===== BLOC SALLES ===== */
+        .salle-box {
+            border: 1px solid #ccc;
+            background: #fff;
+            width: 140px;
+            height: 160px;
+            overflow-y: auto;
+            font-size: 13px;
+        }
 
-.btn {
-    width:100%;
-    padding:10px;
-    border:none;
-    color:white;
-    cursor:pointer;
-    margin-top:10px;
-}
+        .salle-box div {
+            padding: 3px;
+            cursor: pointer;
+        }
 
-.blue { background:#2d6cdf; }
-.green { background:#2e8b57; }
-.red { background:#c0392b; }
+        .salle-box div:hover {
+            background: #ddd;
+        }
 
-table {
-    width:100%;
-    border-collapse: collapse;
-    margin-top:20px;
-    background:white;
-}
+        .selected {
+            background: blue;
+            color: white;
+        }
 
-th, td {
-    border:1px solid #ccc;
-    padding:6px;
-    text-align:center;
-}
+        /* ===== BOUTONS ===== */
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-left: 10px;
+        }
 
-th { background:#eee; }
-</style>
+        .btn-blue {
+            background: #2f6de1;
+            color: white;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+        }
 
-<script>
+        .btn-green {
+            background: #2e8b57;
+            color: white;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+        }
 
-const SALLES = {{ salles|tojson }};
-let selectedRow = null;
+        .btn-red {
+            background: #c0392b;
+            color: white;
+            border: none;
+            padding: 10px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
 
-function filterSalles() {
-    let etage = document.getElementById("etage").value;
-    let container = document.getElementById("salles_list");
+        /* ===== TABLE ===== */
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            background: white;
+        }
 
-    container.innerHTML = "";
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            font-size: 13px;
+            text-align: center;
+        }
 
-    if (!etage) return;
+        th {
+            background: #f2f2f2;
+        }
 
-    let filtered = SALLES.filter(s => s.etage === etage);
-
-    filtered.forEach(s => {
-        let div = document.createElement("div");
-        div.innerText = s.nom;
-
-        div.onclick = function(){
-            document.getElementById("salle").value = s.nom;
-        };
-
-        container.appendChild(div);
-    });
-}
-
-function selectRow(row, id){
-    if (selectedRow){
-        selectedRow.style.background="";
-        selectedRow.style.color="";
-    }
-    row.style.background="blue";
-    row.style.color="white";
-    selectedRow=row;
-    document.getElementById("selected_id").value=id;
-}
-
-</script>
+    </style>
 </head>
 
 <body>
 
 <h2>Réservation</h2>
 
-{% if erreur %}
-<p style="color:red">{{ erreur }}</p>
-{% endif %}
-
 <form method="POST">
 
-<div class="container">
+<div class="top-row">
 
-<div>
+    <input name="titre" placeholder="Titre">
+    <input name="organisateur" placeholder="Organisateur">
 
-<div class="form-row">
-<input class="w2" name="titre" placeholder="Titre">
-<input class="w2" name="organisateur" placeholder="Organisateur">
-<input class="w3" type="date" name="debut">
-<input class="w3" type="date" name="fin">
-</div>
+    <select name="etage" id="etage" onchange="filtrerSalles()">
+        <option value="">Etage</option>
+        <option value="ground floor">Ground</option>
+        <option value="first floor">1 er</option>
+        <option value="second floor">2 eme</option>
+        <option value="third floor">3 eme</option>
+        <option value="fourth floor">4 eme</option>
+    </select>
 
-<div class="form-row">
-<select id="etage" class="w3" name="etage" onchange="filterSalles()">
-<option value="">Etage</option>
-<option value="ground floor">Ground</option>
-<option value="first floor">1 er</option>
-<option value="second floor">2 eme</option>
-<option value="third floor">3 eme</option>
-<option value="fourth floor">4 eme</option>
-</select>
+    <select name="type">
+        <option>Class</option>
+        <option>Lab</option>
+    </select>
 
-<select class="w3" name="type">
-<option>Class</option>
-<option>Lab</option>
-</select>
+    <select name="genre">
+        <option>Male</option>
+        <option>Female</option>
+    </select>
 
-<select class="w3" name="genre">
-<option>Male</option>
-<option>Female</option>
-</select>
+    <select name="periode">
+        <option>Matin</option>
+        <option>Soir</option>
+    </select>
 
-<select class="w3" name="periode">
-<option>Matin</option>
-<option>Soir</option>
-</select>
+    <input type="date" name="debut" class="date">
+    <input type="date" name="fin" class="date">
 
-<input id="salle" class="w3" name="salle" placeholder="Salle">
-</div>
+    <input id="salle_input" name="salle" placeholder="Salle" readonly>
 
-</div>
+    <!-- ===== LISTE SALLES ===== -->
+    <div class="salle-box" id="salles">
+        {% for s in salles %}
+        <div data-etage="{{ s.etage }}" onclick="selectSalle(this)">
+            {{ s.nom }}
+        </div>
+        {% endfor %}
+    </div>
 
-<div>
-
-<div class="box">
-<b>Selection Salle</b>
-<div id="salles_list"></div>
-</div>
-
-<button class="btn blue" name="action" value="dispo">voir disponibilité</button>
-<button class="btn green" name="action" value="reserver">Réserver</button>
+    <!-- ===== BOUTONS ===== -->
+    <div class="buttons">
+        <button type="button" class="btn-blue">voir disponibilité</button>
+        <button type="submit" class="btn-green">Réserver</button>
+    </div>
 
 </div>
 
-</div>
+</form>
 
-<input type="hidden" id="selected_id" name="selected_id">
+<h2>Liste des réservation</h2>
 
 <table>
 <tr>
-<th>ID</th>
-<th>Type</th>
-<th>Etage</th>
-<th>Salle</th>
-<th>Genre</th>
-<th>Période</th>
-<th>Début</th>
-<th>Fin</th>
-<th>Titre</th>
-<th>Organisateur</th>
+    <th>ID</th>
+    <th>Type</th>
+    <th>Etage</th>
+    <th>Salle</th>
+    <th>Genre</th>
+    <th>Période</th>
+    <th>Début</th>
+    <th>Fin</th>
+    <th>Titre</th>
+    <th>Organisateur</th>
 </tr>
 
 {% for r in data %}
-<tr onclick="selectRow(this,'{{r[0]}}')">
-<td>{{r[0]}}</td>
-<td>{{r[1]}}</td>
-<td>{{r[3]}}</td>
-<td>{{r[2]}}</td>
-<td>{{r[4]}}</td>
-<td>{{r[5]}}</td>
-<td>{{r[6]}}</td>
-<td>{{r[7]}}</td>
-<td>{{r[8]}}</td>
-<td>{{r[9]}}</td>
+<tr>
+    <td>{{ r[0] }}</td>
+    <td>{{ r[1] }}</td>
+    <td>{{ r[3] }}</td>
+    <td>{{ r[2] }}</td>
+    <td>{{ r[4] }}</td>
+    <td>{{ r[8] }}</td>
+    <td>{{ r[6] }}</td>
+    <td>{{ r[7] }}</td>
+    <td>{{ r[5] }}</td>
+    <td>{{ r[6] }}</td>
 </tr>
 {% endfor %}
 </table>
 
-<button class="btn red" name="action" value="delete">
-Supprimer Réservation
-</button>
-
+<form method="POST" action="/delete_all">
+    <button class="btn-red">Supprimer Réservation</button>
 </form>
+
+<!-- ===== SCRIPT ===== -->
+<script>
+function filtrerSalles() {
+    let etage = document.getElementById("etage").value;
+    let salles = document.querySelectorAll("#salles div");
+
+    salles.forEach(s => {
+        if (s.getAttribute("data-etage") === etage || etage === "") {
+            s.style.display = "block";
+        } else {
+            s.style.display = "none";
+        }
+    });
+}
+
+function selectSalle(el) {
+    document.querySelectorAll("#salles div").forEach(s => s.classList.remove("selected"));
+    el.classList.add("selected");
+    document.getElementById("salle_input").value = el.innerText;
+}
+</script>
 
 </body>
 </html>
