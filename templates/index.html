@@ -1,127 +1,117 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Réservation</title>
+<title>Réservation</title>
 
-    <style>
-        body { font-family: Arial; background:#eee; margin:20px; }
+<style>
+body { font-family: Arial; background:#eee; margin:20px; }
 
-        .top-row { display:flex; gap:10px; align-items:center; }
+.top-row { display:flex; gap:10px; align-items:center; }
 
-        input, select {
-            height:30px;
-            padding:5px;
-        }
+input, select { height:30px; padding:5px; }
 
-        .salle-box {
-            border:1px solid #ccc;
-            background:white;
-            width:80px;
-            height:280px;
-            overflow-y:auto;
-            font-size: 11px;
-            display:none;
-        }
+.salle-box {
+    border:1px solid #ccc;
+    background:white;
+    width:120px;
+    height:260px;
+    overflow-y:auto;
+    font-size:12px;
+    display:none;
+}
 
-        .salle-box div {
-            padding:4px;
-            cursor:pointer;
-        }
+.salle-box div { padding:4px; cursor:pointer; }
+.selected { background:blue; color:white; }
 
-        .selected { background:blue; color:white; }
+.buttons { display:flex; flex-direction:column; gap:10px; }
 
-        .buttons {
-            display:flex;
-            flex-direction:column;
-            gap:10px;
-        }
+.btn-blue { background:#2f6de1; color:white; padding:8px; border:none; }
+.btn-green { background:#2e8b57; color:white; padding:8px; border:none; }
+.btn-red { background:#c0392b; color:white; padding:8px; border:none; }
 
-        .btn-blue { background:#2f6de1; color:white; padding:8px; border:none; }
-        .btn-green { background:#2e8b57; color:white; padding:8px; border:none; }
-        .btn-orange { background:orange; color:white; padding:8px; border:none; }
-        .btn-red { background:#c0392b; color:white; padding:8px; border:none; }
+table {
+    width:100%;
+    margin-top:20px;
+    border-collapse:collapse;
+    background:white;
+}
 
-        table {
-            width:100%;
-            margin-top:20px;
-            border-collapse:collapse;
-            background:white;
-        }
+td, th {
+    border:1px solid #ccc;
+    padding:6px;
+    text-align:center;
+}
 
-        td, th {
-            border:1px solid #ccc;
-            padding:6px;
-            text-align:center;
-        }
-
-        tr.selected-row {
-            background:#ffdddd;
-        }
-
-    </style>
+tr.selected-row { background:#ffdddd; }
+</style>
 </head>
 
 <body>
 
 <h2>Réservation</h2>
 
-<form method="POST" id="form">
+<div style="margin-bottom:10px;">
+<a href="/export"><button class="btn-blue">Export Excel</button></a>
+
+<form action="/import" method="POST" enctype="multipart/form-data" style="display:inline;">
+<input type="file" name="file">
+<button class="btn-green">Import Excel</button>
+</form>
+</div>
+
+<form method="POST">
 
 <input type="hidden" name="id" id="id">
-<input type="hidden" name="action" id="action" value="add">
+<input type="hidden" name="action" id="action">
 
 <div class="top-row">
 
-    <input name="titre" id="titre" placeholder="Titre">
-    <input name="organisateur" id="organisateur" placeholder="Organisateur">
+<input id="titre" name="titre" placeholder="Titre">
+<input id="organisateur" name="organisateur" placeholder="Organisateur">
 
-    <select id="etage" name="etage">
-        <option value="">Etage</option>
-        <option value="ground floor">Ground</option>
-        <option value="first floor">1 er</option>
-        <option value="second floor">2 eme</option>
-        <option value="third floor">3 eme</option>
-        <option value="fourth floor">4 eme</option>
-    </select>
+<select id="etage" name="etage">
+<option value="">Etage</option>
+<option value="ground floor">Ground</option>
+<option value="first floor">1er</option>
+<option value="second floor">2eme</option>
+<option value="third floor">3eme</option>
+<option value="fourth floor">4eme</option>
+</select>
 
-    <select name="type" id="type">
-        <option>Class</option>
-        <option>Lab</option>
-    </select>
+<select id="type" name="type">
+<option>Class</option>
+<option>Lab</option>
+</select>
 
-    <select name="genre" id="genre">
-        <option>Male</option>
-        <option>Female</option>
-    </select>
+<select id="genre" name="genre">
+<option>Male</option>
+<option>Female</option>
+</select>
 
-    <select name="periode" id="periode">
-        <option>Matin</option>
-        <option>Soir</option>
-    </select>
+<select id="periode" name="periode">
+<option>Matin</option>
+<option>Soir</option>
+</select>
 
-    <input type="date" name="debut" id="debut">
-    <input type="date" name="fin" id="fin">
+<input id="debut" type="date" name="debut">
+<input id="fin" type="date" name="fin">
 
-    <input id="salle_input" name="salle" placeholder="Salle" readonly>
+<input id="salle_input" name="salle" placeholder="Salle" readonly>
 
-    <div class="salle-box" id="salles">
-        {% for s in salles %}
-        <div data-etage="{{ s.etage }}" onclick="selectSalle(this)">
-            {{ s.nom }}
-        </div>
-        {% endfor %}
-    </div>
-
-    <div class="buttons">
-        <button type="button" class="btn-blue" onclick="voirDisponibilite()">voir disponibilité</button>
-
-        <button type="submit" class="btn-green" id="saveBtn">Réserver</button>
-
-        <button type="button" class="btn-orange" onclick="activerModification()">Modifier</button>
-    </div>
-
+<div class="salle-box" id="salles">
+{% for s in salles %}
+<div data-etage="{{ s.etage }}" onclick="selectSalle(this)">
+{{ s.nom }}
+</div>
+{% endfor %}
 </div>
 
+<div class="buttons">
+<button type="button" class="btn-blue" onclick="voirDisponibilite()">voir disponibilité</button>
+<button type="submit" class="btn-green">Réserver / Modifier</button>
+</div>
+
+</div>
 </form>
 
 <h2>Liste</h2>
@@ -131,93 +121,69 @@
 
 <table id="table">
 <tr>
-    <th>ID</th><th>Type</th><th>Etage</th><th>Salle</th>
-    <th>Genre</th><th>Période</th><th>Début</th><th>Fin</th>
-    <th>Titre</th><th>Organisateur</th>
+<th>ID</th><th>Type</th><th>Etage</th><th>Salle</th>
+<th>Genre</th><th>Période</th><th>Début</th><th>Fin</th>
+<th>Titre</th><th>Organisateur</th>
 </tr>
 
 {% for r in data %}
-<tr onclick="selectRow(this)"
-    data-id="{{ r[0] }}"
-    data-type="{{ r[1] }}"
-    data-etage="{{ r[2] }}"
-    data-salle="{{ r[3] }}"
-    data-genre="{{ r[4] }}"
-    data-periode="{{ r[5] }}"
-    data-debut="{{ r[6] }}"
-    data-fin="{{ r[7] }}"
-    data-titre="{{ r[8] }}"
-    data-org="{{ r[9] }}"
->
-    <td>{{ r[0] }}</td>
-    <td>{{ r[1] }}</td>
-    <td>{{ r[2] }}</td>
-    <td>{{ r[3] }}</td>
-    <td>{{ r[4] }}</td>
-    <td>{{ r[5] }}</td>
-    <td>{{ r[6] }}</td>
-    <td>{{ r[7] }}</td>
-    <td>{{ r[8] }}</td>
-    <td>{{ r[9] }}</td>
+<tr onclick="selectRow(this, {{ r[0] }})">
+<td>{{ r[0] }}</td>
+<td>{{ r[1] }}</td>
+<td>{{ r[2] }}</td>
+<td>{{ r[3] }}</td>
+<td>{{ r[4] }}</td>
+<td>{{ r[5] }}</td>
+<td>{{ r[6] }}</td>
+<td>{{ r[7] }}</td>
+<td>{{ r[8] }}</td>
+<td>{{ r[9] }}</td>
 </tr>
 {% endfor %}
-
 </table>
 
 <br>
-<button type="submit" class="btn-red">Supprimer sélection</button>
-
+<button class="btn-red">Supprimer sélection</button>
 </form>
 
 <script>
 
-function voirDisponibilite() {
-    let etage = document.getElementById("etage").value;
-    if (!etage) { alert("Choisir étage"); return; }
+function voirDisponibilite(){
+let etage=document.getElementById("etage").value;
+if(!etage){alert("Choisir étage");return;}
+let box=document.getElementById("salles");
+box.style.display="block";
 
-    let box = document.getElementById("salles");
-    box.style.display = "block";
-
-    document.querySelectorAll("#salles div").forEach(s => {
-        s.style.display = s.dataset.etage === etage ? "block" : "none";
-    });
+document.querySelectorAll("#salles div").forEach(s=>{
+s.style.display=s.dataset.etage===etage?"block":"none";
+});
 }
 
-function selectSalle(el) {
-    document.querySelectorAll("#salles div").forEach(s => s.classList.remove("selected"));
-    el.classList.add("selected");
-    document.getElementById("salle_input").value = el.innerText;
+function selectSalle(el){
+document.querySelectorAll("#salles div").forEach(s=>s.classList.remove("selected"));
+el.classList.add("selected");
+document.getElementById("salle_input").value=el.innerText;
 }
 
-function selectRow(row) {
+function selectRow(row,id){
+document.querySelectorAll("#table tr").forEach(r=>r.classList.remove("selected-row"));
+row.classList.add("selected-row");
 
-    document.querySelectorAll("#table tr").forEach(r => r.classList.remove("selected-row"));
-    row.classList.add("selected-row");
+document.getElementById("delete_id").value=id;
+document.getElementById("id").value=id;
+document.getElementById("action").value="update";
 
-    let data = row.dataset;
+let cells=row.children;
 
-    document.getElementById("delete_id").value = data.id;
-
-    document.getElementById("id").value = data.id;
-    document.getElementById("type").value = data.type;
-    document.getElementById("etage").value = data.etage;
-    document.getElementById("salle_input").value = data.salle;
-    document.getElementById("genre").value = data.genre;
-    document.getElementById("periode").value = data.periode;
-    document.getElementById("debut").value = data.debut;
-    document.getElementById("fin").value = data.fin;
-    document.getElementById("titre").value = data.titre;
-    document.getElementById("organisateur").value = data.org;
-}
-
-function activerModification() {
-    if (!document.getElementById("id").value) {
-        alert("Sélectionne une ligne d'abord");
-        return;
-    }
-
-    document.getElementById("action").value = "update";
-    document.getElementById("saveBtn").innerText = "Confirmer modification";
+document.getElementById("type").value=cells[1].innerText;
+document.getElementById("etage").value=cells[2].innerText;
+document.getElementById("salle_input").value=cells[3].innerText;
+document.getElementById("genre").value=cells[4].innerText;
+document.getElementById("periode").value=cells[5].innerText;
+document.getElementById("debut").value=cells[6].innerText;
+document.getElementById("fin").value=cells[7].innerText;
+document.getElementById("titre").value=cells[8].innerText;
+document.getElementById("organisateur").value=cells[9].innerText;
 }
 
 </script>
