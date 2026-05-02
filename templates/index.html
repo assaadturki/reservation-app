@@ -1,197 +1,125 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar">
 <head>
+<meta charset="UTF-8">
 <title>حجز القاعات</title>
 
 <style>
-body { font-family: Arial; background:#eee; margin:20px; direction: rtl; }
+body { font-family: Arial; direction: rtl; background:#eee; }
 
-.top-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-
-input, select { height:30px; padding:5px; }
-
-.salle-box {
-    border:1px solid #ccc;
-    background:white;
-    width:120px;
-    height:260px;
-    overflow-y:auto;
-    font-size:12px;
-    display:none;
+.grid {
+    display:grid;
+    grid-template-columns: repeat(13, 60px);
+    gap:5px;
+    margin-bottom:20px;
 }
 
-.salle-box div { padding:4px; cursor:pointer; }
-.selected { background:blue; color:white; }
-
-.buttons { display:flex; flex-direction:column; gap:10px; }
-
-.btn-blue { background:#2f6de1; color:white; padding:8px; border:none; cursor:pointer;}
-.btn-green { background:#2e8b57; color:white; padding:8px; border:none; cursor:pointer;}
-.btn-red { background:#c0392b; color:white; padding:8px; border:none; cursor:pointer;}
-
-table {
-    width:100%;
-    margin-top:20px;
-    border-collapse:collapse;
-    background:white;
-}
-
-td, th {
+.salle {
     border:1px solid #ccc;
-    padding:6px;
+    padding:8px;
     text-align:center;
+    cursor:pointer;
 }
 
-tr.selected-row { background:#ffcccc; }
-.hidden { display:none; }
+.dispo { background:#d4edda; }
+.occupe { background:#f8d7da; }
+
+.selected-row { background:#ffe0e0; }
+
+table { width:100%; background:white; border-collapse:collapse; }
+td,th { border:1px solid #ccc; padding:5px; text-align:center; }
+
+.btn { padding:8px; border:none; cursor:pointer; }
+.blue { background:#2f6de1; color:white; }
 </style>
 </head>
 
 <body>
 
-<h2>حجز القاعة</h2>
+<h2>حجز القاعات</h2>
 
-<div style="margin-bottom:10px;">
-<a href="/export"><button class="btn-blue">تصدير إكسل</button></a>
-
-<form action="/import" method="POST" enctype="multipart/form-data" style="display:inline;">
-<input type="file" name="file">
-<button class="btn-green">استيراد إكسل</button>
-</form>
+<div>
+<input type="date" id="debut">
+<input type="date" id="fin">
+<button class="btn blue" onclick="loadDispo()">عرض القاعات</button>
 </div>
 
-<form method="POST">
+<br>
 
-<div class="top-row">
-
-<input id="titre" placeholder="العنوان">
-<input id="organisateur" placeholder="المنظم">
-
-<select id="etage">
-<option value="">الطابق</option>
-<option value="ground floor">الأرضي</option>
-<option value="first floor">الأول</option>
-<option value="second floor">الثاني</option>
-<option value="third floor">الثالث</option>
-<option value="fourth floor">الرابع</option>
-</select>
-
-<select id="type">
-<option value="">النوع</option>
-<option value="Class">قاعة</option>
-<option value="Lab">مختبر</option>
-</select>
-
-<select id="genre">
-<option value="">الجنس</option>
-<option value="Male">رجال</option>
-<option value="Female">نساء</option>
-</select>
-
-<select id="periode">
-<option value="">الفترة</option>
-<option value="Matin">صباحي</option>
-<option value="Soir">مسائي</option>
-</select>
-
-<input id="debut" type="date">
-<input id="fin" type="date">
-
-<div class="buttons">
-<button type="button" class="btn-blue" onclick="filtrer()">أظهر قائمة الاختيار</button>
-<button type="button" class="btn-red" onclick="deleteSelected()">حذف المحدد</button>
+<div id="grid" class="grid">
+{% for s in salles %}
+<div class="salle" data-salle="{{ s }}" onclick="assignSalle(this)">
+{{ s }}
+</div>
+{% endfor %}
 </div>
 
-</div>
-</form>
-
-<h2>قائمة الحجوزات</h2>
+<h3>قائمة الحجوزات</h3>
 
 <table id="table">
 <tr>
-<th></th>
-<th>ID</th>
-<th>النوع</th>
-<th>الطابق</th>
-<th>القاعة</th>
-<th>الجنس</th>
-<th>الفترة</th>
-<th>البداية</th>
-<th>النهاية</th>
-<th>العنوان</th>
-<th>المنظم</th>
+<th>ID</th><th>القاعة</th><th>البداية</th><th>النهاية</th>
 </tr>
 
 {% for r in data %}
-<tr onclick="selectRow(this)">
-<td><input type="checkbox" class="row-check" value="{{ r[0] }}"></td>
+<tr onclick="selectRow(this, {{ r[0] }})">
 <td>{{ r[0] }}</td>
-<td>{{ r[1] }}</td>
-<td>{{ r[2] }}</td>
 <td>{{ r[3] }}</td>
-<td>{{ r[4] }}</td>
-<td>{{ r[5] }}</td>
 <td>{{ r[6] }}</td>
 <td>{{ r[7] }}</td>
-<td>{{ r[8] }}</td>
-<td>{{ r[9] }}</td>
 </tr>
 {% endfor %}
 </table>
 
 <script>
 
-function selectRow(row){
-    row.classList.toggle("selected-row");
-    let checkbox = row.querySelector(".row-check");
-    checkbox.checked = !checkbox.checked;
+let selectedId = null;
+
+function selectRow(row, id){
+    document.querySelectorAll("#table tr").forEach(r=>r.classList.remove("selected-row"));
+    row.classList.add("selected-row");
+    selectedId = id;
 }
 
-function filtrer(){
+function loadDispo(){
+    let debut = document.getElementById("debut").value;
+    let fin = document.getElementById("fin").value;
 
-    let etage = document.getElementById("etage").value;
-    let type = document.getElementById("type").value;
-    let genre = document.getElementById("genre").value;
-    let periode = document.getElementById("periode").value;
+    fetch("/disponibilite", {
+        method:"POST",
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({debut:debut, fin:fin})
+    })
+    .then(res=>res.json())
+    .then(data=>{
+        document.querySelectorAll(".salle").forEach(el=>{
+            let nom = el.dataset.salle;
 
-    let rows = document.querySelectorAll("#table tr");
-
-    rows.forEach((row, i) => {
-        if(i === 0) return;
-
-        let cells = row.children;
-
-        let show = true;
-
-        if(etage && cells[3].innerText !== etage) show = false;
-        if(type && cells[2].innerText !== type) show = false;
-        if(genre && cells[5].innerText !== genre) show = false;
-        if(periode && cells[6].innerText !== periode) show = false;
-
-        row.style.display = show ? "" : "none";
+            if(data.occupees.includes(nom)){
+                el.classList.remove("dispo");
+                el.classList.add("occupe");
+            } else {
+                el.classList.remove("occupe");
+                el.classList.add("dispo");
+            }
+        });
     });
 }
 
-function deleteSelected(){
-
-    let selected = document.querySelectorAll(".row-check:checked");
-
-    if(selected.length === 0){
-        alert("اختر عناصر للحذف");
+function assignSalle(el){
+    if(!selectedId){
+        alert("اختر حجز من الجدول");
         return;
     }
 
-    if(!confirm("هل تريد حذف المحدد؟")) return;
-
-    selected.forEach(el => {
-        fetch("/delete", {
-            method: "POST",
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: "id=" + el.value
-        }).then(() => {
-            el.closest("tr").remove();
-        });
-    });
+    fetch("/assign", {
+        method:"POST",
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+            id: selectedId,
+            salle: el.dataset.salle
+        })
+    }).then(()=>location.reload());
 }
 
 </script>
