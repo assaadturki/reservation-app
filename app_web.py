@@ -7,6 +7,7 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "reservations.db")
 
+
 SALLES = [
     {"nom": "G 11", "etage": "ground floor"},
     {"nom": "G 12", "etage": "ground floor"},
@@ -67,7 +68,7 @@ SALLES = [
 
 
 def get_db():
-    return sqlite3.connect(DB_PATH, check_same_thread=False)
+    return sqlite3.connect(DB_PATH)
 
 
 def init_db():
@@ -91,46 +92,21 @@ def init_db():
     conn.close()
 
 
-init_db()
-
-
 @app.route("/", methods=["GET", "POST"])
 def index():
     conn = get_db()
     cur = conn.cursor()
-
-    salles_filtrees = SALLES
     erreur = None
 
     if request.method == "POST":
         action = request.form.get("action")
 
-        # 🔴 DELETE
         if action == "delete":
             selected_id = request.form.get("selected_id")
             if selected_id:
                 cur.execute("DELETE FROM reservations WHERE id=?", (selected_id,))
                 conn.commit()
 
-        # 🔵 DISPONIBILITÉ
-        elif action == "dispo":
-            debut = request.form.get("debut")
-            fin = request.form.get("fin")
-            periode = request.form.get("periode")
-
-            salles_filtrees = []
-
-            for s in SALLES:
-                cur.execute("""
-                    SELECT * FROM reservations
-                    WHERE salle=? AND periode=?
-                    AND (date_debut <= ? AND date_fin >= ?)
-                """, (s["nom"], periode, fin, debut))
-
-                if not cur.fetchone():
-                    salles_filtrees.append(s)
-
-        # 🟢 RESERVER
         elif action == "reserver":
             salle = request.form.get("salle")
             debut = request.form.get("debut")
@@ -167,8 +143,9 @@ def index():
     data = cur.fetchall()
     conn.close()
 
-    return render_template("index.html", data=data, salles=salles_filtrees, erreur=erreur)
+    return render_template("index.html", data=data, salles=SALLES, erreur=erreur)
 
 
 if __name__ == "__main__":
+    init_db()
     app.run(debug=True)
