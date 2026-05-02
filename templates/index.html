@@ -121,59 +121,64 @@ tr.selected-row { background:#ffdddd; }
 
 <table id="table">
 <tr>
-<th>ID</th><th>النوع</th><th>الطابق</th><th>القاعة</th>
-<th>الجنس</th><th>الفترة</th><th>البداية</th><th>النهاية</th>
-<th>العنوان</th><th>المنظم</th>
+<th>ID</th>
+<th>النوع</th>
+<th>الطابق</th>
+<th>القاعة</th>
+<th>الجنس</th>
+<th>الفترة</th>
+<th>البداية</th>
+<th>النهاية</th>
+<th>العنوان</th>
+<th>المنظم</th>
 </tr>
 
 {% for r in data %}
 <tr onclick="selectRow(this, {{ r[0] }})">
+
 <td>{{ r[0] }}</td>
-<td>{{ r[1] }}</td>
-<td>{{ r[2] }}</td>
+
+<td>
+{% if r[1] == 'Class' %}قاعة
+{% elif r[1] == 'Lab' %}مختبر
+{% else %}{{ r[1] }}
+{% endif %}
+</td>
+
+<td>
+{% if r[2] == 'ground floor' %}الأرضي
+{% elif r[2] == 'first floor' %}الأول
+{% elif r[2] == 'second floor' %}الثاني
+{% elif r[2] == 'third floor' %}الثالث
+{% elif r[2] == 'fourth floor' %}الرابع
+{% else %}{{ r[2] }}
+{% endif %}
+</td>
+
 <td>{{ r[3] }}</td>
-<td>{{ r[4] }}</td>
-<td>{{ r[5] }}</td>
+
+<td>
+{% if r[4] == 'Male' %}رجال
+{% elif r[4] == 'Female' %}نساء
+{% else %}{{ r[4] }}
+{% endif %}
+</td>
+
+<td>
+{% if r[5] == 'Matin' %}صباحي
+{% elif r[5] == 'Soir' %}مسائي
+{% else %}{{ r[5] }}
+{% endif %}
+</td>
+
 <td>{{ r[6] }}</td>
 <td>{{ r[7] }}</td>
 <td>{{ r[8] }}</td>
 <td>{{ r[9] }}</td>
+
 </tr>
-
-    <!-- النوع -->
-<td>
-    {% if r[1] == 'Class' %}قاعة{% elif r[1] == 'Lab' %}مختبر{% else %}{{ r[1] }}{% endif %}
-</td>
-
-<!-- الطابق -->
-<td>
-    {% if r[2] == 'ground floor' %}الأرضي
-    {% elif r[2] == 'first floor' %}الأول
-    {% elif r[2] == 'second floor' %}الثاني
-    {% elif r[2] == 'third floor' %}الثالث
-    {% elif r[2] == 'fourth floor' %}الرابع
-    {% else %}{{ r[2] }}{% endif %}
-</td>
-
-<td>{{ r[3] }}</td>
-
-<!-- الجنس -->
-<td>
-    {% if r[4] == 'Male' %}رجال
-    {% elif r[4] == 'Female' %}نساء
-    {% else %}{{ r[4] }}{% endif %}
-</td>
-
-<!-- الفترة -->
-<td>
-    {% if r[5] == 'Matin' %}صباحي
-    {% elif r[5] == 'Soir' %}مسائي
-    {% else %}{{ r[5] }}{% endif %}
-</td>
-
 {% endfor %}
 </table>
-
 <br>
 <button class="btn-red">حذف المحدد</button>
 </form>
