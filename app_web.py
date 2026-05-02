@@ -8,7 +8,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "reservations.db")
 
 
-# 🔥 LISTE COMPLETE DES SALLES
+# 🔥 SALLES
 SALLES = [
     {"nom": "G 11", "etage": "ground floor"},
     {"nom": "G 12", "etage": "ground floor"},
@@ -67,6 +67,7 @@ SALLES = [
     {"nom": "L4 36", "etage": "fourth floor"},
 ]
 
+
 def get_db():
     return sqlite3.connect(DB_PATH)
 
@@ -102,22 +103,50 @@ def index():
     cur = conn.cursor()
 
     if request.method == "POST":
-        cur.execute("""
-            INSERT INTO reservations
-            (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            request.form.get("type"),
-            request.form.get("etage"),
-            request.form.get("salle"),
-            request.form.get("genre"),
-            request.form.get("periode"),
-            request.form.get("debut"),
-            request.form.get("fin"),
-            request.form.get("titre"),
-            request.form.get("organisateur"),
-        ))
+
+        action = request.form.get("action")
+        id_ = request.form.get("id")
+
+        if action == "update" and id_:
+            # 🔥 UPDATE
+            cur.execute("""
+                UPDATE reservations SET
+                type = ?, etage = ?, salle = ?, genre = ?, periode = ?,
+                date_debut = ?, date_fin = ?, titre = ?, organisateur = ?
+                WHERE id = ?
+            """, (
+                request.form.get("type"),
+                request.form.get("etage"),
+                request.form.get("salle"),
+                request.form.get("genre"),
+                request.form.get("periode"),
+                request.form.get("debut"),
+                request.form.get("fin"),
+                request.form.get("titre"),
+                request.form.get("organisateur"),
+                id_
+            ))
+
+        else:
+            # 🔥 INSERT
+            cur.execute("""
+                INSERT INTO reservations
+                (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                request.form.get("type"),
+                request.form.get("etage"),
+                request.form.get("salle"),
+                request.form.get("genre"),
+                request.form.get("periode"),
+                request.form.get("debut"),
+                request.form.get("fin"),
+                request.form.get("titre"),
+                request.form.get("organisateur"),
+            ))
+
         conn.commit()
+        conn.close()
 
         return redirect("/")
 
