@@ -4,105 +4,56 @@
     <title>Réservation</title>
 
     <style>
-        body {
-            font-family: Arial;
-            background: #eee;
-            margin: 20px;
-        }
+        body { font-family: Arial; background:#eee; margin:20px; }
 
-        h2 {
-            margin-bottom: 10px;
-        }
-
-        .top-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .top-row { display:flex; gap:10px; align-items:center; }
 
         input, select {
-            height: 30px;
-            padding: 5px;
-            min-width: 120px;
+            height:30px;
+            padding:5px;
         }
 
-        .date {
-            width: 140px;
-        }
-
-        /* ===== BLOC SALLES ===== */
         .salle-box {
-            border: 1px solid #ccc;
-            background: #fff;
-            width: 120px;
-            height: 260px;
-            overflow-y: auto;
-            font-size: 12px;
-            display: none;
+            border:1px solid #ccc;
+            background:white;
+            width:120px;
+            height:260px;
+            overflow-y:auto;
+            display:none;
         }
 
         .salle-box div {
-            padding: 4px;
-            cursor: pointer;
+            padding:4px;
+            cursor:pointer;
         }
 
-        .salle-box div:hover {
-            background: #ddd;
-        }
+        .selected { background:blue; color:white; }
 
-        .selected {
-            background: blue;
-            color: white;
-        }
-
-        /* ===== BOUTONS ===== */
         .buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            display:flex;
+            flex-direction:column;
+            gap:10px;
         }
 
-        .btn-blue {
-            background: #2f6de1;
-            color: white;
-            border: none;
-            padding: 8px;
-            cursor: pointer;
-        }
-
-        .btn-green {
-            background: #2e8b57;
-            color: white;
-            border: none;
-            padding: 8px;
-            cursor: pointer;
-        }
-
-        .btn-red {
-            background: #c0392b;
-            color: white;
-            border: none;
-            padding: 10px;
-            margin-top: 10px;
-            cursor: pointer;
-        }
+        .btn-blue { background:#2f6de1; color:white; padding:8px; border:none; }
+        .btn-green { background:#2e8b57; color:white; padding:8px; border:none; }
+        .btn-red { background:#c0392b; color:white; padding:8px; border:none; }
 
         table {
-            width: 100%;
-            margin-top: 20px;
-            border-collapse: collapse;
-            background: white;
+            width:100%;
+            margin-top:20px;
+            border-collapse:collapse;
+            background:white;
         }
 
-        th, td {
-            border: 1px solid #ccc;
-            padding: 6px;
-            font-size: 13px;
-            text-align: center;
+        td, th {
+            border:1px solid #ccc;
+            padding:6px;
+            text-align:center;
         }
 
-        th {
-            background: #f2f2f2;
+        tr.selected-row {
+            background:#ffdddd;
         }
 
     </style>
@@ -119,13 +70,11 @@
     <input name="titre" placeholder="Titre">
     <input name="organisateur" placeholder="Organisateur">
 
-    <select name="etage" id="etage">
+    <select id="etage" name="etage">
         <option value="">Etage</option>
         <option value="ground floor">Ground</option>
         <option value="first floor">1 er</option>
         <option value="second floor">2 eme</option>
-        <option value="third floor">3 eme</option>
-        <option value="fourth floor">4 eme</option>
     </select>
 
     <select name="type">
@@ -143,12 +92,11 @@
         <option>Soir</option>
     </select>
 
-    <input type="date" name="debut" class="date">
-    <input type="date" name="fin" class="date">
+    <input type="date" name="debut">
+    <input type="date" name="fin">
 
     <input id="salle_input" name="salle" placeholder="Salle" readonly>
 
-    <!-- SALLES -->
     <div class="salle-box" id="salles">
         {% for s in salles %}
         <div data-etage="{{ s.etage }}" onclick="selectSalle(this)">
@@ -157,87 +105,73 @@
         {% endfor %}
     </div>
 
-    <!-- BOUTONS -->
     <div class="buttons">
-        <button type="button" class="btn-blue" onclick="voirDisponibilite()">
-            voir disponibilité
-        </button>
-
-        <button type="submit" class="btn-green">
-            Réserver
-        </button>
+        <button type="button" class="btn-blue" onclick="voirDisponibilite()">voir disponibilité</button>
+        <button type="submit" class="btn-green">Réserver</button>
     </div>
 
 </div>
 
 </form>
 
-<h2>Liste des réservation</h2>
+<h2>Liste</h2>
 
-<table>
+<form method="POST" action="/delete" id="deleteForm">
+<input type="hidden" name="id" id="delete_id">
+
+<table id="table">
 <tr>
-    <th>ID</th>
-    <th>Type</th>
-    <th>Etage</th>
-    <th>Salle</th>
-    <th>Genre</th>
-    <th>Période</th>
-    <th>Début</th>
-    <th>Fin</th>
-    <th>Titre</th>
-    <th>Organisateur</th>
+    <th>ID</th><th>Type</th><th>Etage</th><th>Salle</th>
+    <th>Genre</th><th>Période</th><th>Début</th><th>Fin</th>
+    <th>Titre</th><th>Organisateur</th>
 </tr>
 
 {% for r in data %}
-<tr>
+<tr onclick="selectRow(this, {{ r[0] }})">
     <td>{{ r[0] }}</td>
     <td>{{ r[1] }}</td>
-    <td>{{ r[3] }}</td>
     <td>{{ r[2] }}</td>
+    <td>{{ r[3] }}</td>
     <td>{{ r[4] }}</td>
-    <td>{{ r[8] }}</td>
-    <td>{{ r[6] }}</td>
-    <td>{{ r[7] }}</td>
     <td>{{ r[5] }}</td>
     <td>{{ r[6] }}</td>
+    <td>{{ r[7] }}</td>
+    <td>{{ r[8] }}</td>
+    <td>{{ r[9] }}</td>
 </tr>
 {% endfor %}
+
 </table>
 
-<form method="POST" action="/delete_all">
-    <button class="btn-red">Supprimer Réservation</button>
+<br>
+<button type="submit" class="btn-red">Supprimer sélection</button>
+
 </form>
 
 <script>
 
 function voirDisponibilite() {
-
     let etage = document.getElementById("etage").value;
-
-    if (!etage) {
-        alert("Choisis un étage d'abord");
-        return;
-    }
+    if (!etage) { alert("Choisir étage"); return; }
 
     let box = document.getElementById("salles");
-    let salles = document.querySelectorAll("#salles div");
-
     box.style.display = "block";
 
-    salles.forEach(s => {
-        if (s.getAttribute("data-etage") === etage) {
-            s.style.display = "block";
-        } else {
-            s.style.display = "none";
-        }
+    document.querySelectorAll("#salles div").forEach(s => {
+        s.style.display = s.dataset.etage === etage ? "block" : "none";
     });
 }
 
 function selectSalle(el) {
     document.querySelectorAll("#salles div").forEach(s => s.classList.remove("selected"));
     el.classList.add("selected");
-
     document.getElementById("salle_input").value = el.innerText;
+}
+
+function selectRow(row, id) {
+    document.querySelectorAll("#table tr").forEach(r => r.classList.remove("selected-row"));
+    row.classList.add("selected-row");
+    document.getElementById("delete_id").value = id;
 }
 
 </script>
