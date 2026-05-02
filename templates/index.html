@@ -140,6 +140,27 @@ tr.selected-row { background:#ffcccc; }
 </table>
 
 <script>
+// =============================
+// تحويل عربي → إنجليزي
+// =============================
+function normalize(value){
+
+    let map = {
+        "قاعة": "Class",
+        "مختبر": "Lab",
+        "رجال": "Male",
+        "نساء": "Female",
+        "صباحي": "Matin",
+        "مسائي": "Soir",
+        "الأرضي": "ground floor",
+        "الأول": "first floor",
+        "الثاني": "second floor",
+        "الثالث": "third floor",
+        "الرابع": "fourth floor"
+    };
+
+    return map[value] || value;
+}
 
 // =============================
 // اختيار صف
