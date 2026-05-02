@@ -1,26 +1,27 @@
 <!DOCTYPE html>
-{% if erreur %}
-<div class="alert alert-danger">
-    {{ erreur }}
-</div>
-{% endif %}
 <html>
 <head>
     <title>Réservation</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body class="container mt-4">
 
 <h2>Réservation</h2>
 
-<form method="POST" class="row g-2">
+{% if erreur %}
+<div class="alert alert-danger">{{ erreur }}</div>
+{% endif %}
 
-    <div class="col-md-2">
+<form method="POST">
+
+<div class="row mb-2">
+
+    <div class="col">
         <input class="form-control" name="type" placeholder="Type">
     </div>
 
-    <div class="col-md-3">
+    <div class="col">
         <select class="form-control" name="salle">
             {% for s in salles %}
             <option value="{{ s.nom }}">
@@ -30,40 +31,57 @@
         </select>
     </div>
 
-    <div class="col-md-2">
+    <div class="col">
         <input class="form-control" name="etage" placeholder="Etage">
     </div>
 
-    <div class="col-md-2">
-        <input class="form-control" name="section" placeholder="Section">
-    </div>
-
-    <div class="col-md-3">
-        <input class="form-control" name="titre" placeholder="Titre">
-    </div>
-
-    <div class="col-md-3">
-        <input class="form-control" name="organisateur" placeholder="Organisateur">
-    </div>
-
-    <div class="col-md-2">
-        <input type="date" class="form-control" name="debut">
-    </div>
-
-    <div class="col-md-2">
-        <input type="date" class="form-control" name="fin">
-    </div>
-
-    <div class="col-md-2">
-        <select class="form-control" name="periode">
-            <option>Matin</option>
-            <option>Soir</option>
+    <div class="col">
+        <select class="form-control" name="section">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
         </select>
     </div>
 
-    <div class="col-md-2">
-        <button class="btn btn-primary">Réserver</button>
+    <div class="col">
+        <input class="form-control" name="titre" placeholder="Titre">
     </div>
+
+</div>
+
+<div class="row mb-3">
+
+    <div class="col">
+        <input class="form-control" name="organisateur" placeholder="Organisateur">
+    </div>
+
+    <div class="col">
+        <input type="date" class="form-control" name="debut">
+    </div>
+
+    <div class="col">
+        <input type="date" class="form-control" name="fin">
+    </div>
+
+    <div class="col">
+        <select class="form-control" name="periode">
+            <option value="Matin">Matin</option>
+            <option value="Soir">Soir</option>
+        </select>
+    </div>
+
+    <div class="col">
+        <button name="action" value="dispo" class="btn btn-primary w-100">
+            voir disponibilité
+        </button>
+    </div>
+
+    <div class="col">
+        <button name="action" value="reserver" class="btn btn-success w-100">
+            Réserver
+        </button>
+    </div>
+
+</div>
 
 </form>
 
@@ -71,34 +89,35 @@
 
 <h4>Liste des réservations</h4>
 
-<table class="table table-bordered table-striped">
-    <tr>
-        <th>ID</th>
-        <th>Type</th>
-        <th>Salle</th>
-        <th>Etage</th>
-        <th>Section</th>
-        <th>Titre</th>
-        <th>Organisateur</th>
-        <th>Début</th>
-        <th>Fin</th>
-        <th>Période</th>
-    </tr>
+<table class="table table-bordered">
+<tr>
+    <th>ID</th>
+    <th>Type</th>
+    <th>Salle</th>
+    <th>Etage</th>
+    <th>Section</th>
+    <th>Titre</th>
+    <th>Organisateur</th>
+    <th>Début</th>
+    <th>Fin</th>
+    <th>Période</th>
+</tr>
 
-    {% for r in data %}
-    <tr>
-        <td>{{ r[0] }}</td>
-        <td>{{ r[1] }}</td>
-        <td>{{ r[2] }}</td>
-        <td>{{ r[3] }}</td>
-        <td>{{ r[4] }}</td>
-        <td>{{ r[5] }}</td>
-        <td>{{ r[6] }}</td>
-        <td>{{ r[7] }}</td>
-        <td>{{ r[8] }}</td>
-        <td>{{ r[9] }}</td>
-    </tr>
-    {% endfor %}
+{% for r in data %}
+<tr>
+    <td>{{ r[0] }}</td>
+    <td>{{ r[1] }}</td>
+    <td>{{ r[2] }}</td>
+    <td>{{ r[3] }}</td>
+    <td>{{ r[4] }}</td>
+    <td>{{ r[5] }}</td>
+    <td>{{ r[6] }}</td>
+    <td>{{ r[7] }}</td>
+    <td>{{ r[8] }}</td>
+    <td>{{ r[9] }}</td>
+</tr>
+{% endfor %}
+
 </table>
 
 </body>
