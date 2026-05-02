@@ -4,29 +4,70 @@
 <title>Réservation</title>
 
 <style>
-body { font-family: Arial; margin:20px; }
-.grid { display:flex; gap:20px; }
-.left { flex:3; }
+body {
+    font-family: Arial;
+    margin:20px;
+}
+
+/* 🔥 layout horizontal */
+.row {
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin-bottom:10px;
+}
+
+input, select {
+    padding:5px;
+    height:30px;
+}
+
+/* tailles */
+.small { width:120px; }
+.medium { width:160px; }
+.large { width:220px; }
+
+/* droite */
+.container {
+    display:flex;
+    gap:20px;
+}
+
+.left { flex:4; }
 .right { flex:1; }
 
-.box { border:1px solid #ccc; padding:10px; margin-bottom:10px; }
+.box {
+    border:1px solid #ccc;
+    padding:10px;
+}
 
-button { padding:10px; border:none; color:white; cursor:pointer; }
+/* boutons */
+.btn {
+    padding:8px 12px;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
 .blue { background:#2f5bea; }
 .green { background:#2e8b57; }
 .red { background:#c0392b; }
 
-select, input { padding:5px; width:100%; margin-bottom:5px; }
-
-table { width:100%; border-collapse: collapse; margin-top:20px; }
-th, td { border:1px solid #ccc; padding:5px; text-align:center; }
-
-.selected { background:blue; color:white; }
+/* table */
+table {
+    width:100%;
+    border-collapse: collapse;
+    margin-top:20px;
+}
+th, td {
+    border:1px solid #ccc;
+    padding:5px;
+    text-align:center;
+}
 </style>
 
 <script>
-function selectSalle(value){
-    document.getElementById("salle_input").value = value
+function selectSalle(val){
+    document.getElementById("salle").value = val;
 }
 </script>
 
@@ -42,16 +83,19 @@ function selectSalle(value){
 
 <form method="POST">
 
-<div class="grid">
+<div class="container">
 
 <!-- LEFT -->
 <div class="left">
 
-<div class="box">
-<input name="titre" placeholder="Titre">
-<input name="organisateur" placeholder="Organisateur">
+<!-- 🔥 ligne principale -->
+<div class="row">
 
-<select name="etage">
+<input class="large" name="titre" placeholder="Titre">
+
+<input class="large" name="organisateur" placeholder="Organisateur">
+
+<select class="small" name="etage">
 <option>Ground</option>
 <option>1 er</option>
 <option>2 eme</option>
@@ -59,25 +103,25 @@ function selectSalle(value){
 <option>4 eme</option>
 </select>
 
-<select name="type">
+<select class="small" name="type">
 <option>Class</option>
 <option>Lab</option>
 </select>
 
-<select name="genre">
+<select class="small" name="genre">
 <option>Male</option>
 <option>Female</option>
 </select>
 
-<select name="periode">
+<select class="small" name="periode">
 <option>Matin</option>
 <option>Soir</option>
 </select>
 
-<input type="date" name="debut">
-<input type="date" name="fin">
+<input class="medium" type="date" name="debut">
+<input class="medium" type="date" name="fin">
 
-<input id="salle_input" name="salle" placeholder="Salle sélectionnée">
+<input id="salle" class="small" name="salle" placeholder="Salle">
 
 </div>
 
@@ -87,17 +131,21 @@ function selectSalle(value){
 <div class="right">
 
 <div class="box">
-<b>Selection Salle</b>
+<b>Selection Salle</b><br>
+
 {% for s in salles %}
-<div onclick="selectSalle('{{ s.nom }}')">
+<div onclick="selectSalle('{{ s.nom }}')" style="cursor:pointer">
 {{ s.nom }}
 </div>
 {% endfor %}
+
 </div>
 
-<button class="blue" name="action" value="dispo">voir disponibilité</button>
+<br>
+
+<button class="btn blue" name="action" value="dispo">voir disponibilité</button>
 <br><br>
-<button class="green" name="action" value="reserver">Réserver</button>
+<button class="btn green" name="action" value="reserver">Réserver</button>
 
 </div>
 
@@ -105,7 +153,6 @@ function selectSalle(value){
 
 </form>
 
-<!-- TABLE -->
 <h3>Liste des réservation</h3>
 
 <table>
@@ -139,7 +186,7 @@ function selectSalle(value){
 <td>
 <form method="POST">
 <input type="hidden" name="id" value="{{ r[0] }}">
-<button class="red" name="action" value="delete">X</button>
+<button class="btn red" name="action" value="delete">X</button>
 </form>
 </td>
 
