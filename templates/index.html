@@ -140,6 +140,7 @@ tr.selected-row { background:#ffcccc; }
 </table>
 
 <script>
+
 // =============================
 // تحويل عربي → إنجليزي
 // =============================
@@ -162,6 +163,7 @@ function normalize(value){
     return map[value] || value;
 }
 
+
 // =============================
 // اختيار صف
 // =============================
@@ -174,32 +176,31 @@ function selectRow(row){
 
 
 // =============================
-// فلترة الجدول (مصحوحة)
+// الفلترة (تدعم العربي)
 // =============================
 function filtrer(){
 
-    let etage = document.getElementById("etage").value.trim();
-    let type = document.getElementById("type").value.trim();
-    let genre = document.getElementById("genre").value.trim();
-    let periode = document.getElementById("periode").value.trim();
+    let etage = normalize(document.getElementById("etage").value.trim());
+    let type = normalize(document.getElementById("type").value.trim());
+    let genre = normalize(document.getElementById("genre").value.trim());
+    let periode = normalize(document.getElementById("periode").value.trim());
 
     let rows = document.querySelectorAll("#table tr");
 
     rows.forEach((row, i) => {
 
-        if(i === 0) return; // header
+        if(i === 0) return;
 
         let cells = row.children;
 
-        // قراءة القيم من الجدول
-        let row_type = cells[2].innerText.trim();
-        let row_etage = cells[3].innerText.trim();
-        let row_genre = cells[5].innerText.trim();
-        let row_periode = cells[6].innerText.trim();
+        // نحول القيم من الجدول أيضاً
+        let row_type = normalize(cells[2].innerText.trim());
+        let row_etage = normalize(cells[3].innerText.trim());
+        let row_genre = normalize(cells[5].innerText.trim());
+        let row_periode = normalize(cells[6].innerText.trim());
 
         let show = true;
 
-        // 🔥 مقارنة آمنة (مع تجاهل الفراغات)
         if(etage && row_etage !== etage) show = false;
         if(type && row_type !== type) show = false;
         if(genre && row_genre !== genre) show = false;
