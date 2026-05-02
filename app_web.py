@@ -8,7 +8,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "reservations.db")
 
 
-# SALLES
+# 🔥 LISTE COMPLETE DES SALLES
 SALLES = [
     {"nom": "G 11", "etage": "ground floor"},
     {"nom": "G 12", "etage": "ground floor"},
@@ -37,8 +37,35 @@ SALLES = [
     {"nom": "L2 33", "etage": "second floor"},
     {"nom": "L2 34", "etage": "second floor"},
     {"nom": "L2 35", "etage": "second floor"},
-]
 
+    {"nom": "L3 08", "etage": "third floor"},
+    {"nom": "L3 09", "etage": "third floor"},
+    {"nom": "L3 10", "etage": "third floor"},
+    {"nom": "L3 11", "etage": "third floor"},
+    {"nom": "L3 13", "etage": "third floor"},
+    {"nom": "L3 27", "etage": "third floor"},
+    {"nom": "L3 28", "etage": "third floor"},
+    {"nom": "L3 29", "etage": "third floor"},
+    {"nom": "L3 30", "etage": "third floor"},
+    {"nom": "L3 31", "etage": "third floor"},
+    {"nom": "L3 32", "etage": "third floor"},
+    {"nom": "L3 33", "etage": "third floor"},
+    {"nom": "L3 34", "etage": "third floor"},
+
+    {"nom": "L4 08", "etage": "fourth floor"},
+    {"nom": "L4 09", "etage": "fourth floor"},
+    {"nom": "L4 10", "etage": "fourth floor"},
+    {"nom": "L4 11", "etage": "fourth floor"},
+    {"nom": "L4 14", "etage": "fourth floor"},
+    {"nom": "L4 29", "etage": "fourth floor"},
+    {"nom": "L4 30", "etage": "fourth floor"},
+    {"nom": "L4 31", "etage": "fourth floor"},
+    {"nom": "L4 32", "etage": "fourth floor"},
+    {"nom": "L4 33", "etage": "fourth floor"},
+    {"nom": "L4 34", "etage": "fourth floor"},
+    {"nom": "L4 35", "etage": "fourth floor"},
+    {"nom": "L4 36", "etage": "fourth floor"},
+]
 
 def get_db():
     return sqlite3.connect(DB_PATH)
