@@ -1,13 +1,15 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect
+import pandas as pd
+from flask import Flask, render_template, request, redirect, send_file
 
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "reservations.db")
 
-# 🔥 كل القاعات
+
+# ✅ LISTE COMPLETE DES SALLES
 SALLES = [
     {"nom": "G 11", "etage": "ground floor"},
     {"nom": "G 12", "etage": "ground floor"},
@@ -66,8 +68,10 @@ SALLES = [
     {"nom": "L4 36", "etage": "fourth floor"},
 ]
 
+
 def get_db():
     return sqlite3.connect(DB_PATH)
+
 
 def init_db():
     conn = get_db()
@@ -81,8 +85,8 @@ def init_db():
         salle TEXT,
         genre TEXT,
         periode TEXT,
-        debut TEXT,
-        fin TEXT,
+        date_debut TEXT,
+        date_fin TEXT,
         titre TEXT,
         organisateur TEXT
     )
@@ -91,6 +95,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     init_db()
@@ -98,22 +103,46 @@ def index():
     cur = conn.cursor()
 
     if request.method == "POST":
-        cur.execute("""
-            INSERT INTO reservations
-            (type, etage, salle, genre, periode, debut, fin, titre, organisateur)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            request.form.get("type"),
-            request.form.get("etage"),
-            request.form.get("salle"),
-            request.form.get("genre"),
-            request.form.get("periode"),
-            request.form.get("debut"),
-            request.form.get("fin"),
-            request.form.get("titre"),
-            request.form.get("organisateur"),
-        ))
+        action = request.form.get("action")
+        id_ = request.form.get("id")
+
+        if action == "update" and id_:
+            cur.execute("""
+                UPDATE reservations SET
+                type=?, etage=?, salle=?, genre=?, periode=?,
+                date_debut=?, date_fin=?, titre=?, organisateur=?
+                WHERE id=?
+            """, (
+                request.form.get("type"),
+                request.form.get("etage"),
+                request.form.get("salle"),
+                request.form.get("genre"),
+                request.form.get("periode"),
+                request.form.get("debut"),
+                request.form.get("fin"),
+                request.form.get("titre"),
+                request.form.get("organisateur"),
+                id_
+            ))
+        else:
+            cur.execute("""
+                INSERT INTO reservations
+                (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                request.form.get("type"),
+                request.form.get("etage"),
+                request.form.get("salle"),
+                request.form.get("genre"),
+                request.form.get("periode"),
+                request.form.get("debut"),
+                request.form.get("fin"),
+                request.form.get("titre"),
+                request.form.get("organisateur"),
+            ))
+
         conn.commit()
+        conn.close()
         return redirect("/")
 
     cur.execute("SELECT * FROM reservations ORDER BY id DESC")
@@ -122,20 +151,127 @@ def index():
 
     return render_template("index.html", data=data, salles=SALLES)
 
+
 @app.route("/delete", methods=["POST"])
 def delete():
-    ids = request.form.getlist("ids[]")
+    id_ = request.form.get("id")
 
     conn = get_db()
     cur = conn.cursor()
-
-    for id_ in ids:
-        cur.execute("DELETE FROM reservations WHERE id=?", (id_,))
-
+    cur.execute("DELETE FROM reservations WHERE id=?", (id_,))
     conn.commit()
     conn.close()
 
-    return "ok"
+    return redirect("/")
+
+
+@app.route("/export")
+def export_excel():
+    conn = get_db()
+    df = pd.read_sql_query("SELECT * FROM reservations", conn)
+    conn.close()
+
+    file = "export.xlsx"
+    df.to_excel(file, index=False)
+
+    return send_file(file, as_attachment=True)
+
+
+@app.route("/import", methods=["POST"])
+def import_excel():
+    file = request.files.get("file")
+    if not file or file.filename == "":
+        return "لم يتم اختيار ملف"
+
+    try:
+        import pandas as pd
+
+        df = pd.read_excel(file)
+
+        # 🔧 توحيد أسماء الأعمدة (إزالة فراغات + lowercase)
+        df.columns = [str(c).strip().lower() for c in df.columns]
+
+        # 🔁 خريطة أعمدة عربي/إنجليزي → أسماء DB
+        col_map = {
+            # English
+            "type": "type",
+            "etage": "etage",
+            "salle": "salle",
+            "genre": "genre",
+            "periode": "periode",
+            "date_debut": "date_debut",
+            "date_fin": "date_fin",
+            "titre": "titre",
+            "organisateur": "organisateur",
+
+            # Arabic
+            "النوع": "type",
+            "الطابق": "etage",
+            "القاعة": "salle",
+            "الجنس": "genre",
+            "الفترة": "periode",
+            "تاريخ البدء": "date_debut",
+            "تاريخ البداية": "date_debut",
+            "تاريخ النهاية": "date_fin",
+            "العنوان": "titre",
+            "عنوان الدورة / البرنامج": "titre",
+            "المنظم": "organisateur",
+            "الإدارة / الجهة المنظمة": "organisateur",
+        }
+
+        # 🧱 أعمدة DB النهائية
+        target_cols = ["type","etage","salle","genre","periode","date_debut","date_fin","titre","organisateur"]
+
+        # 🔄 إعادة تسمية الأعمدة حسب الخريطة
+        renamed = {}
+        for c in df.columns:
+            if c in col_map:
+                renamed[c] = col_map[c]
+        df = df.rename(columns=renamed)
+
+        # ➕ إضافة الأعمدة الناقصة بقيم فارغة
+        for col in target_cols:
+            if col not in df.columns:
+                df[col] = ""
+
+        # 🗓️ تحويل التواريخ إلى نص YYYY-MM-DD
+        for col in ["date_debut", "date_fin"]:
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime("%Y-%m-%d")
+            df[col] = df[col].fillna("")
+
+        # 🧼 تحويل NaN إلى نص فارغ
+        df = df.fillna("")
+
+        conn = get_db()
+        cur = conn.cursor()
+
+        # 🚀 إدخال البيانات
+        for _, row in df.iterrows():
+            cur.execute("""
+                INSERT INTO reservations
+                (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                str(row["type"]),
+                str(row["etage"]),
+                str(row["salle"]),
+                str(row["genre"]),
+                str(row["periode"]),
+                str(row["date_debut"]),
+                str(row["date_fin"]),
+                str(row["titre"]),
+                str(row["organisateur"]),
+            ))
+
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        return f"خطأ في الاستيراد: {e}"
+
+    return redirect("/")
+
 
 if __name__ == "__main__":
+    init_db()
     app.run(debug=True)
