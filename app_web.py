@@ -1,21 +1,18 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect
 
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "reservations.db")
 
-
-# 🔥 SALLES
 SALLES = [
-    {"type": "class", "nom": "G 11", "etage": "ground floor", "default": "mix", "matin": "male", "soir": "male"},
-    {"type": "class", "nom": "G 12", "etage": "ground floor", "default": "mix", "matin": "female", "soir": "male"},
-    {"type": "class", "nom": "G 13", "etage": "ground floor", "default": "mix", "matin": "female", "soir": "male"},
-    {"type": "class", "nom": "L1 04", "etage": "first floor", "default": "mix", "matin": "female", "soir": "male"},
-    {"type": "class", "nom": "L1 05", "etage": "first floor", "default": "mix", "matin": "female", "soir": "male"},
-    {"type": "Lab", "nom": "L1 08", "etage": "first floor", "default": "mix", "matin": "female", "soir": "male"},
+    {"type": "class", "nom": "L2 08", "etage": "2 eme"},
+    {"type": "class", "nom": "L2 09", "etage": "2 eme"},
+    {"type": "class", "nom": "L2 10", "etage": "2 eme"},
+    {"type": "class", "nom": "L2 11", "etage": "2 eme"},
+    {"type": "Lab", "nom": "L2 14", "etage": "2 eme"},
 ]
 
 
@@ -32,12 +29,12 @@ def init_db():
             type TEXT,
             salle TEXT,
             etage TEXT,
-            section TEXT,
-            titre TEXT,
-            organisateur TEXT,
+            genre TEXT,
+            periode TEXT,
             date_debut TEXT,
             date_fin TEXT,
-            periode TEXT
+            titre TEXT,
+            organisateur TEXT
         )
     """)
     conn.commit()
@@ -52,11 +49,10 @@ def index():
     conn = get_db()
     cur = conn.cursor()
 
+    salles_filtrees = SALLES
     erreur = None
-    salles_disponibles = SALLES
 
     if request.method == "POST":
-
         action = request.form.get("action")
 
         debut = request.form.get("debut")
@@ -65,28 +61,25 @@ def index():
 
         # 🔵 DISPONIBILITÉ
         if action == "dispo":
-            salles_disponibles = []
+            salles_filtrees = []
 
             for s in SALLES:
                 cur.execute("""
                     SELECT * FROM reservations
-                    WHERE salle = ?
-                    AND periode = ?
+                    WHERE salle=? AND periode=?
                     AND (date_debut <= ? AND date_fin >= ?)
                 """, (s["nom"], periode, fin, debut))
 
                 if not cur.fetchone():
-                    salles_disponibles.append(s)
+                    salles_filtrees.append(s)
 
-        # 🔴 RÉSERVATION
+        # 🟢 RÉSERVER
         elif action == "reserver":
-
             salle = request.form.get("salle")
 
             cur.execute("""
                 SELECT * FROM reservations
-                WHERE salle = ?
-                AND periode = ?
+                WHERE salle=? AND periode=?
                 AND (date_debut <= ? AND date_fin >= ?)
             """, (salle, periode, fin, debut))
 
@@ -95,33 +88,32 @@ def index():
             else:
                 cur.execute("""
                     INSERT INTO reservations
-                    (type, salle, etage, section, titre, organisateur, date_debut, date_fin, periode)
+                    (type, salle, etage, genre, periode, date_debut, date_fin, titre, organisateur)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     request.form.get("type"),
                     salle,
                     request.form.get("etage"),
-                    request.form.get("section"),
-                    request.form.get("titre"),
-                    request.form.get("organisateur"),
+                    request.form.get("genre"),
+                    periode,
                     debut,
                     fin,
-                    periode
+                    request.form.get("titre"),
+                    request.form.get("organisateur")
                 ))
                 conn.commit()
+
+        # 🔴 SUPPRIMER
+        elif action == "delete":
+            cur.execute("DELETE FROM reservations WHERE id=?", (request.form.get("id"),))
+            conn.commit()
 
     cur.execute("SELECT * FROM reservations ORDER BY id DESC")
     data = cur.fetchall()
     conn.close()
 
-    return render_template(
-        "index.html",
-        data=data,
-        salles=salles_disponibles,
-        erreur=erreur
-    )
+    return render_template("index.html", data=data, salles=salles_filtrees, erreur=erreur)
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
