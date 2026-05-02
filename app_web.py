@@ -80,6 +80,57 @@ def assign():
     conn.close()
 
     return "ok"
+@app.route("/import", methods=["POST"])
+def import_excel():
+    file = request.files.get("file")
 
+    if not file:
+        return "لم يتم اختيار ملف"
+
+    try:
+        import pandas as pd
+
+        df = pd.read_excel(file)
+
+        # تنظيف الأعمدة
+        df.columns = [str(c).strip().lower() for c in df.columns]
+
+        conn = get_db()
+        cur = conn.cursor()
+
+        for _, row in df.iterrows():
+
+            # 🔥 تحويل التواريخ بشكل صحيح
+            def clean_date(val):
+                if pd.isna(val):
+                    return ""
+                try:
+                    return pd.to_datetime(val).strftime("%Y-%m-%d")
+                except:
+                    return str(val)
+
+            cur.execute("""
+                INSERT INTO reservations
+                (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                str(row.get("type", "")),
+                str(row.get("etage", "")),
+                str(row.get("salle", "")),
+                str(row.get("genre", "")),
+                str(row.get("periode", "")),
+                clean_date(row.get("date_debut")),
+                clean_date(row.get("date_fin")),
+                str(row.get("titre", "")),
+                str(row.get("organisateur", ""))
+            ))
+
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        return f"خطأ: {e}"
+
+    return redirect("/")
 if __name__ == "__main__":
     app.run(debug=True)
