@@ -5,7 +5,7 @@
 <title>حجز القاعات</title>
 <style>
 body{font-family:Arial;background:#eee;margin:20px;direction:rtl}
-h2{margin-bottom:10px}
+h2{margin:10px 0}
 
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 input,select{height:32px;padding:5px}
@@ -23,7 +23,6 @@ input,select{height:32px;padding:5px}
 .salle{width:55px;text-align:center;padding:6px;border:1px solid #aaa;background:#f5f5f5;cursor:pointer}
 .salle.dispo{background:#b8f5b8}
 .salle.occupe{background:#f5b8b8}
-.salle.selected{outline:2px solid #2f6de1}
 
 table{width:100%;border-collapse:collapse;background:#fff}
 th,td{border:1px solid #ccc;padding:6px;text-align:center}
@@ -35,12 +34,23 @@ tr.selected-row{background:#ffe0e0}
 
 <h2>حجز القاعات</h2>
 
+<!-- Import / Export -->
+<div class="toolbar">
+<a href="/export"><button type="button" class="btn btn-blue">تصدير إكسل</button></a>
+
+<form action="/import" method="POST" enctype="multipart/form-data">
+<input type="file" name="file" required>
+<button class="btn btn-green">استيراد إكسل</button>
+</form>
+</div>
+
+<!-- Form -->
 <form method="POST" id="mainForm">
 <input type="hidden" name="id" id="id">
 <input type="hidden" name="action" id="action">
 
 <div class="toolbar">
-<input id="titre" name="titre" placeholder="عنوان الدورة">
+<input id="titre" name="titre" placeholder="العنوان">
 <input id="organisateur" name="organisateur" placeholder="المنظم">
 
 <select id="etage" name="etage">
@@ -80,162 +90,108 @@ tr.selected-row{background:#ffe0e0}
 <button type="submit" class="btn btn-green">حفظ / تعديل</button>
 </div>
 </div>
-
 </form>
 
-<!-- ===== شبكة القاعات ===== -->
+<!-- Salles grid -->
 <div id="salles_container">
-
-<div class="floor">
-<h4>الطابق الأرضي</h4>
-<div class="row">
+<div class="floor"><h4>الأرضي</h4><div class="row">
 <div class="salle" data-salle="G 11">G 11</div>
 <div class="salle" data-salle="G 12">G 12</div>
 <div class="salle" data-salle="G 13">G 13</div>
-</div>
-</div>
-
-<div class="floor">
-<h4>الطابق الأول</h4>
-<div class="row">
-<div class="salle" data-salle="L1 04">L1 04</div>
-<div class="salle" data-salle="L1 05">L1 05</div>
-<div class="salle" data-salle="L1 08">L1 08</div>
-<div class="salle" data-salle="L1 18">L1 18</div>
-<div class="salle" data-salle="L1 19">L1 19</div>
-<div class="salle" data-salle="L1 20">L1 20</div>
-<div class="salle" data-salle="L1 21">L1 21</div>
-<div class="salle" data-salle="L1 22">L1 22</div>
-<div class="salle" data-salle="L1 26">L1 26</div>
-</div>
-</div>
-
-<div class="floor">
-<h4>الطابق الثاني</h4>
-<div class="row">
-<div class="salle" data-salle="L2 08">L2 08</div>
-<div class="salle" data-salle="L2 09">L2 09</div>
-<div class="salle" data-salle="L2 10">L2 10</div>
-<div class="salle" data-salle="L2 11">L2 11</div>
-<div class="salle" data-salle="L2 14">L2 14</div>
-<div class="salle" data-salle="L2 28">L2 28</div>
-<div class="salle" data-salle="L2 29">L2 29</div>
-<div class="salle" data-salle="L2 30">L2 30</div>
-<div class="salle" data-salle="L2 31">L2 31</div>
-<div class="salle" data-salle="L2 32">L2 32</div>
-<div class="salle" data-salle="L2 33">L2 33</div>
-<div class="salle" data-salle="L2 34">L2 34</div>
-<div class="salle" data-salle="L2 35">L2 35</div>
-</div>
-</div>
-
-<div class="floor">
-<h4>الطابق الثالث</h4>
-<div class="row">
-<div class="salle" data-salle="L3 08">L3 08</div>
-<div class="salle" data-salle="L3 09">L3 09</div>
-<div class="salle" data-salle="L3 10">L3 10</div>
-<div class="salle" data-salle="L3 11">L3 11</div>
-<div class="salle" data-salle="L3 13">L3 13</div>
-<div class="salle" data-salle="L3 27">L3 27</div>
-<div class="salle" data-salle="L3 28">L3 28</div>
-<div class="salle" data-salle="L3 29">L3 29</div>
-<div class="salle" data-salle="L3 30">L3 30</div>
-<div class="salle" data-salle="L3 31">L3 31</div>
-<div class="salle" data-salle="L3 32">L3 32</div>
-<div class="salle" data-salle="L3 33">L3 33</div>
-<div class="salle" data-salle="L3 34">L3 34</div>
-</div>
-</div>
-
-<div class="floor">
-<h4>الطابق الرابع</h4>
-<div class="row">
-<div class="salle" data-salle="L4 08">L4 08</div>
-<div class="salle" data-salle="L4 09">L4 09</div>
-<div class="salle" data-salle="L4 10">L4 10</div>
-<div class="salle" data-salle="L4 11">L4 11</div>
-<div class="salle" data-salle="L4 14">L4 14</div>
-<div class="salle" data-salle="L4 29">L4 29</div>
-<div class="salle" data-salle="L4 30">L4 30</div>
-<div class="salle" data-salle="L4 31">L4 31</div>
-<div class="salle" data-salle="L4 32">L4 32</div>
-<div class="salle" data-salle="L4 33">L4 33</div>
-<div class="salle" data-salle="L4 34">L4 34</div>
-<div class="salle" data-salle="L4 35">L4 35</div>
-<div class="salle" data-salle="L4 36">L4 36</div>
-</div>
-</div>
-
+</div></div>
 </div>
 
 <h2>قائمة الحجوزات</h2>
 
 <form method="POST" action="/delete" id="deleteForm">
-<input type="hidden" name="id" id="delete_id">
-
 <table id="table">
 <tr>
-<th>ID</th><th>القاعة</th><th>البداية</th><th>النهاية</th>
+<th></th>
+<th>ID</th>
+<th>النوع</th>
+<th>الطابق</th>
+<th>القاعة</th>
+<th>الجنس</th>
+<th>الفترة</th>
+<th>البداية</th>
+<th>النهاية</th>
+<th>العنوان</th>
+<th>المنظم</th>
 </tr>
 
 {% for r in data %}
 <tr onclick="selectRow(this, {{ r[0] }})">
+<td><input type="checkbox" name="ids[]" value="{{ r[0] }}"></td>
 <td>{{ r[0] }}</td>
+<td>{{ r[1] }}</td>
+<td>{{ r[2] }}</td>
 <td>{{ r[3] }}</td>
+<td>{{ r[4] }}</td>
+<td>{{ r[5] }}</td>
 <td>{{ r[6] }}</td>
 <td>{{ r[7] }}</td>
+<td>{{ r[8] }}</td>
+<td>{{ r[9] }}</td>
 </tr>
 {% endfor %}
 </table>
 
 <br>
-<button type="submit" class="btn btn-red">حذف المحدد</button>
+<button class="btn btn-red">حذف المحدد</button>
 </form>
 
 <script>
-let selectedId = null;
+let selectedId=null;
 
 function selectRow(row,id){
-    document.querySelectorAll("#table tr").forEach(r=>r.classList.remove("selected-row"));
-    row.classList.add("selected-row");
-    selectedId = id;
-    document.getElementById("delete_id").value = id;
+document.querySelectorAll("#table tr").forEach(r=>r.classList.remove("selected-row"));
+row.classList.add("selected-row");
+selectedId=id;
+
+let c=row.children;
+document.getElementById("id").value=id;
+document.getElementById("action").value="update";
+
+document.getElementById("type").value=c[2].innerText;
+document.getElementById("etage").value=c[3].innerText;
+document.getElementById("salle_input").value=c[4].innerText;
+document.getElementById("genre").value=c[5].innerText;
+document.getElementById("periode").value=c[6].innerText;
+document.getElementById("debut").value=c[7].innerText;
+document.getElementById("fin").value=c[8].innerText;
+document.getElementById("titre").value=c[9].innerText;
+document.getElementById("organisateur").value=c[10].innerText;
 }
 
 function loadDispo(){
-    let debut=document.getElementById("debut").value;
-    let fin=document.getElementById("fin").value;
+let debut=document.getElementById("debut").value;
+let fin=document.getElementById("fin").value;
 
-    fetch("/disponibilite",{
-        method:"POST",
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({debut:debut,fin:fin})
-    })
-    .then(res=>res.json())
-    .then(data=>{
-        document.querySelectorAll(".salle").forEach(el=>{
-            let s=el.dataset.salle;
-            el.classList.remove("dispo","occupe");
-            if(data.occupees.includes(s)){
-                el.classList.add("occupe");
-            }else{
-                el.classList.add("dispo");
-            }
-        });
-    });
+fetch("/disponibilite",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({debut:debut,fin:fin})
+})
+.then(res=>res.json())
+.then(data=>{
+document.querySelectorAll(".salle").forEach(el=>{
+let s=el.dataset.salle;
+el.classList.remove("dispo","occupe");
+if(data.occupees.includes(s)){el.classList.add("occupe")}
+else{el.classList.add("dispo")}
+})
+})
 }
 
 document.querySelectorAll(".salle").forEach(el=>{
-    el.onclick=function(){
-        if(!selectedId){ alert("اختر حجز من الجدول"); return; }
-
-        fetch("/assign",{
-            method:"POST",
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({id:selectedId,salle:el.dataset.salle})
-        }).then(()=>location.reload());
-    }
+el.onclick=function(){
+if(!selectedId){alert("اختر سطر");return;}
+fetch("/assign",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({id:selectedId,salle:el.dataset.salle})
+}).then(()=>location.reload());
+}
 });
 </script>
 
