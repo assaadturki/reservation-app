@@ -132,6 +132,49 @@ def delete():
     conn.close()
     return redirect("/")
 
+# --- Export Excel
+@app.route("/export")
+def export_excel():
+    conn = get_db()
+    df = pd.read_sql_query("SELECT * FROM reservations", conn)
+    conn.close()
+    path = os.path.join(BASE_DIR, "export.xlsx")
+    df.to_excel(path, index=False)
+    return send_file(path, as_attachment=True)
+
+# --- Import Excel
+@app.route("/import", methods=["POST"])
+def import_excel():
+    file = request.files.get("file")
+    if not file:
+        return redirect("/")
+
+    df = pd.read_excel(file)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    for _, row in df.iterrows():
+        cur.execute("""
+        INSERT INTO reservations
+        (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            row.get("type"),
+            row.get("etage"),
+            row.get("salle"),
+            row.get("genre"),
+            row.get("periode"),
+            normalize_date(row.get("date_debut")),
+            normalize_date(row.get("date_fin")),
+            row.get("titre"),
+            row.get("organisateur"),
+        ))
+
+    conn.commit()
+    conn.close()
+    return redirect("/")
+
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
