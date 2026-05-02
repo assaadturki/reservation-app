@@ -1,11 +1,13 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect
+import pandas as pd
+from flask import Flask, render_template, request, redirect, send_file
 
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "reservations.db")
+
 
 SALLES = [
     {"nom": "G 11", "etage": "ground floor"},
@@ -68,6 +70,7 @@ SALLES = [
 def get_db():
     return sqlite3.connect(DB_PATH)
 
+
 def init_db():
     conn = get_db()
     cur = conn.cursor()
@@ -89,6 +92,7 @@ def init_db():
 
     conn.commit()
     conn.close()
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -122,32 +126,28 @@ def index():
 
     return render_template("index.html", data=data, salles=SALLES)
 
-@app.route("/delete", methods=["POST"])
-def delete():
-    id_ = request.form.get("id")
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM reservations WHERE id = ?", (id_,))
-    conn.commit()
-    conn.close()
-    return redirect("/")
 
-# --- Export Excel
+# 🔥 EXPORT EXCEL
 @app.route("/export")
 def export_excel():
     conn = get_db()
     df = pd.read_sql_query("SELECT * FROM reservations", conn)
     conn.close()
-    path = os.path.join(BASE_DIR, "export.xlsx")
-    df.to_excel(path, index=False)
-    return send_file(path, as_attachment=True)
 
-# --- Import Excel
+    file_path = os.path.join(BASE_DIR, "export.xlsx")
+    df.to_excel(file_path, index=False)
+
+    return send_file(file_path, as_attachment=True)
+
+
+# 🔥 IMPORT EXCEL
 @app.route("/import", methods=["POST"])
 def import_excel():
+
     file = request.files.get("file")
+
     if not file:
-        return redirect("/")
+        return "No file", 400
 
     df = pd.read_excel(file)
 
@@ -155,25 +155,41 @@ def import_excel():
     cur = conn.cursor()
 
     for _, row in df.iterrows():
+
         cur.execute("""
-        INSERT INTO reservations
-        (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO reservations
+            (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            row.get("type"),
-            row.get("etage"),
-            row.get("salle"),
-            row.get("genre"),
-            row.get("periode"),
-            normalize_date(row.get("date_debut")),
-            normalize_date(row.get("date_fin")),
-            row.get("titre"),
-            row.get("organisateur"),
+            str(row.get("type", "")),
+            str(row.get("etage", "")),
+            str(row.get("salle", "")),
+            str(row.get("genre", "")),
+            str(row.get("periode", "")),
+            str(row.get("date_debut", ""))[:10],
+            str(row.get("date_fin", ""))[:10],
+            str(row.get("titre", "")),
+            str(row.get("organisateur", "")),
         ))
 
     conn.commit()
     conn.close()
+
     return redirect("/")
+
+
+@app.route("/delete", methods=["POST"])
+def delete():
+    id_ = request.form.get("id")
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM reservations WHERE id = ?", (id_,))
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
+
 
 if __name__ == "__main__":
     init_db()
