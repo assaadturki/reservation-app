@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Réservation</title>
+<title>حجز القاعات</title>
 
 <style>
-body { font-family: Arial; background:#eee; margin:20px; }
+body { font-family: Arial; background:#eee; margin:20px; direction: rtl; }
 
-.top-row { display:flex; gap:10px; align-items:center; }
+.top-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
 input, select { height:30px; padding:5px; }
 
@@ -51,11 +51,11 @@ tr.selected-row { background:#ffdddd; }
 <h2>حجز القاعة</h2>
 
 <div style="margin-bottom:10px;">
-<a href="/export"><button class="btn-blue">تصدير ملف إكسل</button></a>
+<a href="/export"><button class="btn-blue">تصدير إكسل</button></a>
 
 <form action="/import" method="POST" enctype="multipart/form-data" style="display:inline;">
 <input type="file" name="file">
-<button class="btn-green">تحميل ملف إكسل</button>
+<button class="btn-green">استيراد إكسل</button>
 </form>
 </div>
 
@@ -66,35 +66,35 @@ tr.selected-row { background:#ffdddd; }
 
 <div class="top-row">
 
-<input id="titre" name="titre" placeholder="عنوان الدورة / البرنامج">
+<input id="titre" name="titre" placeholder="عنوان الدورة">
 <input id="organisateur" name="organisateur" placeholder="المنظم">
 
-<select id="etage" name="الطابق">
+<select id="etage" name="etage">
 <option value="">الطابق</option>
 <option value="ground floor">الأرضي</option>
-<option value="first floor">الطابق الأول</option>
-<option value="second floor">الطابق الثاني</option>
-<option value="third floor">الطابق الثالث</option>
-<option value="fourth floor">الطايق الرابع</option>
+<option value="first floor">الأول</option>
+<option value="second floor">الثاني</option>
+<option value="third floor">الثالث</option>
+<option value="fourth floor">الرابع</option>
 </select>
 
-<select id="type" name="النوع">
-<option>قاعة</option>
-<option>مختبر</option>
+<select id="type" name="type">
+<option value="Class">قاعة</option>
+<option value="Lab">مختبر</option>
 </select>
 
-<select id="genre" name="الجنس">
-<option>رجال</option>
-<option>نساء</option>
+<select id="genre" name="genre">
+<option value="Male">رجال</option>
+<option value="Female">نساء</option>
 </select>
 
-<select id="periode" name="الفترة">
-<option>صباحي</option>
-<option>مسائي</option>
+<select id="periode" name="periode">
+<option value="Matin">صباحي</option>
+<option value="Soir">مسائي</option>
 </select>
 
-<input id="debut" type="date" name="تاريخ البدء">
-<input id="fin" type="date" name="تاريخ النهاية">
+<input id="debut" type="date" name="debut">
+<input id="fin" type="date" name="fin">
 
 <input id="salle_input" name="salle" placeholder="القاعة" readonly>
 
@@ -107,14 +107,14 @@ tr.selected-row { background:#ffdddd; }
 </div>
 
 <div class="buttons">
-<button type="button" class="btn-blue" onclick="voirDisponibilite()">القاعات المتاحة</button>
-<button type="submit" class="btn-green">حجـــــز / تحرير</button>
+<button type="button" class="btn-blue" onclick="voirDisponibilite()">عرض القاعات</button>
+<button type="submit" class="btn-green">حفظ / تعديل</button>
 </div>
 
 </div>
 </form>
 
-<h2>جدول حجز القاعات التدريبية</h2>
+<h2>قائمة الحجوزات</h2>
 
 <form method="POST" action="/delete">
 <input type="hidden" name="id" id="delete_id">
@@ -122,8 +122,8 @@ tr.selected-row { background:#ffdddd; }
 <table id="table">
 <tr>
 <th>ID</th><th>النوع</th><th>الطابق</th><th>القاعة</th>
-<th>الجنس</th><th>الفترة</th><th>تاريخ البدء</th><th>تاريخ النهاية</th>
-<th>عنوان الدورة / البرنامج</th><th>الإدارة / الجهة المنظمة</th>
+<th>الجنس</th><th>الفترة</th><th>البداية</th><th>النهاية</th>
+<th>العنوان</th><th>المنظم</th>
 </tr>
 
 {% for r in data %}
@@ -143,14 +143,15 @@ tr.selected-row { background:#ffdddd; }
 </table>
 
 <br>
-<button class="btn-red">Supprimer sélection</button>
+<button class="btn-red">حذف المحدد</button>
 </form>
 
 <script>
 
 function voirDisponibilite(){
 let etage=document.getElementById("etage").value;
-if(!etage){alert("قم باختيار الطابق");return;}
+if(!etage){alert("اختر الطابق");return;}
+
 let box=document.getElementById("salles");
 box.style.display="block";
 
@@ -173,17 +174,17 @@ document.getElementById("delete_id").value=id;
 document.getElementById("id").value=id;
 document.getElementById("action").value="update";
 
-let cells=row.children;
+let c=row.children;
 
-document.getElementById("النوع").value=cells[1].innerText;
-document.getElementById("الطابق").value=cells[2].innerText;
-document.getElementById("salle_input").value=cells[3].innerText;
-document.getElementById("الجنس").value=cells[4].innerText;
-document.getElementById("الفترة").value=cells[5].innerText;
-document.getElementById("اتريخ البدء").value=cells[6].innerText;
-document.getElementById("تاريخ النهاية").value=cells[7].innerText;
-document.getElementById("عنوان الدورة / البرنامج").value=cells[8].innerText;
-document.getElementById("الإدارة / الجهة المنظمة").value=cells[9].innerText;
+document.getElementById("type").value=c[1].innerText;
+document.getElementById("etage").value=c[2].innerText;
+document.getElementById("salle_input").value=c[3].innerText;
+document.getElementById("genre").value=c[4].innerText;
+document.getElementById("periode").value=c[5].innerText;
+document.getElementById("debut").value=c[6].innerText;
+document.getElementById("fin").value=c[7].innerText;
+document.getElementById("titre").value=c[8].innerText;
+document.getElementById("organisateur").value=c[9].innerText;
 }
 
 </script>
