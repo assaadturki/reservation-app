@@ -141,37 +141,57 @@ tr.selected-row { background:#ffcccc; }
 
 <script>
 
+// =============================
+// اختيار صف
+// =============================
 function selectRow(row){
     row.classList.toggle("selected-row");
+
     let checkbox = row.querySelector(".row-check");
     checkbox.checked = !checkbox.checked;
 }
 
+
+// =============================
+// فلترة الجدول (مصحوحة)
+// =============================
 function filtrer(){
 
-    let etage = document.getElementById("etage").value;
-    let type = document.getElementById("type").value;
-    let genre = document.getElementById("genre").value;
-    let periode = document.getElementById("periode").value;
+    let etage = document.getElementById("etage").value.trim();
+    let type = document.getElementById("type").value.trim();
+    let genre = document.getElementById("genre").value.trim();
+    let periode = document.getElementById("periode").value.trim();
 
     let rows = document.querySelectorAll("#table tr");
 
     rows.forEach((row, i) => {
-        if(i === 0) return;
+
+        if(i === 0) return; // header
 
         let cells = row.children;
 
+        // قراءة القيم من الجدول
+        let row_type = cells[2].innerText.trim();
+        let row_etage = cells[3].innerText.trim();
+        let row_genre = cells[5].innerText.trim();
+        let row_periode = cells[6].innerText.trim();
+
         let show = true;
 
-        if(etage && cells[3].innerText !== etage) show = false;
-        if(type && cells[2].innerText !== type) show = false;
-        if(genre && cells[5].innerText !== genre) show = false;
-        if(periode && cells[6].innerText !== periode) show = false;
+        // 🔥 مقارنة آمنة (مع تجاهل الفراغات)
+        if(etage && row_etage !== etage) show = false;
+        if(type && row_type !== type) show = false;
+        if(genre && row_genre !== genre) show = false;
+        if(periode && row_periode !== periode) show = false;
 
         row.style.display = show ? "" : "none";
     });
 }
 
+
+// =============================
+// حذف متعدد
+// =============================
 function deleteSelected(){
 
     let selected = document.querySelectorAll(".row-check:checked");
