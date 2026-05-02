@@ -66,11 +66,11 @@ tr.selected-row { background:#ffdddd; }
 
 <div class="top-row">
 
-<input id="titre" name="titre" placeholder="Titre">
-<input id="organisateur" name="organisateur" placeholder="Organisateur">
+<input id="titre" name="titre" placeholder="عنوان الدورة / البرنامج">
+<input id="organisateur" name="organisateur" placeholder="المنظم">
 
-<select id="etage" name="etage">
-<option value="">Etage</option>
+<select id="etage" name="الطابق">
+<option value="">الطابق</option>
 <option value="ground floor">الأرضي</option>
 <option value="first floor">الطابق الأول</option>
 <option value="second floor">الطابق الثاني</option>
@@ -121,9 +121,9 @@ tr.selected-row { background:#ffdddd; }
 
 <table id="table">
 <tr>
-<th>ID</th><th>Type</th><th>Etage</th><th>Salle</th>
-<th>Genre</th><th>Période</th><th>Début</th><th>Fin</th>
-<th>Titre</th><th>Organisateur</th>
+<th>ID</th><th>النوع</th><th>الطابق</th><th>القاعة</th>
+<th>الجنس</th><th>الفترة</th><th>تاريخ البدء</th><th>تاريخ النهاية</th>
+<th>عنوان الدورة / البرنامج</th><th>الإدارة / الجهة المنظمة</th>
 </tr>
 
 {% for r in data %}
