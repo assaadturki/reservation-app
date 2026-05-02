@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
@@ -55,12 +55,19 @@ def index():
     if request.method == "POST":
         action = request.form.get("action")
 
-        debut = request.form.get("debut")
-        fin = request.form.get("fin")
-        periode = request.form.get("periode")
+        # 🔴 DELETE
+        if action == "delete":
+            selected_id = request.form.get("selected_id")
+            if selected_id:
+                cur.execute("DELETE FROM reservations WHERE id=?", (selected_id,))
+                conn.commit()
 
         # 🔵 DISPONIBILITÉ
-        if action == "dispo":
+        elif action == "dispo":
+            debut = request.form.get("debut")
+            fin = request.form.get("fin")
+            periode = request.form.get("periode")
+
             salles_filtrees = []
 
             for s in SALLES:
@@ -73,9 +80,12 @@ def index():
                 if not cur.fetchone():
                     salles_filtrees.append(s)
 
-        # 🟢 RÉSERVER
+        # 🟢 RESERVER
         elif action == "reserver":
             salle = request.form.get("salle")
+            debut = request.form.get("debut")
+            fin = request.form.get("fin")
+            periode = request.form.get("periode")
 
             cur.execute("""
                 SELECT * FROM reservations
@@ -102,11 +112,6 @@ def index():
                     request.form.get("organisateur")
                 ))
                 conn.commit()
-
-        # 🔴 SUPPRIMER
-        elif action == "delete":
-            cur.execute("DELETE FROM reservations WHERE id=?", (request.form.get("id"),))
-            conn.commit()
 
     cur.execute("SELECT * FROM reservations ORDER BY id DESC")
     data = cur.fetchall()
