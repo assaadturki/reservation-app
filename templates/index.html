@@ -138,7 +138,36 @@ tr.selected-row { background:#ffcccc; }
 </tr>
 {% endfor %}
 </table>
+<script>
 
+document.getElementById("etage").addEventListener("change", function(){
+
+    let etage = this.value;
+    let box = document.querySelector(".salle-box");
+
+    // إظهار الصندوق
+    if(etage){
+        box.style.display = "block";
+    } else {
+        box.style.display = "none";
+    }
+
+    // فلترة القاعات حسب الطابق
+    document.querySelectorAll(".salle-box div").forEach(s => {
+
+        let salle_etage = s.getAttribute("data-etage");
+
+        if(!etage || salle_etage === etage){
+            s.style.display = "block";
+        } else {
+            s.style.display = "none";
+        }
+
+    });
+
+});
+
+</script>
 <script>
 
 // =============================
