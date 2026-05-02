@@ -3,30 +3,89 @@
 <head>
 <meta charset="UTF-8">
 <title>حجز القاعات</title>
+
 <style>
-body{font-family:Arial;background:#eee;margin:20px;direction:rtl}
-h2{margin:10px 0}
+body {
+    font-family: Arial;
+    background:#f2f2f2;
+    direction: rtl;
+    margin:20px;
+}
 
-.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-input,select{height:32px;padding:5px}
+/* HEADER */
+.topbar {
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin-bottom:15px;
+    flex-wrap: wrap;
+}
 
-.buttons{display:flex;gap:10px}
-.btn{padding:8px 12px;border:none;cursor:pointer}
-.btn-blue{background:#2f6de1;color:#fff}
-.btn-green{background:#2e8b57;color:#fff}
-.btn-red{background:#c0392b;color:#fff}
+input, select {
+    height:32px;
+    padding:5px;
+}
 
-#salles_container{background:#fff;border:1px solid #ccc;padding:10px;margin-bottom:10px}
-.floor{margin-bottom:10px}
-.floor h4{margin:5px 0}
-.row{display:flex;gap:5px;flex-wrap:wrap}
-.salle{width:55px;text-align:center;padding:6px;border:1px solid #aaa;background:#f5f5f5;cursor:pointer}
-.salle.dispo{background:#b8f5b8}
-.salle.occupe{background:#f5b8b8}
+/* BUTTONS */
+.btn {
+    padding:7px 12px;
+    border:none;
+    color:white;
+    cursor:pointer;
+}
 
-table{width:100%;border-collapse:collapse;background:#fff}
-th,td{border:1px solid #ccc;padding:6px;text-align:center}
-tr.selected-row{background:#ffe0e0}
+.blue { background:#2f6de1; }
+.green { background:#2e8b57; }
+.red { background:#c0392b; }
+
+/* GRID */
+.grid {
+    background:white;
+    padding:10px;
+    border:1px solid #ccc;
+    margin-bottom:20px;
+}
+
+.floor-title {
+    margin:10px 0 5px;
+    font-weight:bold;
+}
+
+.row {
+    display:flex;
+    gap:6px;
+    margin-bottom:6px;
+    flex-wrap: wrap;
+}
+
+.cell {
+    width:65px;
+    text-align:center;
+    padding:6px;
+    border:1px solid #aaa;
+    cursor:pointer;
+    background:#eee;
+}
+
+.free { background:#b8f5b8; }
+.busy { background:#f5b8b8; }
+
+/* TABLE */
+table {
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+}
+
+th, td {
+    border:1px solid #ccc;
+    padding:6px;
+    text-align:center;
+}
+
+.selected {
+    background:#ffdede;
+}
 </style>
 </head>
 
@@ -34,85 +93,105 @@ tr.selected-row{background:#ffe0e0}
 
 <h2>حجز القاعات</h2>
 
-<!-- Import / Export -->
-<div class="toolbar">
-<a href="/export"><button type="button" class="btn btn-blue">تصدير إكسل</button></a>
+<div class="topbar">
+
+<a href="/export"><button class="btn blue">تصدير</button></a>
 
 <form action="/import" method="POST" enctype="multipart/form-data">
-<input type="file" name="file" required>
-<button class="btn btn-green">استيراد إكسل</button>
-</form>
-</div>
-
-<!-- Form -->
-<form method="POST" id="mainForm">
-<input type="hidden" name="id" id="id">
-<input type="hidden" name="action" id="action">
-
-<div class="toolbar">
-<input id="titre" name="titre" placeholder="العنوان">
-<input id="organisateur" name="organisateur" placeholder="المنظم">
-
-<select id="etage" name="etage">
-<option value="">الطابق</option>
-<option value="ground floor">الأرضي</option>
-<option value="first floor">الأول</option>
-<option value="second floor">الثاني</option>
-<option value="third floor">الثالث</option>
-<option value="fourth floor">الرابع</option>
-</select>
-
-<select id="type" name="type">
-<option value="">النوع</option>
-<option value="Class">قاعة</option>
-<option value="Lab">مختبر</option>
-</select>
-
-<select id="genre" name="genre">
-<option value="">الجنس</option>
-<option value="Male">رجال</option>
-<option value="Female">نساء</option>
-</select>
-
-<select id="periode" name="periode">
-<option value="">الفترة</option>
-<option value="Matin">صباحي</option>
-<option value="Soir">مسائي</option>
-</select>
-
-<input id="debut" type="date" name="debut">
-<input id="fin" type="date" name="fin">
-
-<input id="salle_input" name="salle" placeholder="القاعة" readonly>
-
-<div class="buttons">
-<button type="button" class="btn btn-blue" onclick="loadDispo()">عرض القاعات</button>
-<button type="submit" class="btn btn-green">حفظ / تعديل</button>
-</div>
-</div>
+<input type="file" name="file">
+<button class="btn green">استيراد</button>
 </form>
 
-<!-- Salles grid -->
-<div id="salles_container">
-<div class="floor"><h4>الأرضي</h4><div class="row">
-<div class="salle" data-salle="G 11">G 11</div>
-<div class="salle" data-salle="G 12">G 12</div>
-<div class="salle" data-salle="G 13">G 13</div>
-</div></div>
+<input type="date" id="debut">
+<input type="date" id="fin">
+
+<button class="btn blue" onclick="loadGrid()">عرض القاعات</button>
+
 </div>
 
-<h2>قائمة الحجوزات</h2>
+<!-- ===== GRID COMPLET ===== -->
+<div class="grid">
 
-<form method="POST" action="/delete" id="deleteForm">
+<div class="floor-title">الأرضي</div>
+<div class="row">
+<div class="cell" data-salle="G 11">G 11</div>
+<div class="cell" data-salle="G 12">G 12</div>
+<div class="cell" data-salle="G 13">G 13</div>
+</div>
+
+<div class="floor-title">الطابق الأول</div>
+<div class="row">
+<div class="cell" data-salle="L1 04">L1 04</div>
+<div class="cell" data-salle="L1 05">L1 05</div>
+<div class="cell" data-salle="L1 08">L1 08</div>
+<div class="cell" data-salle="L1 18">L1 18</div>
+<div class="cell" data-salle="L1 19">L1 19</div>
+<div class="cell" data-salle="L1 20">L1 20</div>
+<div class="cell" data-salle="L1 21">L1 21</div>
+<div class="cell" data-salle="L1 22">L1 22</div>
+<div class="cell" data-salle="L1 26">L1 26</div>
+</div>
+
+<div class="floor-title">الطابق الثاني</div>
+<div class="row">
+<div class="cell" data-salle="L2 08">L2 08</div>
+<div class="cell" data-salle="L2 09">L2 09</div>
+<div class="cell" data-salle="L2 10">L2 10</div>
+<div class="cell" data-salle="L2 11">L2 11</div>
+<div class="cell" data-salle="L2 14">L2 14</div>
+<div class="cell" data-salle="L2 28">L2 28</div>
+<div class="cell" data-salle="L2 29">L2 29</div>
+<div class="cell" data-salle="L2 30">L2 30</div>
+<div class="cell" data-salle="L2 31">L2 31</div>
+<div class="cell" data-salle="L2 32">L2 32</div>
+<div class="cell" data-salle="L2 33">L2 33</div>
+<div class="cell" data-salle="L2 34">L2 34</div>
+<div class="cell" data-salle="L2 35">L2 35</div>
+</div>
+
+<div class="floor-title">الطابق الثالث</div>
+<div class="row">
+<div class="cell" data-salle="L3 08">L3 08</div>
+<div class="cell" data-salle="L3 09">L3 09</div>
+<div class="cell" data-salle="L3 10">L3 10</div>
+<div class="cell" data-salle="L3 11">L3 11</div>
+<div class="cell" data-salle="L3 13">L3 13</div>
+<div class="cell" data-salle="L3 27">L3 27</div>
+<div class="cell" data-salle="L3 28">L3 28</div>
+<div class="cell" data-salle="L3 29">L3 29</div>
+<div class="cell" data-salle="L3 30">L3 30</div>
+<div class="cell" data-salle="L3 31">L3 31</div>
+<div class="cell" data-salle="L3 32">L3 32</div>
+<div class="cell" data-salle="L3 33">L3 33</div>
+<div class="cell" data-salle="L3 34">L3 34</div>
+</div>
+
+<div class="floor-title">الطابق الرابع</div>
+<div class="row">
+<div class="cell" data-salle="L4 08">L4 08</div>
+<div class="cell" data-salle="L4 09">L4 09</div>
+<div class="cell" data-salle="L4 10">L4 10</div>
+<div class="cell" data-salle="L4 11">L4 11</div>
+<div class="cell" data-salle="L4 14">L4 14</div>
+<div class="cell" data-salle="L4 29">L4 29</div>
+<div class="cell" data-salle="L4 30">L4 30</div>
+<div class="cell" data-salle="L4 31">L4 31</div>
+<div class="cell" data-salle="L4 32">L4 32</div>
+<div class="cell" data-salle="L4 33">L4 33</div>
+<div class="cell" data-salle="L4 34">L4 34</div>
+<div class="cell" data-salle="L4 35">L4 35</div>
+<div class="cell" data-salle="L4 36">L4 36</div>
+</div>
+
+</div>
+
+<!-- ===== TABLE ===== -->
+<h3>قائمة الحجوزات</h3>
+
 <table id="table">
 <tr>
-<th></th>
 <th>ID</th>
-<th>النوع</th>
-<th>الطابق</th>
 <th>القاعة</th>
-<th>الجنس</th>
-<th>الفترة</th>
 <th>البداية</th>
 <th>النهاية</th>
 <th>العنوان</th>
@@ -121,13 +200,8 @@ tr.selected-row{background:#ffe0e0}
 
 {% for r in data %}
 <tr onclick="selectRow(this, {{ r[0] }})">
-<td><input type="checkbox" name="ids[]" value="{{ r[0] }}"></td>
 <td>{{ r[0] }}</td>
-<td>{{ r[1] }}</td>
-<td>{{ r[2] }}</td>
 <td>{{ r[3] }}</td>
-<td>{{ r[4] }}</td>
-<td>{{ r[5] }}</td>
 <td>{{ r[6] }}</td>
 <td>{{ r[7] }}</td>
 <td>{{ r[8] }}</td>
@@ -137,62 +211,49 @@ tr.selected-row{background:#ffe0e0}
 </table>
 
 <br>
-<button class="btn btn-red">حذف المحدد</button>
-</form>
+<button class="btn red" onclick="deleteRow()">حذف</button>
 
 <script>
+
 let selectedId=null;
 
 function selectRow(row,id){
-document.querySelectorAll("#table tr").forEach(r=>r.classList.remove("selected-row"));
-row.classList.add("selected-row");
+document.querySelectorAll("tr").forEach(r=>r.classList.remove("selected"));
+row.classList.add("selected");
 selectedId=id;
-
-let c=row.children;
-document.getElementById("id").value=id;
-document.getElementById("action").value="update";
-
-document.getElementById("type").value=c[2].innerText;
-document.getElementById("etage").value=c[3].innerText;
-document.getElementById("salle_input").value=c[4].innerText;
-document.getElementById("genre").value=c[5].innerText;
-document.getElementById("periode").value=c[6].innerText;
-document.getElementById("debut").value=c[7].innerText;
-document.getElementById("fin").value=c[8].innerText;
-document.getElementById("titre").value=c[9].innerText;
-document.getElementById("organisateur").value=c[10].innerText;
 }
 
-function loadDispo(){
-let debut=document.getElementById("debut").value;
-let fin=document.getElementById("fin").value;
-
-fetch("/disponibilite",{
-method:"POST",
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({debut:debut,fin:fin})
-})
+function loadGrid(){
+fetch("/disponibilite",{method:"POST"})
 .then(res=>res.json())
 .then(data=>{
-document.querySelectorAll(".salle").forEach(el=>{
+document.querySelectorAll(".cell").forEach(el=>{
 let s=el.dataset.salle;
-el.classList.remove("dispo","occupe");
-if(data.occupees.includes(s)){el.classList.add("occupe")}
-else{el.classList.add("dispo")}
-})
-})
+el.classList.remove("free","busy");
+if(data.occupees.includes(s)) el.classList.add("busy");
+else el.classList.add("free");
+});
+});
 }
 
-document.querySelectorAll(".salle").forEach(el=>{
+document.querySelectorAll(".cell").forEach(el=>{
 el.onclick=function(){
 if(!selectedId){alert("اختر سطر");return;}
-fetch("/assign",{
-method:"POST",
+fetch("/assign",{method:"POST",
 headers:{'Content-Type':'application/json'},
 body:JSON.stringify({id:selectedId,salle:el.dataset.salle})
 }).then(()=>location.reload());
-}
+};
 });
+
+function deleteRow(){
+if(!selectedId){alert("اختر سطر");return;}
+fetch("/delete",{method:"POST",
+headers:{'Content-Type':'application/x-www-form-urlencoded'},
+body:"id="+selectedId
+}).then(()=>location.reload());
+}
+
 </script>
 
 </body>
