@@ -14,7 +14,6 @@
             margin-bottom: 10px;
         }
 
-        /* ===== LIGNE PRINCIPALE ===== */
         .top-row {
             display: flex;
             align-items: center;
@@ -27,10 +26,6 @@
             min-width: 120px;
         }
 
-        .small {
-            width: 100px;
-        }
-
         .date {
             width: 140px;
         }
@@ -39,14 +34,15 @@
         .salle-box {
             border: 1px solid #ccc;
             background: #fff;
-            width: 80px;
-            height: 280px;
+            width: 120px;
+            height: 260px;
             overflow-y: auto;
-            font-size: 11px;
+            font-size: 12px;
+            display: none;
         }
 
         .salle-box div {
-            padding: 3px;
+            padding: 4px;
             cursor: pointer;
         }
 
@@ -64,7 +60,6 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            margin-left: 10px;
         }
 
         .btn-blue {
@@ -92,7 +87,6 @@
             cursor: pointer;
         }
 
-        /* ===== TABLE ===== */
         table {
             width: 100%;
             margin-top: 20px;
@@ -125,7 +119,7 @@
     <input name="titre" placeholder="Titre">
     <input name="organisateur" placeholder="Organisateur">
 
-    <select name="etage" id="etage" onchange="filtrerSalles()">
+    <select name="etage" id="etage">
         <option value="">Etage</option>
         <option value="ground floor">Ground</option>
         <option value="first floor">1 er</option>
@@ -154,7 +148,7 @@
 
     <input id="salle_input" name="salle" placeholder="Salle" readonly>
 
-    <!-- ===== LISTE SALLES ===== -->
+    <!-- SALLES -->
     <div class="salle-box" id="salles">
         {% for s in salles %}
         <div data-etage="{{ s.etage }}" onclick="selectSalle(this)">
@@ -163,10 +157,15 @@
         {% endfor %}
     </div>
 
-    <!-- ===== BOUTONS ===== -->
+    <!-- BOUTONS -->
     <div class="buttons">
-        <button type="button" class="btn-blue">voir disponibilité</button>
-        <button type="submit" class="btn-green">Réserver</button>
+        <button type="button" class="btn-blue" onclick="voirDisponibilite()">
+            voir disponibilité
+        </button>
+
+        <button type="submit" class="btn-green">
+            Réserver
+        </button>
     </div>
 
 </div>
@@ -209,14 +208,24 @@
     <button class="btn-red">Supprimer Réservation</button>
 </form>
 
-<!-- ===== SCRIPT ===== -->
 <script>
-function filtrerSalles() {
+
+function voirDisponibilite() {
+
     let etage = document.getElementById("etage").value;
+
+    if (!etage) {
+        alert("Choisis un étage d'abord");
+        return;
+    }
+
+    let box = document.getElementById("salles");
     let salles = document.querySelectorAll("#salles div");
 
+    box.style.display = "block";
+
     salles.forEach(s => {
-        if (s.getAttribute("data-etage") === etage || etage === "") {
+        if (s.getAttribute("data-etage") === etage) {
             s.style.display = "block";
         } else {
             s.style.display = "none";
@@ -227,8 +236,10 @@ function filtrerSalles() {
 function selectSalle(el) {
     document.querySelectorAll("#salles div").forEach(s => s.classList.remove("selected"));
     el.classList.add("selected");
+
     document.getElementById("salle_input").value = el.innerText;
 }
+
 </script>
 
 </body>
