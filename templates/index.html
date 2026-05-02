@@ -114,7 +114,7 @@ tr.selected-row { background:#ffdddd; }
 </div>
 </form>
 
-<h2>Liste</h2>
+<h2>جدول حجز القاعات التدريبية</h2>
 
 <form method="POST" action="/delete">
 <input type="hidden" name="id" id="delete_id">
@@ -150,7 +150,7 @@ tr.selected-row { background:#ffdddd; }
 
 function voirDisponibilite(){
 let etage=document.getElementById("etage").value;
-if(!etage){alert("Choisir étage");return;}
+if(!etage){alert("قم باختيار الطابق");return;}
 let box=document.getElementById("salles");
 box.style.display="block";
 
@@ -175,15 +175,15 @@ document.getElementById("action").value="update";
 
 let cells=row.children;
 
-document.getElementById("type").value=cells[1].innerText;
-document.getElementById("etage").value=cells[2].innerText;
+document.getElementById("النوع").value=cells[1].innerText;
+document.getElementById("الطابق").value=cells[2].innerText;
 document.getElementById("salle_input").value=cells[3].innerText;
-document.getElementById("genre").value=cells[4].innerText;
-document.getElementById("periode").value=cells[5].innerText;
-document.getElementById("debut").value=cells[6].innerText;
-document.getElementById("fin").value=cells[7].innerText;
-document.getElementById("titre").value=cells[8].innerText;
-document.getElementById("organisateur").value=cells[9].innerText;
+document.getElementById("الجنس").value=cells[4].innerText;
+document.getElementById("الفترة").value=cells[5].innerText;
+document.getElementById("اتريخ البدء").value=cells[6].innerText;
+document.getElementById("تاريخ النهاية").value=cells[7].innerText;
+document.getElementById("عنوان الدورة / البرنامج").value=cells[8].innerText;
+document.getElementById("الإدارة / الجهة المنظمة").value=cells[9].innerText;
 }
 
 </script>
