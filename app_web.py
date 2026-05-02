@@ -1,6 +1,7 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect
+import pandas as pd
+from flask import Flask, render_template, request, redirect, send_file
 
 app = Flask(__name__)
 
@@ -8,7 +9,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "reservations.db")
 
 
-# 🔥 SALLES
+# ✅ LISTE COMPLETE DES SALLES
 SALLES = [
     {"nom": "G 11", "etage": "ground floor"},
     {"nom": "G 12", "etage": "ground floor"},
@@ -98,22 +99,19 @@ def init_db():
 @app.route("/", methods=["GET", "POST"])
 def index():
     init_db()
-
     conn = get_db()
     cur = conn.cursor()
 
     if request.method == "POST":
-
         action = request.form.get("action")
         id_ = request.form.get("id")
 
         if action == "update" and id_:
-            # 🔥 UPDATE
             cur.execute("""
                 UPDATE reservations SET
-                type = ?, etage = ?, salle = ?, genre = ?, periode = ?,
-                date_debut = ?, date_fin = ?, titre = ?, organisateur = ?
-                WHERE id = ?
+                type=?, etage=?, salle=?, genre=?, periode=?,
+                date_debut=?, date_fin=?, titre=?, organisateur=?
+                WHERE id=?
             """, (
                 request.form.get("type"),
                 request.form.get("etage"),
@@ -126,9 +124,7 @@ def index():
                 request.form.get("organisateur"),
                 id_
             ))
-
         else:
-            # 🔥 INSERT
             cur.execute("""
                 INSERT INTO reservations
                 (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
@@ -147,7 +143,6 @@ def index():
 
         conn.commit()
         conn.close()
-
         return redirect("/")
 
     cur.execute("SELECT * FROM reservations ORDER BY id DESC")
@@ -163,7 +158,40 @@ def delete():
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("DELETE FROM reservations WHERE id = ?", (id_,))
+    cur.execute("DELETE FROM reservations WHERE id=?", (id_,))
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
+
+
+@app.route("/export")
+def export_excel():
+    conn = get_db()
+    df = pd.read_sql_query("SELECT * FROM reservations", conn)
+    conn.close()
+
+    file = "export.xlsx"
+    df.to_excel(file, index=False)
+
+    return send_file(file, as_attachment=True)
+
+
+@app.route("/import", methods=["POST"])
+def import_excel():
+    file = request.files["file"]
+    df = pd.read_excel(file)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    for _, row in df.iterrows():
+        cur.execute("""
+            INSERT INTO reservations
+            (type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, tuple(row))
+
     conn.commit()
     conn.close()
 
