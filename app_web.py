@@ -44,7 +44,6 @@ def init_db():
     conn.close()
 
 
-# 🔥 IMPORTANT POUR RENDER
 init_db()
 
 
@@ -54,27 +53,46 @@ def index():
     cur = conn.cursor()
 
     erreur = None
+    salles_disponibles = SALLES
 
     if request.method == "POST":
-        salle = request.form.get("salle")
+
+        action = request.form.get("action")
+
         debut = request.form.get("debut")
         fin = request.form.get("fin")
         periode = request.form.get("periode")
 
-        # 🔴 Vérifier conflit
-        cur.execute("""
-            SELECT * FROM reservations
-            WHERE salle = ?
-            AND periode = ?
-            AND (date_debut <= ? AND date_fin >= ?)
-        """, (salle, periode, fin, debut))
+        # 🔵 DISPONIBILITÉ
+        if action == "dispo":
+            salles_disponibles = []
 
-        conflit = cur.fetchone()
+            for s in SALLES:
+                cur.execute("""
+                    SELECT * FROM reservations
+                    WHERE salle = ?
+                    AND periode = ?
+                    AND (date_debut <= ? AND date_fin >= ?)
+                """, (s["nom"], periode, fin, debut))
 
-        if conflit:
-            erreur = "❌ Salle déjà réservée sur cette période"
-        else:
-            try:
+                if not cur.fetchone():
+                    salles_disponibles.append(s)
+
+        # 🔴 RÉSERVATION
+        elif action == "reserver":
+
+            salle = request.form.get("salle")
+
+            cur.execute("""
+                SELECT * FROM reservations
+                WHERE salle = ?
+                AND periode = ?
+                AND (date_debut <= ? AND date_fin >= ?)
+            """, (salle, periode, fin, debut))
+
+            if cur.fetchone():
+                erreur = "❌ Salle déjà réservée"
+            else:
                 cur.execute("""
                     INSERT INTO reservations
                     (type, salle, etage, section, titre, organisateur, date_debut, date_fin, periode)
@@ -91,15 +109,17 @@ def index():
                     periode
                 ))
                 conn.commit()
-            except Exception as e:
-                erreur = str(e)
 
-    # 🔥 AFFICHAGE
     cur.execute("SELECT * FROM reservations ORDER BY id DESC")
     data = cur.fetchall()
     conn.close()
 
-    return render_template("index.html", data=data, salles=SALLES, erreur=erreur)
+    return render_template(
+        "index.html",
+        data=data,
+        salles=salles_disponibles,
+        erreur=erreur
+    )
 
 
 if __name__ == "__main__":
