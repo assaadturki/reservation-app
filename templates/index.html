@@ -1,71 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar">
 <head>
+<meta charset="UTF-8">
 <title>حجز القاعات</title>
 
 <style>
-body { font-family: Arial; background:#eee; margin:20px; direction: rtl; }
+body {
+    font-family: Arial;
+    background:#eee;
+    margin:20px;
+    direction: rtl;
+}
 
-.top-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.top-row {
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+}
 
-input, select { height:30px; padding:5px; }
+input, select {
+    height:30px;
+    padding:5px;
+}
 
+/* صندوق القاعات */
 .salle-box {
     border:1px solid #ccc;
     background:white;
-    width:120px;
+    width:140px;
     height:260px;
     overflow-y:auto;
     font-size:12px;
     display:none;
 }
 
-.salle-box div { padding:4px; cursor:pointer; }
-.selected { background:blue; color:white; }
-
-.buttons { display:flex; flex-direction:column; gap:10px; }
-
-.btn-blue { background:#2f6de1; color:white; padding:8px; border:none; cursor:pointer;}
-.btn-green { background:#2e8b57; color:white; padding:8px; border:none; cursor:pointer;}
-.btn-red { background:#c0392b; color:white; padding:8px; border:none; cursor:pointer;}
-
-table {
-    width:100%;
-    margin-top:20px;
-    border-collapse:collapse;
-    background:white;
-}
-
-td, th {
-    border:1px solid #ccc;
+.salle-box div {
     padding:6px;
-    text-align:center;
+    cursor:pointer;
+    border-bottom:1px solid #eee;
 }
 
-tr.selected-row { background:#ffcccc; }
-.hidden { display:none; }
+.salle-box div:hover {
+    background:#ddd;
+}
+
+.selected {
+    background:#2f6de1;
+    color:white;
+}
+
+.btn-blue {
+    background:#2f6de1;
+    color:white;
+    padding:8px;
+    border:none;
+    cursor:pointer;
+}
 </style>
 </head>
 
 <body>
 
-<h2>حجز القاعة</h2>
-
-<div style="margin-bottom:10px;">
-<a href="/export"><button class="btn-blue">تصدير إكسل</button></a>
-
-<form action="/import" method="POST" enctype="multipart/form-data" style="display:inline;">
-<input type="file" name="file">
-<button class="btn-green">استيراد إكسل</button>
-</form>
-</div>
-
-<form method="POST">
+<h2>حجز القاعات</h2>
 
 <div class="top-row">
-
-<input id="titre" placeholder="العنوان">
-<input id="organisateur" placeholder="المنظم">
 
 <select id="etage">
 <option value="">الطابق</option>
@@ -76,194 +75,118 @@ tr.selected-row { background:#ffcccc; }
 <option value="fourth floor">الرابع</option>
 </select>
 
-<select id="type">
-<option value="">النوع</option>
-<option value="Class">قاعة</option>
-<option value="Lab">مختبر</option>
-</select>
+<input id="salle_input" placeholder="القاعة" readonly>
 
-<select id="genre">
-<option value="">الجنس</option>
-<option value="Male">رجال</option>
-<option value="Female">نساء</option>
-</select>
-
-<select id="periode">
-<option value="">الفترة</option>
-<option value="Matin">صباحي</option>
-<option value="Soir">مسائي</option>
-</select>
-
-<input id="debut" type="date">
-<input id="fin" type="date">
-
-<div class="buttons">
-<button type="button" class="btn-blue" onclick="filtrer()">أظهر قائمة الاختيار</button>
-<button type="button" class="btn-red" onclick="deleteSelected()">حذف المحدد</button>
-</div>
+<button class="btn-blue" onclick="voirDisponibilite()">عرض القاعات</button>
 
 </div>
-</form>
 
-<h2>قائمة الحجوزات</h2>
+<br>
 
-<table id="table">
-<tr>
-<th></th>
-<th>ID</th>
-<th>النوع</th>
-<th>الطابق</th>
-<th>القاعة</th>
-<th>الجنس</th>
-<th>الفترة</th>
-<th>البداية</th>
-<th>النهاية</th>
-<th>العنوان</th>
-<th>المنظم</th>
-</tr>
+<!-- 🔥 LISTE COMPLETE -->
+<div class="salle-box" id="salles">
 
-{% for r in data %}
-<tr onclick="selectRow(this)">
-<td><input type="checkbox" class="row-check" value="{{ r[0] }}"></td>
-<td>{{ r[0] }}</td>
-<td>{{ r[1] }}</td>
-<td>{{ r[2] }}</td>
-<td>{{ r[3] }}</td>
-<td>{{ r[4] }}</td>
-<td>{{ r[5] }}</td>
-<td>{{ r[6] }}</td>
-<td>{{ r[7] }}</td>
-<td>{{ r[8] }}</td>
-<td>{{ r[9] }}</td>
-</tr>
-{% endfor %}
-</table>
+<!-- ground -->
+<div data-etage="ground floor">G 11</div>
+<div data-etage="ground floor">G 12</div>
+<div data-etage="ground floor">G 13</div>
+
+<!-- first -->
+<div data-etage="first floor">L1 04</div>
+<div data-etage="first floor">L1 05</div>
+<div data-etage="first floor">L1 08</div>
+<div data-etage="first floor">L1 18</div>
+<div data-etage="first floor">L1 19</div>
+<div data-etage="first floor">L1 20</div>
+<div data-etage="first floor">L1 21</div>
+<div data-etage="first floor">L1 22</div>
+<div data-etage="first floor">L1 26</div>
+
+<!-- second -->
+<div data-etage="second floor">L2 08</div>
+<div data-etage="second floor">L2 09</div>
+<div data-etage="second floor">L2 10</div>
+<div data-etage="second floor">L2 11</div>
+<div data-etage="second floor">L2 14</div>
+<div data-etage="second floor">L2 28</div>
+<div data-etage="second floor">L2 29</div>
+<div data-etage="second floor">L2 30</div>
+<div data-etage="second floor">L2 31</div>
+<div data-etage="second floor">L2 32</div>
+<div data-etage="second floor">L2 33</div>
+<div data-etage="second floor">L2 34</div>
+<div data-etage="second floor">L2 35</div>
+
+<!-- third -->
+<div data-etage="third floor">L3 08</div>
+<div data-etage="third floor">L3 09</div>
+<div data-etage="third floor">L3 10</div>
+<div data-etage="third floor">L3 11</div>
+<div data-etage="third floor">L3 13</div>
+<div data-etage="third floor">L3 27</div>
+<div data-etage="third floor">L3 28</div>
+<div data-etage="third floor">L3 29</div>
+<div data-etage="third floor">L3 30</div>
+<div data-etage="third floor">L3 31</div>
+<div data-etage="third floor">L3 32</div>
+<div data-etage="third floor">L3 33</div>
+<div data-etage="third floor">L3 34</div>
+
+<!-- fourth -->
+<div data-etage="fourth floor">L4 08</div>
+<div data-etage="fourth floor">L4 09</div>
+<div data-etage="fourth floor">L4 10</div>
+<div data-etage="fourth floor">L4 11</div>
+<div data-etage="fourth floor">L4 14</div>
+<div data-etage="fourth floor">L4 29</div>
+<div data-etage="fourth floor">L4 30</div>
+<div data-etage="fourth floor">L4 31</div>
+<div data-etage="fourth floor">L4 32</div>
+<div data-etage="fourth floor">L4 33</div>
+<div data-etage="fourth floor">L4 34</div>
+<div data-etage="fourth floor">L4 35</div>
+<div data-etage="fourth floor">L4 36</div>
+
+</div>
+
 <script>
 
-document.getElementById("etage").addEventListener("change", function(){
+// 🔥 afficher + filtrer
+function voirDisponibilite(){
 
-    let etage = this.value;
-    let box = document.querySelector(".salle-box");
+    let etage = document.getElementById("etage").value;
+    let box = document.getElementById("salles");
 
-    // إظهار الصندوق
-    if(etage){
-        box.style.display = "block";
-    } else {
-        box.style.display = "none";
+    if(!etage){
+        alert("اختر الطابق");
+        return;
     }
 
-    // فلترة القاعات حسب الطابق
-    document.querySelectorAll(".salle-box div").forEach(s => {
+    box.style.display = "block";
 
-        let salle_etage = s.getAttribute("data-etage");
+    document.querySelectorAll("#salles div").forEach(s => {
 
-        if(!etage || salle_etage === etage){
+        if(s.dataset.etage === etage){
             s.style.display = "block";
         } else {
             s.style.display = "none";
         }
 
     });
+}
 
+// 🔥 sélection salle
+document.querySelectorAll("#salles div").forEach(el=>{
+    el.addEventListener("click", function(){
+
+        document.querySelectorAll("#salles div").forEach(s=>s.classList.remove("selected"));
+
+        this.classList.add("selected");
+
+        document.getElementById("salle_input").value = this.innerText;
+
+    });
 });
-
-</script>
-<script>
-
-// =============================
-// تحويل عربي → إنجليزي
-// =============================
-function normalize(value){
-
-    let map = {
-        "قاعة": "Class",
-        "مختبر": "Lab",
-        "رجال": "Male",
-        "نساء": "Female",
-        "صباحي": "Matin",
-        "مسائي": "Soir",
-        "الأرضي": "ground floor",
-        "الأول": "first floor",
-        "الثاني": "second floor",
-        "الثالث": "third floor",
-        "الرابع": "fourth floor"
-    };
-
-    return map[value] || value;
-}
-
-
-// =============================
-// اختيار صف
-// =============================
-function selectRow(row){
-    row.classList.toggle("selected-row");
-
-    let checkbox = row.querySelector(".row-check");
-    checkbox.checked = !checkbox.checked;
-}
-
-
-// =============================
-// الفلترة (تدعم العربي)
-// =============================
-function filtrer(){
-
-    let etage = normalize(document.getElementById("etage").value.trim());
-    let type = normalize(document.getElementById("type").value.trim());
-    let genre = normalize(document.getElementById("genre").value.trim());
-    let periode = normalize(document.getElementById("periode").value.trim());
-
-    let rows = document.querySelectorAll("#table tr");
-
-    rows.forEach((row, i) => {
-
-        if(i === 0) return;
-
-        let cells = row.children;
-
-        // نحول القيم من الجدول أيضاً
-        let row_type = normalize(cells[2].innerText.trim());
-        let row_etage = normalize(cells[3].innerText.trim());
-        let row_genre = normalize(cells[5].innerText.trim());
-        let row_periode = normalize(cells[6].innerText.trim());
-
-        let show = true;
-
-        if(etage && row_etage !== etage) show = false;
-        if(type && row_type !== type) show = false;
-        if(genre && row_genre !== genre) show = false;
-        if(periode && row_periode !== periode) show = false;
-
-        row.style.display = show ? "" : "none";
-    });
-}
-
-
-// =============================
-// حذف متعدد
-// =============================
-function deleteSelected(){
-
-    let selected = document.querySelectorAll(".row-check:checked");
-
-    if(selected.length === 0){
-        alert("اختر عناصر للحذف");
-        return;
-    }
-
-    if(!confirm("هل تريد حذف المحدد؟")) return;
-
-    selected.forEach(el => {
-        fetch("/delete", {
-            method: "POST",
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: "id=" + el.value
-        }).then(() => {
-            el.closest("tr").remove();
-        });
-    });
-}
 
 </script>
 
