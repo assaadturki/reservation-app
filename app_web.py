@@ -928,16 +928,25 @@ def delete_user():
 @app.route("/check_conflict")
 @login_required
 def check_conflict():
-    salle = request.args.get("salle", "")
-    debut = request.args.get("debut", "")
-    fin   = request.args.get("fin", "")
-    periode = request.args.get("periode", "")
-    if not salle or not debut or not fin:
+    salle      = request.args.get("salle", "")
+    debut      = request.args.get("debut", "")
+    fin        = request.args.get("fin", "")
+    periode    = request.args.get("periode", "")
+    exclude_id = request.args.get("exclude_id", None)
+
+    if not salle or not debut or not fin or not periode:
         return jsonify({"conflict": False})
+
     conn = get_conn()
-    row = conn.execute("""SELECT titre,organisateur,date_debut,date_fin FROM reservations
-                          WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=?""",
-                       (salle, periode, fin, debut)).fetchone()
+    if exclude_id:
+        row = conn.execute("""SELECT titre,organisateur,date_debut,date_fin FROM reservations
+                              WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=?
+                              AND id!=?""",
+                           (salle, periode, fin, debut, exclude_id)).fetchone()
+    else:
+        row = conn.execute("""SELECT titre,organisateur,date_debut,date_fin FROM reservations
+                              WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=?""",
+                           (salle, periode, fin, debut)).fetchone()
     conn.close()
     if row:
         return jsonify({"conflict": True,
@@ -1088,27 +1097,50 @@ def import_excel():
 @login_required
 def update():
     id_     = request.form.get("id")
-    salle   = request.form.get("salle", "")
-    debut   = request.form.get("debut", "")
-    fin     = request.form.get("fin", "")
-    periode = request.form.get("periode", "")
+    salle   = request.form.get("salle", "").strip()
+    debut   = request.form.get("debut", "").strip()
+    fin     = request.form.get("fin", "").strip()
+    periode = request.form.get("periode", "").strip()
+    titre   = request.form.get("titre", "").strip()
+    organisateur = request.form.get("organisateur", "").strip()
+    type_   = request.form.get("type", "").strip()
+    etage   = request.form.get("etage", "").strip()
+    genre   = request.form.get("genre", "").strip()
+
     conn = get_conn()
-    # conflict check excluding current record
-    conflict = conn.execute("""SELECT id FROM reservations
-        WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=? AND id!=?""",
-        (salle, periode, fin, debut, id_)).fetchone()
-    if conflict:
-        flash("⚠️ تعارض في الحجز: القاعة محجوزة في هذه الفترة", "error")
+
+    # Fetch original record to compare what actually changed
+    orig = conn.execute(
+        "SELECT salle, periode, date_debut, date_fin FROM reservations WHERE id=?",
+        (id_,)).fetchone()
+
+    if not orig:
+        flash("الحجز غير موجود", "error")
         conn.close(); return redirect("/")
+
+    # Only check for conflict if salle OR dates OR periode changed
+    salle_changed  = salle   != orig[0]
+    period_changed = periode != orig[1]
+    debut_changed  = debut   != orig[2]
+    fin_changed    = fin     != orig[3]
+
+    if salle_changed or period_changed or debut_changed or fin_changed:
+        conflict = conn.execute("""
+            SELECT id FROM reservations
+            WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=? AND id!=?
+        """, (salle, periode, fin, debut, id_)).fetchone()
+        if conflict:
+            flash("⚠️ تعارض في الحجز: القاعة محجوزة في هذه الفترة", "error")
+            conn.close(); return redirect("/")
+
     conn.execute("""UPDATE reservations SET
         type=?, etage=?, salle=?, genre=?, periode=?,
         date_debut=?, date_fin=?, titre=?, organisateur=?
         WHERE id=?""", (
-        request.form.get("type"), request.form.get("etage"), salle,
-        request.form.get("genre"), periode, debut, fin,
-        request.form.get("titre"), request.form.get("organisateur"), id_))
+        type_, etage, salle, genre, periode,
+        debut, fin, titre, organisateur, id_))
     conn.commit()
-    add_notification(session["user"], f"تم تعديل الحجز #{id_}: «{request.form.get('titre')}»")
+    add_notification(session["user"], f"تم تعديل الحجز #{id_}: «{titre}»")
     conn.close()
     flash("✅ تم تعديل الحجز بنجاح", "success")
     return redirect("/")
