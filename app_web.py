@@ -1,5 +1,4 @@
 import os
-import sqlite3
 import hashlib
 from functools import wraps
 from datetime import datetime, timedelta
@@ -10,31 +9,94 @@ from flask import Flask, request, redirect, send_file, session, jsonify, flash, 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change_this_secret_key_in_production")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "reservations.db")
+# ─── DATABASE: PostgreSQL (Render) ou SQLite (local) ──────────────────────────
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
-# Init DB immediately at import time so tables exist before any request
+if DATABASE_URL:
+    # Render fournit postgres:// mais psycopg2 veut postgresql://
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    import psycopg2
+    import psycopg2.extras
+    PG = True
+else:
+    import sqlite3
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DB_PATH  = os.path.join(BASE_DIR, "reservations.db")
+    PG = False
+
+
+def get_conn():
+    if PG:
+        conn = psycopg2.connect(DATABASE_URL)
+        return conn
+    else:
+        return sqlite3.connect(DB_PATH)
+
+
+def qmark(sql):
+    """Convert SQLite ? placeholders to PostgreSQL %s."""
+    if PG:
+        return sql.replace("?", "%s")
+    return sql
+
+
+def fetchall(conn, sql, params=()):
+    cur = conn.cursor()
+    cur.execute(qmark(sql), params)
+    return cur.fetchall()
+
+
+def fetchone(conn, sql, params=()):
+    cur = conn.cursor()
+    cur.execute(qmark(sql), params)
+    return cur.fetchone()
+
+
+def execute(conn, sql, params=()):
+    cur = conn.cursor()
+    cur.execute(qmark(sql), params)
+
+
 def _bootstrap_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("""CREATE TABLE IF NOT EXISTS reservations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        type TEXT, etage TEXT, salle TEXT, genre TEXT, periode TEXT,
-        date_debut TEXT, date_fin TEXT, titre TEXT, organisateur TEXT,
-        created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
-        role TEXT DEFAULT 'user', created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS notifications (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user TEXT, message TEXT, is_read INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-    c.execute("SELECT COUNT(*) FROM users WHERE username='admin'")
-    if c.fetchone()[0] == 0:
-        import hashlib
-        c.execute("INSERT INTO users (username,password,role) VALUES (?,?,?)",
-                  ("admin", hashlib.sha256(b"admin123").hexdigest(), "admin"))
+    conn = get_conn()
+    if PG:
+        # PostgreSQL: SERIAL instead of AUTOINCREMENT, TEXT works fine
+        execute(conn, """CREATE TABLE IF NOT EXISTS reservations (
+            id SERIAL PRIMARY KEY,
+            type TEXT, etage TEXT, salle TEXT, genre TEXT, periode TEXT,
+            date_debut TEXT, date_fin TEXT, titre TEXT, organisateur TEXT,
+            created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        execute(conn, """CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
+            role TEXT DEFAULT 'user', created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        execute(conn, """CREATE TABLE IF NOT EXISTS notifications (
+            id SERIAL PRIMARY KEY,
+            "user" TEXT, message TEXT, is_read INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        row = fetchone(conn, "SELECT COUNT(*) FROM users WHERE username=%s", ("admin",))
+        if row[0] == 0:
+            execute(conn, "INSERT INTO users (username,password,role) VALUES (%s,%s,%s)",
+                    ("admin", hashlib.sha256(b"admin123").hexdigest(), "admin"))
+    else:
+        execute(conn, """CREATE TABLE IF NOT EXISTS reservations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            type TEXT, etage TEXT, salle TEXT, genre TEXT, periode TEXT,
+            date_debut TEXT, date_fin TEXT, titre TEXT, organisateur TEXT,
+            created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        execute(conn, """CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
+            role TEXT DEFAULT 'user', created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        execute(conn, """CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user TEXT, message TEXT, is_read INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        row = fetchone(conn, "SELECT COUNT(*) FROM users WHERE username=?", ("admin",))
+        if row[0] == 0:
+            execute(conn, "INSERT INTO users (username,password,role) VALUES (?,?,?)",
+                    ("admin", hashlib.sha256(b"admin123").hexdigest(), "admin"))
     conn.commit()
     conn.close()
 
@@ -827,35 +889,14 @@ function initCalendar(){
 def hash_password(p):
     return hashlib.sha256(p.encode()).hexdigest()
 
-def get_conn():
-    return sqlite3.connect(DB_PATH)
-
 def init_db():
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("""CREATE TABLE IF NOT EXISTS reservations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        type TEXT, etage TEXT, salle TEXT, genre TEXT, periode TEXT,
-        date_debut TEXT, date_fin TEXT, titre TEXT, organisateur TEXT,
-        created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
-        role TEXT DEFAULT 'user', created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS notifications (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user TEXT, message TEXT, is_read INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-    c.execute("SELECT COUNT(*) FROM users WHERE username='admin'")
-    if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO users (username,password,role) VALUES (?,?,?)",
-                  ("admin", hash_password("admin123"), "admin"))
-    conn.commit(); conn.close()
+    _bootstrap_db()
 
 def add_notification(user, message):
     conn = get_conn()
-    conn.execute("INSERT INTO notifications (user,message) VALUES (?,?)", (user, message))
-    conn.commit(); conn.close()
+    execute(conn, "INSERT INTO notifications (\"user\",message) VALUES (?,?)", (user, message))
+    conn.commit()
+    conn.close()
 
 def login_required(f):
     @wraps(f)
@@ -883,8 +924,8 @@ def login():
         u = request.form.get("username", "").strip()
         p = request.form.get("password", "")
         conn = get_conn()
-        row = conn.execute("SELECT username,role FROM users WHERE username=? AND password=?",
-                           (u, hash_password(p))).fetchone()
+        row = fetchone(conn, "SELECT username,role FROM users WHERE username=? AND password=?",
+                       (u, hash_password(p)))
         conn.close()
         if row:
             session["user"] = row[0]; session["role"] = row[1]; return redirect("/")
@@ -906,15 +947,16 @@ def register():
             flash("يرجى ملء جميع الحقول", "error"); return redirect("/register")
         conn = get_conn()
         try:
-            conn.execute("INSERT INTO users (username,password,role) VALUES (?,?,?)", (u, hash_password(p), r))
+            execute(conn, "INSERT INTO users (username,password,role) VALUES (?,?,?)",
+                    (u, hash_password(p), r))
             conn.commit(); flash(f"تم إنشاء المستخدم {u} بنجاح", "success")
-        except sqlite3.IntegrityError:
-            flash("اسم المستخدم موجود مسبقاً", "error")
+        except Exception:
+            conn.rollback(); flash("اسم المستخدم موجود مسبقاً", "error")
         finally:
             conn.close()
         return redirect("/register")
     conn = get_conn()
-    users = conn.execute("SELECT id,username,role,created_at FROM users ORDER BY id DESC").fetchall()
+    users = fetchall(conn, "SELECT id,username,role,created_at FROM users ORDER BY id DESC")
     conn.close()
     return render_template_string(REGISTER_TEMPLATE, users=users)
 
@@ -922,7 +964,8 @@ def register():
 @admin_required
 def delete_user():
     conn = get_conn()
-    conn.execute("DELETE FROM users WHERE id=? AND username!='admin'", (request.form.get("id"),))
+    execute(conn, "DELETE FROM users WHERE id=? AND username!='admin'",
+            (request.form.get("id"),))
     conn.commit(); conn.close(); return redirect("/register")
 
 @app.route("/check_conflict")
@@ -933,20 +976,17 @@ def check_conflict():
     fin        = request.args.get("fin", "")
     periode    = request.args.get("periode", "")
     exclude_id = request.args.get("exclude_id", None)
-
     if not salle or not debut or not fin or not periode:
         return jsonify({"conflict": False})
-
     conn = get_conn()
     if exclude_id:
-        row = conn.execute("""SELECT titre,organisateur,date_debut,date_fin FROM reservations
-                              WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=?
-                              AND id!=?""",
-                           (salle, periode, fin, debut, exclude_id)).fetchone()
+        row = fetchone(conn, """SELECT titre,organisateur,date_debut,date_fin FROM reservations
+                          WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=? AND id!=?""",
+                       (salle, periode, fin, debut, exclude_id))
     else:
-        row = conn.execute("""SELECT titre,organisateur,date_debut,date_fin FROM reservations
-                              WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=?""",
-                           (salle, periode, fin, debut)).fetchone()
+        row = fetchone(conn, """SELECT titre,organisateur,date_debut,date_fin FROM reservations
+                          WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=?""",
+                       (salle, periode, fin, debut))
     conn.close()
     if row:
         return jsonify({"conflict": True,
@@ -957,9 +997,9 @@ def check_conflict():
 @login_required
 def get_notifications():
     conn = get_conn()
-    rows = conn.execute(
-        "SELECT id,message,is_read,created_at FROM notifications WHERE user=? ORDER BY id DESC LIMIT 20",
-        (session["user"],)).fetchall()
+    rows = fetchall(conn,
+        "SELECT id,message,is_read,created_at FROM notifications WHERE \"user\"=? ORDER BY id DESC LIMIT 20",
+        (session["user"],))
     conn.close()
     notifs = [{"id": r[0], "message": r[1], "is_read": r[2], "created_at": r[3]} for r in rows]
     return jsonify({"notifications": notifs, "unread": sum(1 for n in notifs if not n["is_read"])})
@@ -968,14 +1008,15 @@ def get_notifications():
 @login_required
 def mark_read():
     conn = get_conn()
-    conn.execute("UPDATE notifications SET is_read=1 WHERE user=?", (session["user"],))
+    execute(conn, "UPDATE notifications SET is_read=1 WHERE \"user\"=?", (session["user"],))
     conn.commit(); conn.close(); return jsonify({"ok": True})
 
 @app.route("/calendar_events")
 @login_required
 def calendar_events():
     conn = get_conn()
-    rows = conn.execute("SELECT id,titre,salle,date_debut,date_fin,genre,periode,organisateur FROM reservations").fetchall()
+    rows = fetchall(conn,
+        "SELECT id,titre,salle,date_debut,date_fin,genre,periode,organisateur FROM reservations")
     conn.close()
     colors = {"صباحي": "#2563eb", "مسائي": "#7c3aed"}
     return jsonify([{
@@ -994,13 +1035,13 @@ def index():
         debut   = request.form.get("debut", "")
         fin     = request.form.get("fin", "")
         periode = request.form.get("periode", "")
-        conflict = conn.execute("""SELECT id FROM reservations
+        conflict = fetchone(conn, """SELECT id FROM reservations
             WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=?""",
-            (salle, periode, fin, debut)).fetchone()
+            (salle, periode, fin, debut))
         if conflict:
             flash("⚠️ تعارض في الحجز: القاعة محجوزة في هذه الفترة", "error")
             conn.close(); return redirect("/")
-        conn.execute("""INSERT INTO reservations
+        execute(conn, """INSERT INTO reservations
             (type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
             VALUES (?,?,?,?,?,?,?,?,?,?)""", (
             request.form.get("type"), request.form.get("etage"), salle,
@@ -1008,10 +1049,11 @@ def index():
             request.form.get("titre"), request.form.get("organisateur"), session["user"]))
         conn.commit()
         titre = request.form.get("titre", "")
-        users = conn.execute("SELECT username FROM users").fetchall()
+        users = fetchall(conn, "SELECT username FROM users")
+        conn.close()
         for u in users:
             add_notification(u[0], f"حجز جديد: «{titre}» في {salle} من {debut} إلى {fin}")
-        conn.close(); return redirect("/")
+        return redirect("/")
 
     search    = request.args.get("search", "")
     f_etage   = request.args.get("f_etage", "")
@@ -1031,12 +1073,14 @@ def index():
     if f_fin:     q += " AND date_fin<=?";   params.append(f_fin)
     q += " ORDER BY date_debut DESC"
 
-    data = conn.execute(q, params).fetchall()
+    data = fetchall(conn, q, params)
     today     = datetime.now().strftime("%Y-%m-%d")
     next_week = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
-    upcoming_count = conn.execute("SELECT COUNT(*) FROM reservations WHERE date_debut BETWEEN ? AND ?", (today, next_week)).fetchone()[0]
-    total_count    = conn.execute("SELECT COUNT(*) FROM reservations").fetchone()[0]
-    occupied_today = conn.execute("SELECT COUNT(DISTINCT salle) FROM reservations WHERE date_debut<=? AND date_fin>=?", (today, today)).fetchone()[0]
+    upcoming_count = fetchone(conn, "SELECT COUNT(*) FROM reservations WHERE date_debut BETWEEN ? AND ?",
+                              (today, next_week))[0]
+    total_count    = fetchone(conn, "SELECT COUNT(*) FROM reservations")[0]
+    occupied_today = fetchone(conn, "SELECT COUNT(DISTINCT salle) FROM reservations WHERE date_debut<=? AND date_fin>=?",
+                              (today, today))[0]
     conn.close()
 
     return render_template_string(INDEX_TEMPLATE,
@@ -1048,38 +1092,37 @@ def index():
 @app.route("/export")
 @login_required
 def export_excel():
+    import io
     conn = get_conn()
-    df = pd.read_sql_query("SELECT * FROM reservations", conn); conn.close()
-    path = os.path.join(BASE_DIR, "export.xlsx")
-    df.to_excel(path, index=False)
-    return send_file(path, as_attachment=True)
+    rows = fetchall(conn, "SELECT * FROM reservations ORDER BY id")
+    conn.close()
+    cols = ["id","type","etage","salle","genre","periode","date_debut","date_fin","titre","organisateur","created_by","created_at"]
+    df = pd.DataFrame(rows, columns=cols[:len(rows[0])] if rows else cols)
+    buf = io.BytesIO()
+    df.to_excel(buf, index=False)
+    buf.seek(0)
+    return send_file(buf, as_attachment=True, download_name="reservations.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 @app.route("/import", methods=["POST"])
 @login_required
 def import_excel():
     file = request.files.get("file")
     if not file or file.filename == "":
-        flash("يرجى اختيار ملف Excel", "error")
-        return redirect("/")
+        flash("يرجى اختيار ملف Excel", "error"); return redirect("/")
     try:
         df = pd.read_excel(file, engine="openpyxl")
     except Exception as e:
-        flash(f"خطأ في قراءة الملف: {str(e)}", "error")
-        return redirect("/")
-
-    # Normalize column names: strip spaces, lowercase
+        flash(f"خطأ في قراءة الملف: {str(e)}", "error"); return redirect("/")
     df.columns = [str(c).strip().lower() for c in df.columns]
-
     conn = get_conn()
     imported = 0
     for _, row in df.iterrows():
-        def g(col, alt=None):
-            for k in ([col] + ([alt] if alt else [])):
-                if k in row and str(row[k]).strip() not in ("", "nan", "None"):
-                    return str(row[k]).strip()
-            return ""
+        def g(col):
+            v = str(row.get(col, "")).strip()
+            return "" if v in ("", "nan", "None") else v
         try:
-            conn.execute("""INSERT INTO reservations
+            execute(conn, """INSERT INTO reservations
                 (type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
                 VALUES (?,?,?,?,?,?,?,?,?,?)""", (
                 g("type"), g("etage"), g("salle"), g("genre"), g("periode"),
@@ -1096,52 +1139,35 @@ def import_excel():
 @app.route("/update", methods=["POST"])
 @login_required
 def update():
-    id_     = request.form.get("id")
-    salle   = request.form.get("salle", "").strip()
-    debut   = request.form.get("debut", "").strip()
-    fin     = request.form.get("fin", "").strip()
-    periode = request.form.get("periode", "").strip()
-    titre   = request.form.get("titre", "").strip()
+    id_          = request.form.get("id")
+    salle        = request.form.get("salle", "").strip()
+    debut        = request.form.get("debut", "").strip()
+    fin          = request.form.get("fin", "").strip()
+    periode      = request.form.get("periode", "").strip()
+    titre        = request.form.get("titre", "").strip()
     organisateur = request.form.get("organisateur", "").strip()
-    type_   = request.form.get("type", "").strip()
-    etage   = request.form.get("etage", "").strip()
-    genre   = request.form.get("genre", "").strip()
-
+    type_        = request.form.get("type", "").strip()
+    etage        = request.form.get("etage", "").strip()
+    genre        = request.form.get("genre", "").strip()
     conn = get_conn()
-
-    # Fetch original record to compare what actually changed
-    orig = conn.execute(
-        "SELECT salle, periode, date_debut, date_fin FROM reservations WHERE id=?",
-        (id_,)).fetchone()
-
+    orig = fetchone(conn, "SELECT salle,periode,date_debut,date_fin FROM reservations WHERE id=?", (id_,))
     if not orig:
-        flash("الحجز غير موجود", "error")
-        conn.close(); return redirect("/")
-
-    # Only check for conflict if salle OR dates OR periode changed
-    salle_changed  = salle   != orig[0]
-    period_changed = periode != orig[1]
-    debut_changed  = debut   != orig[2]
-    fin_changed    = fin     != orig[3]
-
-    if salle_changed or period_changed or debut_changed or fin_changed:
-        conflict = conn.execute("""
-            SELECT id FROM reservations
-            WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=? AND id!=?
-        """, (salle, periode, fin, debut, id_)).fetchone()
+        flash("الحجز غير موجود", "error"); conn.close(); return redirect("/")
+    if salle != orig[0] or periode != orig[1] or debut != orig[2] or fin != orig[3]:
+        conflict = fetchone(conn, """SELECT id FROM reservations
+            WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=? AND id!=?""",
+            (salle, periode, fin, debut, id_))
         if conflict:
             flash("⚠️ تعارض في الحجز: القاعة محجوزة في هذه الفترة", "error")
             conn.close(); return redirect("/")
-
-    conn.execute("""UPDATE reservations SET
+    execute(conn, """UPDATE reservations SET
         type=?, etage=?, salle=?, genre=?, periode=?,
         date_debut=?, date_fin=?, titre=?, organisateur=?
-        WHERE id=?""", (
-        type_, etage, salle, genre, periode,
-        debut, fin, titre, organisateur, id_))
+        WHERE id=?""",
+        (type_, etage, salle, genre, periode, debut, fin, titre, organisateur, id_))
     conn.commit()
-    add_notification(session["user"], f"تم تعديل الحجز #{id_}: «{titre}»")
     conn.close()
+    add_notification(session["user"], f"تم تعديل الحجز #{id_}: «{titre}»")
     flash("✅ تم تعديل الحجز بنجاح", "success")
     return redirect("/")
 
@@ -1150,12 +1176,15 @@ def update():
 def delete():
     id_ = request.form.get("id")
     conn = get_conn()
-    row = conn.execute("SELECT titre,salle,created_by FROM reservations WHERE id=?", (id_,)).fetchone()
+    row = fetchone(conn, "SELECT titre,salle,created_by FROM reservations WHERE id=?", (id_,))
     if row and (session["role"] == "admin" or row[2] == session["user"]):
-        conn.execute("DELETE FROM reservations WHERE id=?", (id_,))
+        execute(conn, "DELETE FROM reservations WHERE id=?", (id_,))
         conn.commit()
+        conn.close()
         add_notification(session["user"], f"تم حذف الحجز: «{row[0]}» في {row[1]}")
-    conn.close(); return jsonify({"ok": True})
+    else:
+        conn.close()
+    return jsonify({"ok": True})
 
 if __name__ == "__main__":
     init_db()
