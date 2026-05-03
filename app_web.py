@@ -206,6 +206,7 @@ a.logout:hover{background:rgba(255,255,255,.25)}
 .salle-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
 .salle-btn.active{background:var(--accent);color:#fff;border-color:var(--accent2);box-shadow:0 0 0 2px rgba(61,122,106,.3)}
 .salle-btn.reserved{background:#ddd;color:#999;border-color:#ccc;cursor:not-allowed}
+.salle-btn.conflict{background:#fdecea;color:#c0392b;border-color:#e57373;}
 
 /* CONFLICT */
 .conflict-box{display:none;background:#fdecea;border:1.5px solid #e57373;border-radius:6px;padding:7px 9px;color:#c0392b;font-size:11px;font-weight:600;margin-bottom:8px}
@@ -502,18 +503,8 @@ tbody td:last-child{border-left:none}
 <script>
 // ── DATA ──────────────────────────────────────────────────────────
 const SALLES = {{ salles|tojson }};
-let reservedSalles = new Set();
-// Build reserved list — only non-empty salles from table
-document.querySelectorAll('#table tbody tr').forEach(tr=>{
-  let salle = tr.children[4]?.innerText?.trim();
-  // Exclude empty, dash, or placeholder values
-  if(salle && salle !== '—' && salle !== '-' && salle.length > 1){
-    reservedSalles.add(salle);
-  }
-});
-
 let currentEditId = null;
-let currentEditSalle = '';   // salle belonging to the row being edited
+let currentEditSalle = '';
 let selectedSalle = '';
 
 // ── SALLE GRID ────────────────────────────────────────────────────
@@ -531,19 +522,17 @@ function renderSalleGrid(preselect){
 
   if(!filtered.length){ grid.innerHTML='<span style="color:var(--muted);font-size:11px;grid-column:1/-1;text-align:center;padding:10px;">لا توجد قاعات</span>'; return; }
 
+  // All buttons active — conflict is checked via API when dates+periode are set
   grid.innerHTML = filtered.map(s=>{
-    // A salle is "reserved" only if it's taken by ANOTHER record (not the one we're editing, not empty)
-    let isRes = reservedSalles.has(s.nom) && s.nom !== currentEditSalle && s.nom !== preselect;
     let isActive = s.nom === selectedSalle;
-    return `<button type="button" class="salle-btn ${isActive?'active':''} ${isRes?'reserved':''}"
-      onclick="selectSalle('${s.nom}',${isRes})" ${isRes?'title="محجوزة بحجز آخر"':''}>
+    return `<button type="button" class="salle-btn ${isActive?'active':''}"
+      onclick="selectSalle('${s.nom}')">
       ${s.nom}
     </button>`;
   }).join('');
 }
 
-function selectSalle(nom, isReserved){
-  if(isReserved) return;   // blocked only when truly reserved by another record
+function selectSalle(nom){
   selectedSalle = nom;
   document.getElementById('f-salle').value = nom;
   document.getElementById('salle-selected-label').textContent = '— '+nom;
@@ -560,13 +549,33 @@ async function _check(){
   let fin     = document.getElementById('f-fin').value;
   let periode = document.getElementById('f-periode').value;
   let box = document.getElementById('conflict-box');
-  if(!salle||!debut||!fin||!periode){box.classList.remove('show');return;}
+  let saveBtn = document.getElementById('btn-save');
+  let editBtn = document.getElementById('btn-edit');
+  if(!salle||!debut||!fin||!periode){
+    box.classList.remove('show');
+    // Reset all buttons to normal
+    document.querySelectorAll('.salle-btn').forEach(b=>b.classList.remove('conflict'));
+    return;
+  }
   let params = new URLSearchParams({salle,debut,fin,periode});
   if(currentEditId) params.append('exclude_id', currentEditId);
   try{
     let d = await (await fetch('/check_conflict?'+params)).json();
-    if(d.conflict){box.classList.add('show');document.getElementById('conflict-text').textContent=d.detail;document.getElementById('btn-save').disabled=true;document.getElementById('btn-edit').disabled=true;}
-    else{box.classList.remove('show');document.getElementById('btn-save').disabled=false;document.getElementById('btn-edit').disabled=false;}
+    if(d.conflict){
+      box.classList.add('show');
+      document.getElementById('conflict-text').textContent=d.detail;
+      if(saveBtn) saveBtn.disabled=true;
+      if(editBtn) editBtn.disabled=true;
+      // Mark the conflicting salle button red
+      document.querySelectorAll('.salle-btn').forEach(b=>{
+        b.classList.toggle('conflict', b.textContent.trim()===salle);
+      });
+    } else {
+      box.classList.remove('show');
+      if(saveBtn) saveBtn.disabled=false;
+      if(editBtn) editBtn.disabled=false;
+      document.querySelectorAll('.salle-btn').forEach(b=>b.classList.remove('conflict'));
+    }
   }catch(e){}
 }
 
