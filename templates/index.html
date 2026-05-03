@@ -1,254 +1,848 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>حجز القاعات</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
 
 <style>
-body { font-family: Arial; background:#eee; margin:20px; direction: rtl; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-.top-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+:root {
+  --bg: #0f1117;
+  --card: #1a1d27;
+  --card2: #1e2130;
+  --border: #2a2d3e;
+  --accent: #4f6ef7;
+  --accent2: #7c3aed;
+  --green: #10b981;
+  --red: #ef4444;
+  --orange: #f59e0b;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --success: #22c55e;
+}
 
-input, select { height:30px; padding:5px; }
+body {
+  font-family: 'Cairo', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  direction: rtl;
+}
 
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 900;
+}
+.brand-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.topbar-tabs {
+  display: flex; gap: 4px; margin-right: auto; margin-left: auto;
+}
+.tab-btn {
+  background: none; border: none; color: var(--muted);
+  font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 600;
+  padding: 8px 18px; border-radius: 8px; cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn:hover { background: var(--border); color: var(--text); }
+.tab-btn.active { background: var(--accent); color: white; }
+
+.topbar-actions { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+
+.notif-btn {
+  position: relative; background: var(--card2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 10px; width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  font-size: 18px; transition: background 0.2s;
+}
+.notif-btn:hover { background: var(--border); }
+.notif-badge {
+  position: absolute; top: -4px; left: -4px;
+  background: var(--red); color: white; border-radius: 10px;
+  font-size: 11px; font-weight: 700; padding: 1px 6px; display: none;
+}
+
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 6px 14px; font-size: 14px; font-weight: 600;
+}
+.role-badge {
+  font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700;
+}
+.role-admin { background: rgba(79,110,247,0.2); color: #818cf8; }
+.role-user { background: rgba(100,116,139,0.2); color: #94a3b8; }
+
+.btn-link {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  border-radius: 8px; padding: 7px 14px; font-family: 'Cairo', sans-serif;
+  font-size: 13px; cursor: pointer; text-decoration: none; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-link:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── LAYOUT ── */
+.main { padding: 24px; max-width: 1600px; margin: 0 auto; }
+
+/* ── STATS ── */
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px 24px; display: flex; align-items: center; gap: 16px;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: var(--accent); }
+.stat-icon { font-size: 28px; }
+.stat-val { font-size: 28px; font-weight: 900; line-height: 1; }
+.stat-label { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+/* ── FLASH ── */
+.flash-zone { margin-bottom: 16px; }
+.flash {
+  padding: 12px 18px; border-radius: 10px; font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+}
+.flash.error { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #f87171; }
+.flash.success { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; }
+
+/* ── PANELS (tabs) ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── FORM CARD ── */
+.form-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 28px; margin-bottom: 24px;
+}
+.form-card h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+
+.form-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px;
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.field input, .field select {
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: 9px;
+  color: var(--text); font-family: 'Cairo', sans-serif; font-size: 14px;
+  padding: 10px 13px; transition: border-color 0.2s, box-shadow 0.2s; outline: none; height: 42px;
+}
+.field input:focus, .field select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+}
+.field select option { background: var(--card); }
+.field input[readonly] { cursor: default; }
+
+.conflict-msg {
+  display: none; padding: 10px 14px; background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.35); border-radius: 9px; color: #f87171;
+  font-size: 13px; font-weight: 600; margin-top: 12px; grid-column: 1 / -1;
+}
+.conflict-msg.visible { display: flex; align-items: center; gap: 8px; }
+
+/* Salle picker */
+.salle-wrapper { position: relative; }
 .salle-box {
-    border:1px solid #ccc;
-    background:white;
-    width:80px;
-    height:270px;
-    overflow-y:auto;
-    font-size:11px;
-    display:none;
+  position: absolute; top: calc(100% + 4px); right: 0; left: 0;
+  background: var(--card2); border: 1.5px solid var(--accent); border-radius: 10px;
+  max-height: 200px; overflow-y: auto; z-index: 50;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: none;
 }
-
-.salle-box div { padding:4px; cursor:pointer; }
-.selected { background:blue; color:white; }
-
-.buttons { display:flex; flex-direction:column; gap:10px; }
-
-.btn-blue { background:#2f6de1; color:white; padding:8px; border:none; cursor:pointer;}
-.btn-green { background:#2e8b57; color:white; padding:8px; border:none; cursor:pointer;}
-.btn-red { background:#c0392b; color:white; padding:8px; border:none; cursor:pointer;}
-
-table {
-    width:100%;
-    margin-top:20px;
-    border-collapse:collapse;
-    background:white;
+.salle-box.open { display: block; }
+.salle-item {
+  padding: 9px 13px; font-size: 13px; cursor: pointer;
+  transition: background 0.15s; border-bottom: 1px solid var(--border);
 }
+.salle-item:last-child { border-bottom: none; }
+.salle-item:hover { background: var(--border); }
+.salle-item.selected { background: var(--accent); color: white; }
 
-td, th {
-    border:1px solid #ccc;
-    padding:6px;
-    text-align:center;
+/* Form actions */
+.form-actions { display: flex; gap: 12px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+.btn { border: none; border-radius: 9px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 700; padding: 11px 22px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
+.btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.btn-danger { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
+.btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-green { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+.btn-green:hover { background: rgba(16,185,129,0.2); }
+
+/* ── SEARCH BAR ── */
+.search-bar {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 16px 20px; margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
 }
+.search-bar input, .search-bar select {
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: 9px;
+  color: var(--text); font-family: 'Cairo', sans-serif; font-size: 14px;
+  padding: 9px 13px; outline: none; transition: border-color 0.2s; height: 40px;
+}
+.search-bar input:focus, .search-bar select:focus { border-color: var(--accent); }
+.search-field { display: flex; flex-direction: column; gap: 5px; }
+.search-field label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.search-keyword { flex: 1; min-width: 200px; }
 
-tr.selected-row { background:#ffcccc; }
+/* ── TABLE ── */
+.table-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+}
+.table-header {
+  padding: 18px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.table-header h2 { font-size: 16px; font-weight: 700; flex: 1; }
+.count-badge { background: var(--border); color: var(--muted); border-radius: 20px; padding: 3px 12px; font-size: 13px; font-weight: 700; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+thead th {
+  background: var(--card2); color: var(--muted); font-weight: 700; text-align: center;
+  padding: 12px 14px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+tbody td { padding: 13px 14px; text-align: center; border-bottom: 1px solid rgba(42,45,62,0.5); }
+tbody tr { transition: background 0.15s; cursor: pointer; }
+tbody tr:hover { background: rgba(79,110,247,0.05); }
+tbody tr.selected-row { background: rgba(239,68,68,0.08); }
+tbody tr:last-child td { border-bottom: none; }
+
+.chip {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 700;
+}
+.chip-matin { background: rgba(37,99,235,0.15); color: #60a5fa; }
+.chip-soir { background: rgba(124,58,237,0.15); color: #a78bfa; }
+.chip-male { background: rgba(16,185,129,0.15); color: #34d399; }
+.chip-female { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.chip-class { background: rgba(79,110,247,0.15); color: #818cf8; }
+.chip-lab { background: rgba(239,68,68,0.15); color: #f87171; }
+
+/* ── CALENDAR ── */
+#calendar-container {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 24px; min-height: 500px;
+}
+.fc { --fc-border-color: var(--border); --fc-page-bg-color: transparent;
+      --fc-today-bg-color: rgba(79,110,247,0.08); --fc-neutral-bg-color: var(--card2);
+      --fc-list-event-hover-bg-color: var(--border); }
+.fc .fc-toolbar-title { font-family: 'Cairo', sans-serif; font-size: 18px; color: var(--text); }
+.fc .fc-button { background: var(--card2) !important; border: 1px solid var(--border) !important; color: var(--text) !important; font-family: 'Cairo', sans-serif !important; }
+.fc .fc-button:hover { background: var(--border) !important; }
+.fc .fc-button-primary:not(:disabled).fc-button-active { background: var(--accent) !important; border-color: var(--accent) !important; }
+.fc th { color: var(--muted); font-size: 12px; }
+.fc .fc-col-header-cell-cushion, .fc .fc-daygrid-day-number { color: var(--muted); }
+.fc .fc-event { border-radius: 6px; border: none !important; padding: 2px 6px; font-size: 12px; font-family: 'Cairo', sans-serif; }
+
+/* ── NOTIFICATION DRAWER ── */
+.notif-drawer {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 360px;
+  background: var(--card); border-left: 1px solid var(--border);
+  z-index: 999; transform: translateX(-100%); transition: transform 0.3s ease;
+  display: flex; flex-direction: column;
+}
+.notif-drawer.open { transform: translateX(0); }
+.notif-drawer-header {
+  padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.notif-drawer-header h2 { font-size: 17px; font-weight: 700; }
+.notif-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; }
+.notif-list { flex: 1; overflow-y: auto; padding: 12px; }
+.notif-item {
+  padding: 12px 14px; border-radius: 10px; background: var(--card2);
+  border: 1px solid var(--border); margin-bottom: 8px;
+  font-size: 13px; line-height: 1.6;
+}
+.notif-item.unread { border-color: rgba(79,110,247,0.4); background: rgba(79,110,247,0.06); }
+.notif-time { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.notif-mark-btn {
+  margin: 12px; background: var(--card2); border: 1px solid var(--border); color: var(--muted);
+  border-radius: 8px; padding: 8px; font-family: 'Cairo', sans-serif; font-size: 13px; cursor: pointer; width: calc(100% - 24px);
+}
+.notif-mark-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 998; display: none;
+}
+.overlay.show { display: block; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── IMPORT ZONE ── */
+.import-zone { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.import-zone input[type="file"] { font-family: 'Cairo', sans-serif; font-size: 13px; color: var(--muted); }
+
+/* Empty state */
+.empty-state { padding: 48px; text-align: center; color: var(--muted); }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 15px; }
 </style>
 </head>
-
 <body>
 
-<h2>حجز القاعة</h2>
+<!-- TOPBAR -->
+<nav class="topbar">
+  <div class="topbar-brand">
+    <div class="brand-icon">🏛️</div>
+    <span>حجز القاعات</span>
+  </div>
 
-<div style="margin-bottom:10px;">
-<a href="/export"><button class="btn-blue">تصدير إكسل</button></a>
+  <div class="topbar-tabs">
+    <button class="tab-btn active" onclick="switchTab('reservations', this)">📋 الحجوزات</button>
+    <button class="tab-btn" onclick="switchTab('calendar', this)">📅 التقويم</button>
+    {% if role == 'admin' %}
+    <a href="/register" class="tab-btn" style="text-decoration:none;">👥 المستخدمون</a>
+    {% endif %}
+  </div>
 
-<form action="/import" method="POST" enctype="multipart/form-data" style="display:inline;">
-<input type="file" name="file">
-<button class="btn-green">استيراد إكسل</button>
-</form>
+  <div class="topbar-actions">
+    <button class="notif-btn" onclick="openNotifDrawer()" title="الإشعارات">
+      🔔 <span class="notif-badge" id="notif-badge">0</span>
+    </button>
+    <div class="user-chip">
+      <span>{{ user }}</span>
+      <span class="role-badge {% if role == 'admin' %}role-admin{% else %}role-user{% endif %}">
+        {{ 'مسؤول' if role == 'admin' else 'مستخدم' }}
+      </span>
+    </div>
+    <a href="/logout" class="btn-link">خروج ↩</a>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- Flash messages -->
+  <div class="flash-zone">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon">📊</div>
+      <div>
+        <div class="stat-val">{{ total_count }}</div>
+        <div class="stat-label">إجمالي الحجوزات</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🏢</div>
+      <div>
+        <div class="stat-val">{{ occupied_today }}</div>
+        <div class="stat-label">قاعة مشغولة اليوم</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📅</div>
+      <div>
+        <div class="stat-val">{{ upcoming_count }}</div>
+        <div class="stat-label">حجوزات الأسبوع القادم</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: RESERVATIONS ══ -->
+  <div id="panel-reservations" class="panel active">
+
+    <!-- FORM -->
+    <div class="form-card">
+      <h2>➕ حجز جديد</h2>
+      <form method="POST" id="reservation-form">
+        <div class="form-grid">
+
+          <div class="field">
+            <label>العنوان</label>
+            <input name="titre" id="titre" placeholder="عنوان الحجز" required>
+          </div>
+          <div class="field">
+            <label>المنظم</label>
+            <input name="organisateur" id="organisateur" placeholder="اسم المنظم" required>
+          </div>
+
+          <div class="field">
+            <label>الطابق</label>
+            <select name="etage" id="etage" onchange="chargerSalles()">
+              <option value="">اختر الطابق</option>
+              <option value="ground floor">الأرضي</option>
+              <option value="first floor">الأول</option>
+              <option value="second floor">الثاني</option>
+              <option value="third floor">الثالث</option>
+              <option value="fourth floor">الرابع</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>النوع</label>
+            <select name="type" id="type" onchange="chargerSalles()">
+              <option value="">كل الأنواع</option>
+              <option value="Class">قاعة</option>
+              <option value="Lab">مختبر</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>الجنس</label>
+            <select name="genre" id="genre">
+              <option value="">اختر</option>
+              <option value="Male">رجال</option>
+              <option value="Female">نساء</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>الفترة</label>
+            <select name="periode" id="periode" onchange="checkConflict()">
+              <option value="">اختر</option>
+              <option value="Matin">صباحي</option>
+              <option value="Soir">مسائي</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>تاريخ البداية</label>
+            <input type="date" name="debut" id="debut" onchange="checkConflict()" required>
+          </div>
+          <div class="field">
+            <label>تاريخ النهاية</label>
+            <input type="date" name="fin" id="fin" onchange="checkConflict()" required>
+          </div>
+
+          <div class="field salle-wrapper">
+            <label>القاعة</label>
+            <input name="salle" id="salle_input" placeholder="اختر القاعة..." readonly required
+                   onclick="toggleSalleBox()" style="cursor:pointer;">
+            <div class="salle-box" id="salles">
+              {% for s in salles %}
+              <div class="salle-item"
+                   data-etage="{{ s.etage }}"
+                   data-type="{{ s.type }}"
+                   data-nom="{{ s.nom }}"
+                   onclick="selectSalle(this)">
+                {{ s.nom }}
+                <small style="color:var(--muted); font-size:11px; margin-right:6px;">{{ s.type }}</small>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="conflict-msg" id="conflict-msg">
+            ⚠️ <span id="conflict-text">تعارض في الحجز</span>
+          </div>
+
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="save-btn">💾 حفظ الحجز</button>
+          <button type="button" class="btn btn-secondary" onclick="resetForm()">↺ إعادة تعيين</button>
+
+          <div style="margin-right: auto;" class="import-zone">
+            <a href="/export"><button type="button" class="btn btn-green">📥 تصدير Excel</button></a>
+            <form action="/import" method="POST" enctype="multipart/form-data" style="display:inline-flex; align-items:center; gap:8px;">
+              <input type="file" name="file" accept=".xlsx,.xls" style="font-size:13px; color:var(--muted);">
+              <button type="submit" class="btn btn-secondary">📤 استيراد</button>
+            </form>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- SEARCH -->
+    <form method="GET" class="search-bar">
+      <div class="search-field" style="flex:1; min-width:180px;">
+        <label>بحث</label>
+        <input type="text" name="search" placeholder="عنوان، منظم، قاعة..." value="{{ search }}" class="search-keyword">
+      </div>
+      <div class="search-field">
+        <label>الطابق</label>
+        <select name="f_etage">
+          <option value="">الكل</option>
+          <option value="ground floor" {% if f_etage=='ground floor' %}selected{% endif %}>الأرضي</option>
+          <option value="first floor" {% if f_etage=='first floor' %}selected{% endif %}>الأول</option>
+          <option value="second floor" {% if f_etage=='second floor' %}selected{% endif %}>الثاني</option>
+          <option value="third floor" {% if f_etage=='third floor' %}selected{% endif %}>الثالث</option>
+          <option value="fourth floor" {% if f_etage=='fourth floor' %}selected{% endif %}>الرابع</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>النوع</label>
+        <select name="f_type">
+          <option value="">الكل</option>
+          <option value="Class" {% if f_type=='Class' %}selected{% endif %}>قاعة</option>
+          <option value="Lab" {% if f_type=='Lab' %}selected{% endif %}>مختبر</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>الجنس</label>
+        <select name="f_genre">
+          <option value="">الكل</option>
+          <option value="Male" {% if f_genre=='Male' %}selected{% endif %}>رجال</option>
+          <option value="Female" {% if f_genre=='Female' %}selected{% endif %}>نساء</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>الفترة</label>
+        <select name="f_periode">
+          <option value="">الكل</option>
+          <option value="Matin" {% if f_periode=='Matin' %}selected{% endif %}>صباحي</option>
+          <option value="Soir" {% if f_periode=='Soir' %}selected{% endif %}>مسائي</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>من</label>
+        <input type="date" name="f_debut" value="{{ f_debut }}">
+      </div>
+      <div class="search-field">
+        <label>إلى</label>
+        <input type="date" name="f_fin" value="{{ f_fin }}">
+      </div>
+      <button type="submit" class="btn btn-primary" style="height:40px; padding: 0 16px;">🔍 بحث</button>
+      <a href="/" class="btn btn-secondary" style="height:40px; padding: 0 14px; text-decoration:none;">✕ مسح</a>
+    </form>
+
+    <!-- TABLE -->
+    <div class="table-card">
+      <div class="table-header">
+        <h2>قائمة الحجوزات</h2>
+        <span class="count-badge" id="row-count">{{ data|length }} حجز</span>
+        <button type="button" class="btn btn-danger" onclick="deleteSelected()" style="margin-right:8px;">🗑️ حذف المحدد</button>
+      </div>
+
+      {% if data %}
+      <table id="table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="select-all" onchange="toggleAll(this)"></th>
+            <th>#</th>
+            <th>النوع</th>
+            <th>الطابق</th>
+            <th>القاعة</th>
+            <th>الجنس</th>
+            <th>الفترة</th>
+            <th>البداية</th>
+            <th>النهاية</th>
+            <th>العنوان</th>
+            <th>المنظم</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in data %}
+        <tr onclick="selectRow(this)">
+          <td onclick="event.stopPropagation()">
+            <input type="checkbox" class="row-check" value="{{ r[0] }}">
+          </td>
+          <td>{{ r[0] }}</td>
+          <td><span class="chip {% if r[1]=='Class' %}chip-class{% else %}chip-lab{% endif %}">{{ r[1] }}</span></td>
+          <td style="font-size:12px; color:var(--muted);">{{ r[2] }}</td>
+          <td><strong>{{ r[3] }}</strong></td>
+          <td><span class="chip {% if r[4]=='Male' %}chip-male{% else %}chip-female{% endif %}">{{ r[4] }}</span></td>
+          <td><span class="chip {% if r[5]=='Matin' %}chip-matin{% else %}chip-soir{% endif %}">{{ r[5] }}</span></td>
+          <td>{{ r[6] }}</td>
+          <td>{{ r[7] }}</td>
+          <td>{{ r[8] }}</td>
+          <td style="color:var(--muted);">{{ r[9] }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <div class="icon">📭</div>
+        <p>لا توجد حجوزات مطابقة للبحث</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div><!-- /panel-reservations -->
+
+  <!-- ══ TAB: CALENDAR ══ -->
+  <div id="panel-calendar" class="panel">
+    <div id="calendar-container">
+      <div id="calendar"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- NOTIFICATION DRAWER -->
+<div class="overlay" id="overlay" onclick="closeNotifDrawer()"></div>
+<div class="notif-drawer" id="notif-drawer">
+  <div class="notif-drawer-header">
+    <h2>🔔 الإشعارات</h2>
+    <button class="notif-close" onclick="closeNotifDrawer()">✕</button>
+  </div>
+  <button class="notif-mark-btn" onclick="markAllRead()">تعليم الكل كمقروء</button>
+  <div class="notif-list" id="notif-list">
+    <p style="color:var(--muted); text-align:center; padding:20px; font-size:13px;">جاري التحميل...</p>
+  </div>
 </div>
 
-<form method="POST">
-
-<div class="top-row">
-
-<input name="titre" id="titre" placeholder="العنوان">
-<input name="organisateur" id="organisateur" placeholder="المنظم">
-
-<select name="etage" id="etage" onchange="chargerSalles()">
-<option value="">الطابق</option>
-<option value="ground floor">الأرضي</option>
-<option value="first floor">الأول</option>
-<option value="second floor">الثاني</option>
-<option value="third floor">الثالث</option>
-<option value="fourth floor">الرابع</option>
-</select>
-
-<select name="type" id="type">
-<option value="">النوع</option>
-<option value="Class">قاعة</option>
-<option value="Lab">مختبر</option>
-</select>
-
-<select name="genre" id="genre">
-<option value="">الجنس</option>
-<option value="Male">رجال</option>
-<option value="Female">نساء</option>
-</select>
-
-<select name="periode" id="periode">
-<option value="">الفترة</option>
-<option value="Matin">صباحي</option>
-<option value="Soir">مسائي</option>
-</select>
-
-<input type="date" name="debut" id="debut" onchange="filtrerDate()">
-<input type="date" name="fin" id="fin">
-
-<input name="salle" id="salle_input" placeholder="القاعة" readonly>
-
-<div class="salle-box" id="salles">
-{% for s in salles %}
-<div data-etage="{{ s.etage }}" data-nom="{{ s.nom }}" onclick="selectSalle(this)">
-{{ s.nom }}
-</div>
-{% endfor %}
-</div>
-
-<div class="buttons">
-<button type="button" class="btn-blue" onclick="filtrer()">أظهر قائمة الاختيار</button>
-<button type="button" class="btn-red" onclick="deleteSelected()">حذف المحدد</button>
-<button class="btn-green">حفظ</button>
-</div>
-
-</div>
-</form>
-
-<h2>قائمة الحجوزات</h2>
-
-<table id="table">
-<tr>
-<th></th>
-<th>ID</th>
-<th>النوع</th>
-<th>الطابق</th>
-<th>القاعة</th>
-<th>الجنس</th>
-<th>الفترة</th>
-<th>البداية</th>
-<th>النهاية</th>
-<th>العنوان</th>
-<th>المنظم</th>
-</tr>
-
-{% for r in data %}
-<tr onclick="selectRow(this)">
-<td><input type="checkbox" class="row-check" value="{{ r[0] }}"></td>
-<td>{{ r[0] }}</td>
-<td>{{ r[1] }}</td>
-<td>{{ r[2] }}</td>
-<td>{{ r[3] }}</td>
-<td>{{ r[4] }}</td>
-<td>{{ r[5] }}</td>
-<td>{{ r[6] }}</td>
-<td>{{ r[7] }}</td>
-<td>{{ r[8] }}</td>
-<td>{{ r[9] }}</td>
-</tr>
-{% endfor %}
-</table>
+<!-- FullCalendar -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/ar.global.min.js"></script>
 
 <script>
+// ═══════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════
+let calendarInitialized = false;
+let calendarObj = null;
 
-// 🔥 تحميل القاعات حسب الطابق + إزالة المحجوز
-function chargerSalles(){
-    let etage = document.getElementById("etage").value;
-    let box = document.getElementById("salles");
+function switchTab(tab, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  btn.classList.add('active');
 
-    if(!etage){
-        box.style.display="none";
-        return;
+  if (tab === 'calendar' && !calendarInitialized) {
+    initCalendar();
+    calendarInitialized = true;
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  SALLE PICKER
+// ═══════════════════════════════════════════════
+function chargerSalles() {
+  let etage = document.getElementById('etage').value;
+  let type = document.getElementById('type').value;
+
+  // Get reserved salles from table
+  let reserved = [];
+  document.querySelectorAll('#table tbody tr').forEach(row => {
+    reserved.push(row.children[4].innerText.trim());
+  });
+
+  document.querySelectorAll('.salle-item').forEach(s => {
+    let show = true;
+    if (etage && s.dataset.etage !== etage) show = false;
+    if (type && s.dataset.type !== type) show = false;
+    // Don't hide if already selected
+    if (reserved.includes(s.dataset.nom) && s.dataset.nom !== document.getElementById('salle_input').value) show = false;
+    s.style.display = show ? '' : 'none';
+  });
+}
+
+function toggleSalleBox() {
+  let box = document.getElementById('salles');
+  box.classList.toggle('open');
+  if (box.classList.contains('open')) chargerSalles();
+}
+
+function selectSalle(el) {
+  document.querySelectorAll('.salle-item').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('salle_input').value = el.dataset.nom;
+  document.getElementById('salles').classList.remove('open');
+  checkConflict();
+}
+
+// Close salle box on outside click
+document.addEventListener('click', (e) => {
+  let box = document.getElementById('salles');
+  let input = document.getElementById('salle_input');
+  if (!box.contains(e.target) && e.target !== input) {
+    box.classList.remove('open');
+  }
+});
+
+// ═══════════════════════════════════════════════
+//  CONFLICT CHECK (real-time)
+// ═══════════════════════════════════════════════
+let conflictTimeout = null;
+
+function checkConflict() {
+  clearTimeout(conflictTimeout);
+  conflictTimeout = setTimeout(_doCheck, 400);
+}
+
+async function _doCheck() {
+  let salle = document.getElementById('salle_input').value;
+  let debut = document.getElementById('debut').value;
+  let fin = document.getElementById('fin').value;
+  let periode = document.getElementById('periode').value;
+
+  let msg = document.getElementById('conflict-msg');
+  let saveBtn = document.getElementById('save-btn');
+
+  if (!salle || !debut || !fin || !periode) {
+    msg.classList.remove('visible');
+    saveBtn.disabled = false;
+    return;
+  }
+
+  let params = new URLSearchParams({ salle, debut, fin, periode });
+  let res = await fetch('/check_conflict?' + params);
+  let data = await res.json();
+
+  if (data.conflict) {
+    msg.classList.add('visible');
+    document.getElementById('conflict-text').textContent = data.detail;
+    saveBtn.disabled = true;
+  } else {
+    msg.classList.remove('visible');
+    saveBtn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  ROW SELECTION & DELETE
+// ═══════════════════════════════════════════════
+function selectRow(row) {
+  row.classList.toggle('selected-row');
+  let cb = row.querySelector('.row-check');
+  cb.checked = !cb.checked;
+}
+
+function toggleAll(master) {
+  document.querySelectorAll('.row-check').forEach(cb => {
+    cb.checked = master.checked;
+    let row = cb.closest('tr');
+    if (master.checked) row.classList.add('selected-row');
+    else row.classList.remove('selected-row');
+  });
+}
+
+async function deleteSelected() {
+  let selected = document.querySelectorAll('.row-check:checked');
+  if (selected.length === 0) { alert('اختر عناصر للحذف'); return; }
+  if (!confirm(`هل تريد حذف ${selected.length} عنصر؟`)) return;
+
+  let promises = [];
+  selected.forEach(el => {
+    promises.push(
+      fetch('/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'id=' + el.value
+      }).then(() => el.closest('tr').remove())
+    );
+  });
+
+  await Promise.all(promises);
+  updateRowCount();
+}
+
+function updateRowCount() {
+  let count = document.querySelectorAll('#table tbody tr').length;
+  document.getElementById('row-count').textContent = count + ' حجز';
+}
+
+// ═══════════════════════════════════════════════
+//  RESET FORM
+// ═══════════════════════════════════════════════
+function resetForm() {
+  document.getElementById('reservation-form').reset();
+  document.getElementById('salle_input').value = '';
+  document.querySelectorAll('.salle-item').forEach(s => s.classList.remove('selected'));
+  document.getElementById('conflict-msg').classList.remove('visible');
+  document.getElementById('save-btn').disabled = false;
+}
+
+// ═══════════════════════════════════════════════
+//  NOTIFICATIONS
+// ═══════════════════════════════════════════════
+async function loadNotifications() {
+  try {
+    let res = await fetch('/notifications');
+    let data = await res.json();
+
+    let badge = document.getElementById('notif-badge');
+    if (data.unread > 0) {
+      badge.textContent = data.unread;
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
     }
 
-    box.style.display="block";
-
-    let reserved = [];
-    document.querySelectorAll("#table tr").forEach((row,i)=>{
-        if(i===0) return;
-        reserved.push(row.children[4].innerText);
-    });
-
-    document.querySelectorAll("#salles div").forEach(s=>{
-        let show = s.dataset.etage === etage && !reserved.includes(s.dataset.nom);
-        s.style.display = show ? "block" : "none";
-    });
-}
-
-function selectSalle(el){
-    document.querySelectorAll("#salles div").forEach(s=>s.classList.remove("selected"));
-    el.classList.add("selected");
-    document.getElementById("salle_input").value = el.innerText;
-}
-
-// 🔥 فلترة حسب التاريخ
-function filtrerDate(){
-    let d = document.getElementById("debut").value;
-    if(!d) return;
-
-    document.querySelectorAll("#table tr").forEach((row,i)=>{
-        if(i===0) return;
-
-        let date = row.children[7].innerText;
-        row.style.display = (date === d) ? "" : "none";
-    });
-}
-
-// 🔥 القديم (ما لمسناه)
-function selectRow(row){
-    row.classList.toggle("selected-row");
-    let checkbox = row.querySelector(".row-check");
-    checkbox.checked = !checkbox.checked;
-}
-
-function filtrer(){
-
-    let etage = document.getElementById("etage").value;
-    let type = document.getElementById("type").value;
-    let genre = document.getElementById("genre").value;
-    let periode = document.getElementById("periode").value;
-
-    let rows = document.querySelectorAll("#table tr");
-
-    rows.forEach((row, i) => {
-        if(i === 0) return;
-
-        let cells = row.children;
-
-        let show = true;
-
-        if(etage && cells[3].innerText !== etage) show = false;
-        if(type && cells[2].innerText !== type) show = false;
-        if(genre && cells[5].innerText !== genre) show = false;
-        if(periode && cells[6].innerText !== periode) show = false;
-
-        row.style.display = show ? "" : "none";
-    });
-}
-
-function deleteSelected(){
-
-    let selected = document.querySelectorAll(".row-check:checked");
-
-    if(selected.length === 0){
-        alert("اختر عناصر للحذف");
-        return;
+    let list = document.getElementById('notif-list');
+    if (data.notifications.length === 0) {
+      list.innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px; font-size:13px;">لا توجد إشعارات</p>';
+      return;
     }
 
-    if(!confirm("هل تريد حذف المحدد؟")) return;
-
-    selected.forEach(el => {
-        fetch("/delete", {
-            method: "POST",
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: "id=" + el.value
-        }).then(() => {
-            el.closest("tr").remove();
-        });
-    });
+    list.innerHTML = data.notifications.map(n => `
+      <div class="notif-item ${n.is_read ? '' : 'unread'}">
+        ${n.message}
+        <div class="notif-time">${n.created_at}</div>
+      </div>
+    `).join('');
+  } catch(e) {}
 }
 
+function openNotifDrawer() {
+  document.getElementById('notif-drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+  loadNotifications();
+}
+
+function closeNotifDrawer() {
+  document.getElementById('notif-drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+async function markAllRead() {
+  await fetch('/notifications/read', { method: 'POST' });
+  document.getElementById('notif-badge').style.display = 'none';
+  loadNotifications();
+}
+
+// Poll for notifications every 30s
+setInterval(loadNotifications, 30000);
+loadNotifications();
+
+// ═══════════════════════════════════════════════
+//  FULLCALENDAR
+// ═══════════════════════════════════════════════
+function initCalendar() {
+  let calEl = document.getElementById('calendar');
+  calendarObj = new FullCalendar.Calendar(calEl, {
+    initialView: 'dayGridMonth',
+    locale: 'ar',
+    direction: 'rtl',
+    headerToolbar: {
+      start: 'prev,next today',
+      center: 'title',
+      end: 'dayGridMonth,timeGridWeek,listWeek'
+    },
+    events: '/calendar_events',
+    eventClick: function(info) {
+      let p = info.event.extendedProps;
+      alert(`📅 ${info.event.title}\n\n🏢 القاعة: ${p.salle}\n👤 المنظم: ${p.organisateur}\n⏰ الفترة: ${p.periode}\n👥 الجنس: ${p.genre}`);
+    },
+    height: 'auto',
+  });
+  calendarObj.render();
+}
 </script>
-
 </body>
 </html>
