@@ -366,15 +366,15 @@ tbody tr.selected-row{background:rgba(239,68,68,.08)}tbody tr:last-child td{bord
         <div class="form-actions">
           <button type="submit" class="btn btn-primary" id="save-btn">💾 حفظ الحجز</button>
           <button type="button" class="btn btn-secondary" onclick="resetForm()">↺ إعادة تعيين</button>
-          <div style="margin-right:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <a href="/export" class="btn btn-green">📥 تصدير Excel</a>
-            <form action="/import" method="POST" enctype="multipart/form-data" style="display:inline-flex;align-items:center;gap:8px;">
-              <input type="file" name="file" accept=".xlsx,.xls" style="font-size:13px;color:var(--muted);">
-              <button type="submit" class="btn btn-secondary">📤 استيراد</button>
-            </form>
-          </div>
         </div>
       </form>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+        <a href="/export" class="btn btn-green">📥 تصدير Excel</a>
+        <form action="/import" method="POST" enctype="multipart/form-data" style="display:inline-flex;align-items:center;gap:8px;">
+          <input type="file" name="file" accept=".xlsx,.xls" style="font-size:13px;color:var(--muted);">
+          <button type="submit" class="btn btn-secondary">📤 استيراد</button>
+        </form>
+      </div>
     </div>
 
     <form method="GET" class="search-bar">
