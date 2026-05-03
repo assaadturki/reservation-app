@@ -502,14 +502,18 @@ tbody td:last-child{border-left:none}
 <script>
 // ── DATA ──────────────────────────────────────────────────────────
 const SALLES = {{ salles|tojson }};
-let reservedSalles = [];
-// Build reserved list from table
+let reservedSalles = new Set();
+// Build reserved list — only non-empty salles from table
 document.querySelectorAll('#table tbody tr').forEach(tr=>{
   let salle = tr.children[4]?.innerText?.trim();
-  if(salle) reservedSalles.push(salle);
+  // Exclude empty, dash, or placeholder values
+  if(salle && salle !== '—' && salle !== '-' && salle.length > 1){
+    reservedSalles.add(salle);
+  }
 });
 
 let currentEditId = null;
+let currentEditSalle = '';   // salle belonging to the row being edited
 let selectedSalle = '';
 
 // ── SALLE GRID ────────────────────────────────────────────────────
@@ -528,16 +532,18 @@ function renderSalleGrid(preselect){
   if(!filtered.length){ grid.innerHTML='<span style="color:var(--muted);font-size:11px;grid-column:1/-1;text-align:center;padding:10px;">لا توجد قاعات</span>'; return; }
 
   grid.innerHTML = filtered.map(s=>{
-    let isRes = reservedSalles.includes(s.nom) && s.nom !== preselect;
-    return `<button type="button" class="salle-btn ${s.nom===selectedSalle?'active':''} ${isRes?'reserved':''}"
-      onclick="selectSalle('${s.nom}',${isRes})" ${isRes?'title="محجوزة"':''}>
+    // A salle is "reserved" only if it's taken by ANOTHER record (not the one we're editing, not empty)
+    let isRes = reservedSalles.has(s.nom) && s.nom !== currentEditSalle && s.nom !== preselect;
+    let isActive = s.nom === selectedSalle;
+    return `<button type="button" class="salle-btn ${isActive?'active':''} ${isRes?'reserved':''}"
+      onclick="selectSalle('${s.nom}',${isRes})" ${isRes?'title="محجوزة بحجز آخر"':''}>
       ${s.nom}
     </button>`;
   }).join('');
 }
 
 function selectSalle(nom, isReserved){
-  if(isReserved && nom !== currentEditId) return;
+  if(isReserved) return;   // blocked only when truly reserved by another record
   selectedSalle = nom;
   document.getElementById('f-salle').value = nom;
   document.getElementById('salle-selected-label').textContent = '— '+nom;
@@ -598,8 +604,9 @@ function validate(){
 
 // ── FILL FORM FROM ROW (EDIT MODE) ────────────────────────────────
 function fillForm(id,type,etage,salle,genre,periode,debut,fin,titre,organisateur){
-  currentEditId = id;
-  document.getElementById('f-titre').value        = titre;
+  currentEditId    = id;
+  currentEditSalle = salle;   // remember which salle this record already owns
+  selectedSalle    = salle;
   document.getElementById('f-organisateur').value = organisateur;
   document.getElementById('f-etage').value        = etage;
   document.getElementById('f-type').value         = type;
@@ -630,7 +637,7 @@ function fillForm(id,type,etage,salle,genre,periode,debut,fin,titre,organisateur
 
 // ── RESET ─────────────────────────────────────────────────────────
 function resetForm(){
-  currentEditId = null; selectedSalle = '';
+  currentEditId = null; currentEditSalle = ''; selectedSalle = '';
   ['f-titre','f-organisateur','f-debut','f-fin'].forEach(id=>document.getElementById(id).value='');
   ['f-etage','f-type','f-genre','f-periode'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-salle').value='';
