@@ -466,7 +466,16 @@ tbody td:last-child{border-left:none}
           <th>البداية</th><th>النهاية</th><th>العنوان</th><th>المنظم</th>
         </tr></thead><tbody>
         {% for r in data %}
-        <tr onclick="fillForm({{ r[0] }},'{{ r[1] }}','{{ r[2] }}','{{ r[3] }}','{{ r[4] }}','{{ r[5] }}','{{ r[6] }}','{{ r[7] }}','{{ r[8] }}','{{ r[9] }}')" data-id="{{ r[0] }}">
+        <tr onclick="fillForm({{ r[0] }})" data-id="{{ r[0] }}"
+            data-type="{{ r[1]|e }}"
+            data-etage="{{ r[2]|e }}"
+            data-salle="{{ r[3]|e }}"
+            data-genre="{{ r[4]|e }}"
+            data-periode="{{ r[5]|e }}"
+            data-debut="{{ r[6]|e }}"
+            data-fin="{{ r[7]|e }}"
+            data-titre="{{ r[8]|e }}"
+            data-organisateur="{{ r[9]|e }}">
           <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" value="{{ r[0] }}"></td>
           <td>{{ r[0] }}</td>
           <td><span class="chip {% if r[1]=='قاعة' %}chip-q{% else %}chip-lab{% endif %}">{{ r[1] }}</span></td>
@@ -612,10 +621,26 @@ function validate(){
 }
 
 // ── FILL FORM FROM ROW (EDIT MODE) ────────────────────────────────
-function fillForm(id,type,etage,salle,genre,periode,debut,fin,titre,organisateur){
+function fillForm(id){
+  // Read data directly from row data-attributes (avoids JS injection with special chars)
+  let row = document.querySelector(`#table tbody tr[data-id="${id}"]`);
+  if(!row) return;
+
+  let titre        = row.dataset.titre        || '';
+  let organisateur = row.dataset.organisateur || '';
+  let type         = row.dataset.type         || '';
+  let etage        = row.dataset.etage        || '';
+  let salle        = row.dataset.salle        || '';
+  let genre        = row.dataset.genre        || '';
+  let periode      = row.dataset.periode      || '';
+  let debut        = row.dataset.debut        || '';
+  let fin          = row.dataset.fin          || '';
+
   currentEditId    = id;
-  currentEditSalle = salle;   // remember which salle this record already owns
+  currentEditSalle = salle;
   selectedSalle    = salle;
+
+  document.getElementById('f-titre').value        = titre;
   document.getElementById('f-organisateur').value = organisateur;
   document.getElementById('f-etage').value        = etage;
   document.getElementById('f-type').value         = type;
@@ -624,23 +649,22 @@ function fillForm(id,type,etage,salle,genre,periode,debut,fin,titre,organisateur
   document.getElementById('f-debut').value        = debut;
   document.getElementById('f-fin').value          = fin;
   document.getElementById('f-salle').value        = salle;
-  selectedSalle = salle;
 
   renderSalleGrid(salle);
 
-  // Switch buttons to edit mode
-  document.getElementById('btn-save').style.display='none';
-  document.getElementById('btn-edit').style.display='flex';
-  document.getElementById('btn-cancel').style.display='flex';
+  // Switch to edit mode buttons
+  document.getElementById('btn-save').style.display  = 'none';
+  document.getElementById('btn-edit').style.display  = 'flex';
+  document.getElementById('btn-cancel').style.display= 'flex';
   document.getElementById('conflict-box').classList.remove('show');
 
-  // Highlight row
+  // Highlight row, scroll into view
   document.querySelectorAll('#table tbody tr').forEach(r=>r.classList.remove('selected-row'));
-  let row = document.querySelector(`#table tbody tr[data-id="${id}"]`);
-  if(row){row.classList.add('selected-row'); row.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  row.classList.add('selected-row');
+  row.scrollIntoView({block:'nearest', behavior:'smooth'});
 
   // Scroll sidebar to top
-  document.querySelector('.sidebar').scrollTop=0;
+  document.querySelector('.sidebar').scrollTop = 0;
   checkConflict();
 }
 
