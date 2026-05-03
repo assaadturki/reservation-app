@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة المستخدمين</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --card: #1a1d27; --border: #2a2d3e;
+    --accent: #4f6ef7; --accent2: #7c3aed; --text: #e2e8f0;
+    --muted: #64748b; --error: #ef4444; --success: #22c55e;
+  }
+  body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px; }
+
+  .topbar {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 32px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 24px;
+  }
+  .topbar h1 { font-size: 20px; font-weight: 700; flex: 1; }
+  .btn-back {
+    background: var(--border); color: var(--text); border: none; border-radius: 8px;
+    padding: 8px 16px; font-family: 'Cairo', sans-serif; font-size: 14px; cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px;
+  }
+  .card h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+  .field input, .field select {
+    width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'Cairo', sans-serif; font-size: 14px; padding: 10px 14px;
+    transition: border-color 0.2s; outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .field select option { background: var(--card); }
+
+  .btn { border: none; border-radius: 8px; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 700; padding: 10px 20px; cursor: pointer; transition: opacity 0.2s; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; width: 100%; padding: 12px; font-size: 15px; }
+  .btn-danger { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 6px 14px; font-size: 13px; }
+  .btn:hover { opacity: 0.85; }
+
+  .flash { padding: 10px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; font-weight: 600; }
+  .flash.error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; }
+  .flash.success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { color: var(--muted); font-weight: 600; text-align: right; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  td { padding: 12px; border-bottom: 1px solid rgba(42,45,62,0.5); }
+  tr:last-child td { border-bottom: none; }
+
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  }
+  .badge-admin { background: rgba(79,110,247,0.15); color: #818cf8; border: 1px solid rgba(79,110,247,0.3); }
+  .badge-user { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="btn-back">← رجوع</a>
+  <h1>👥 إدارة المستخدمين</h1>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="flash {{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="grid">
+
+  <div class="card">
+    <h2>➕ إنشاء مستخدم جديد</h2>
+    <form method="POST" action="/register">
+      <div class="field">
+        <label>اسم المستخدم</label>
+        <input type="text" name="username" placeholder="username" required>
+      </div>
+      <div class="field">
+        <label>كلمة المرور</label>
+        <input type="password" name="password" placeholder="••••••••" required>
+      </div>
+      <div class="field">
+        <label>الصلاحية</label>
+        <select name="role">
+          <option value="user">مستخدم عادي</option>
+          <option value="admin">مسؤول</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">إنشاء المستخدم</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>📋 قائمة المستخدمين</h2>
+    <table>
+      <tr>
+        <th>المستخدم</th>
+        <th>الصلاحية</th>
+        <th>الإجراء</th>
+      </tr>
+      {% for u in users %}
+      <tr>
+        <td>{{ u[1] }}</td>
+        <td>
+          <span class="badge {% if u[2]=='admin' %}badge-admin{% else %}badge-user{% endif %}">
+            {{ 'مسؤول' if u[2]=='admin' else 'مستخدم' }}
+          </span>
+        </td>
+        <td>
+          {% if u[1] != 'admin' %}
+          <form method="POST" action="/delete_user" style="display:inline;" onsubmit="return confirm('حذف هذا المستخدم؟')">
+            <input type="hidden" name="id" value="{{ u[0] }}">
+            <button type="submit" class="btn btn-danger">حذف</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+</div>
+
+</body>
+</html>
