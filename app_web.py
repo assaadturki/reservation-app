@@ -141,64 +141,6 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
   </form>
 </div></body></html>"""
 
-REGISTER_TEMPLATE = r"""<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>إدارة المستخدمين</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0f1117;--card:#1a1d27;--border:#2a2d3e;--accent:#4f6ef7;--accent2:#7c3aed;--text:#e2e8f0;--muted:#64748b}
-body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px}
-.topbar{display:flex;align-items:center;gap:16px;margin-bottom:32px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 24px}
-.topbar h1{font-size:20px;font-weight:700;flex:1}
-a.back{background:var(--border);color:var(--text);border:none;border-radius:8px;padding:8px 16px;font-family:'Cairo',sans-serif;font-size:14px;text-decoration:none}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
-.card h2{font-size:17px;font-weight:700;margin-bottom:20px}
-.field{margin-bottom:16px}.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--muted)}
-.field input,.field select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Cairo',sans-serif;font-size:14px;padding:10px 14px;outline:none}
-.field input:focus,.field select:focus{border-color:var(--accent)}
-.field select option{background:var(--card)}
-.btn{border:none;border-radius:8px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;padding:10px 20px;cursor:pointer;transition:opacity .2s}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;width:100%;padding:12px;font-size:15px}
-.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);padding:6px 14px;font-size:13px}
-.btn:hover{opacity:.85}
-.flash{padding:10px 16px;border-radius:8px;font-size:14px;margin-bottom:16px;font-weight:600}
-.flash.error{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171}
-.flash.success{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th{color:var(--muted);font-weight:600;text-align:right;padding:10px 12px;border-bottom:1px solid var(--border)}
-td{padding:12px;border-bottom:1px solid rgba(42,45,62,.5)}
-tr:last-child td{border-bottom:none}
-.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
-.badge-admin{background:rgba(79,110,247,.15);color:#818cf8;border:1px solid rgba(79,110,247,.3)}
-.badge-user{background:rgba(100,116,139,.15);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
-</style></head><body>
-<div class="topbar"><a href="/" class="back">← رجوع</a><h1>👥 إدارة المستخدمين</h1></div>
-{% with messages = get_flashed_messages(with_categories=true) %}{% for cat,msg in messages %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}{% endwith %}
-<div class="grid">
-  <div class="card"><h2>➕ إنشاء مستخدم جديد</h2>
-    <form method="POST" action="/register">
-      <div class="field"><label>اسم المستخدم</label><input type="text" name="username" required></div>
-      <div class="field"><label>كلمة المرور</label><input type="password" name="password" required></div>
-      <div class="field"><label>الصلاحية</label>
-        <select name="role"><option value="user">مستخدم عادي</option><option value="admin">مسؤول</option></select>
-      </div>
-      <button type="submit" class="btn btn-primary">إنشاء المستخدم</button>
-    </form>
-  </div>
-  <div class="card"><h2>📋 قائمة المستخدمين</h2>
-    <table><tr><th>المستخدم</th><th>الصلاحية</th><th>الإجراء</th></tr>
-    {% for u in users %}<tr>
-      <td>{{ u[1] }}</td>
-      <td><span class="badge {% if u[2]=='admin' %}badge-admin{% else %}badge-user{% endif %}">{{ 'مسؤول' if u[2]=='admin' else 'مستخدم' }}</span></td>
-      <td>{% if u[1] != 'admin' %}<form method="POST" action="/delete_user" style="display:inline;" onsubmit="return confirm('حذف؟')">
-        <input type="hidden" name="id" value="{{ u[0] }}"><button type="submit" class="btn btn-danger">حذف</button></form>{% endif %}</td>
-    </tr>{% endfor %}</table>
-  </div>
-</div></body></html>"""
-
 INDEX_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -208,377 +150,535 @@ INDEX_TEMPLATE = r"""<!DOCTYPE html>
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0f1117;--card:#1a1d27;--card2:#1e2130;--border:#2a2d3e;--accent:#4f6ef7;--accent2:#7c3aed;--green:#10b981;--red:#ef4444;--text:#e2e8f0;--muted:#64748b}
+:root{
+  --bg:#e8f0ee;--sidebar:#c8ddd8;--topbar:#5a8a7a;--topbar2:#4a7a6a;
+  --accent:#3d7a6a;--accent2:#2d6a5a;--red:#c0392b;--green:#27ae60;
+  --text:#1a2e28;--muted:#5a7a72;--border:#a8c8c0;--white:#ffffff;
+  --row-even:#f0f7f5;--row-hover:#d8ede8;--row-sel:#ffd5d0;
+  --thead:#5a8a7a;--chip-bg:#3d7a6a;
+}
 body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;overflow-x:hidden}
+
 /* ── TOPBAR ── */
-.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:12px;height:56px;position:fixed;top:0;left:0;right:0;z-index:200}
-.brand{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:900;white-space:nowrap}
-.brand-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.tabs{display:flex;gap:2px}
-.tab{background:none;border:none;color:var(--muted);font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-block;white-space:nowrap}
-.tab:hover{background:var(--border);color:var(--text)}.tab.active{background:var(--accent);color:#fff}
-.topbar-right{display:flex;align-items:center;gap:8px;margin-right:auto}
-.notif-btn{position:relative;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:background .2s;flex-shrink:0}
-.notif-btn:hover{background:var(--border)}
-.notif-badge{position:absolute;top:-4px;left:-4px;background:var(--red);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 5px;display:none}
-.user-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:13px;font-weight:600;white-space:nowrap}
-.role-badge{font-size:10px;padding:2px 6px;border-radius:5px;font-weight:700}
-.role-admin{background:rgba(79,110,247,.2);color:#818cf8}.role-user{background:rgba(100,116,139,.2);color:#94a3b8}
-a.logout{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 12px;font-family:'Cairo',sans-serif;font-size:12px;text-decoration:none;transition:all .2s;white-space:nowrap}
-a.logout:hover{border-color:var(--accent);color:var(--accent)}
-/* ── SIDEBAR TOGGLE BTN ── */
-.sidebar-toggle{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;transition:background .2s}
-.sidebar-toggle:hover{background:var(--border)}
+.topbar{background:var(--topbar);color:#fff;padding:0 14px;display:flex;align-items:center;gap:10px;height:44px;position:fixed;top:0;left:0;right:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.brand{font-size:16px;font-weight:900;white-space:nowrap;color:#fff;letter-spacing:.5px}
+.topbar-center{display:flex;gap:4px;margin:0 auto}
+.tab{background:rgba(255,255,255,.15);border:none;color:#fff;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;padding:5px 14px;border-radius:6px;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-block;white-space:nowrap}
+.tab:hover{background:rgba(255,255,255,.25)}
+.tab.active{background:var(--white);color:var(--accent2);font-weight:900}
+.topbar-right{display:flex;align-items:center;gap:6px}
+.notif-btn{position:relative;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:background .2s}
+.notif-btn:hover{background:rgba(255,255,255,.3)}
+.notif-badge{position:absolute;top:-3px;left:-3px;background:var(--red);color:#fff;border-radius:8px;font-size:9px;font-weight:700;padding:1px 4px;display:none}
+.user-chip{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.2);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
+.role-badge{font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700;background:rgba(255,255,255,.3)}
+a.logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:4px 10px;font-family:'Cairo',sans-serif;font-size:11px;text-decoration:none;transition:all .2s;white-space:nowrap}
+a.logout:hover{background:rgba(255,255,255,.25)}
+
 /* ── LAYOUT ── */
-.layout{display:flex;padding-top:56px;min-height:100vh}
+.layout{display:flex;padding-top:44px;min-height:100vh}
+
 /* ── SIDEBAR ── */
-.sidebar{position:fixed;top:56px;right:0;bottom:0;width:340px;background:var(--card);border-left:1px solid var(--border);overflow-y:auto;z-index:150;transition:transform .3s ease;display:flex;flex-direction:column}
+.sidebar{position:fixed;top:44px;right:0;bottom:0;width:260px;background:var(--sidebar);border-left:2px solid var(--border);overflow-y:auto;z-index:150;transition:transform .3s ease;display:flex;flex-direction:column}
 .sidebar.collapsed{transform:translateX(100%)}
-.sidebar-inner{padding:16px;flex:1}
-.sidebar h2{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
-.sidebar h2 .close-sidebar{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
+.sidebar-inner{padding:12px;flex:1}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.stat{background:var(--topbar);border-radius:8px;padding:8px 4px;text-align:center;color:#fff}
+.stat-val{font-size:18px;font-weight:900;line-height:1}
+.stat-label{font-size:9px;opacity:.85;margin-top:2px}
+
+/* SECTION TITLE */
+.sec-title{font-size:13px;font-weight:900;color:var(--accent2);margin-bottom:8px;display:flex;align-items:center;gap:6px;border-bottom:2px solid var(--border);padding-bottom:6px}
+
+/* FIELDS */
+.field{margin-bottom:8px}
+.field label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.field input,.field select{width:100%;background:var(--white);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:'Cairo',sans-serif;font-size:12px;padding:6px 9px;outline:none;height:32px;transition:border-color .2s}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field select option{background:var(--white)}
+
+/* SALLE GRID */
+.salle-grid-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block}
+.salle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px;max-height:160px;overflow-y:auto;padding:2px}
+.salle-btn{background:var(--white);border:1.5px solid var(--border);border-radius:6px;padding:5px 2px;font-family:'Cairo',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;color:var(--text);text-align:center}
+.salle-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.salle-btn.active{background:var(--accent);color:#fff;border-color:var(--accent2);box-shadow:0 0 0 2px rgba(61,122,106,.3)}
+.salle-btn.reserved{background:#ddd;color:#999;border-color:#ccc;cursor:not-allowed}
+
+/* CONFLICT */
+.conflict-box{display:none;background:#fdecea;border:1.5px solid #e57373;border-radius:6px;padding:7px 9px;color:#c0392b;font-size:11px;font-weight:600;margin-bottom:8px}
+.conflict-box.show{display:block}
+
+/* BUTTONS */
+.btn{border:none;border-radius:6px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;padding:7px 14px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:4px;text-decoration:none;white-space:nowrap;justify-content:center}
+.btn-save{background:var(--green);color:#fff;width:100%;padding:9px;font-size:13px}
+.btn-save:hover{background:#219a52}.btn-save:disabled{opacity:.4;cursor:not-allowed}
+.btn-reset{background:#888;color:#fff;width:100%;padding:7px;font-size:12px;margin-top:5px}
+.btn-reset:hover{background:#666}
+.btn-del{background:var(--red);color:#fff;padding:5px 12px;font-size:11px}
+.btn-del:hover{background:#a93226}
+.btn-green{background:var(--green);color:#fff;width:100%;padding:8px;margin-bottom:6px}
+.btn-green:hover{background:#219a52}
+.btn-import{background:var(--topbar);color:#fff;width:100%;padding:8px}
+.btn-import:hover{background:var(--accent2)}
+.btn-edit{background:var(--accent);color:#fff;width:100%;padding:9px;font-size:13px;display:none}
+.btn-edit:hover{background:var(--accent2)}
+.btn-cancel{background:#888;color:#fff;width:100%;padding:7px;font-size:12px;margin-top:5px;display:none}
+
+/* FLASH */
+.flash{padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600;margin-bottom:8px}
+.flash.error{background:#fdecea;border:1px solid #e57373;color:#c0392b}
+.flash.success{background:#e8f5e9;border:1px solid #81c784;color:#2e7d32}
+
 /* ── CONTENT ── */
-.content{flex:1;margin-left:0;transition:margin-right .3s ease;min-width:0;padding:16px}
-.content.with-sidebar{margin-right:340px}
-/* ── STATS ── */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
-.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;transition:border-color .2s}
-.stat:hover{border-color:var(--accent)}.stat-icon{font-size:22px}.stat-val{font-size:22px;font-weight:900;line-height:1}.stat-label{font-size:12px;color:var(--muted);margin-top:2px}
-.flash{padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.flash.error{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171}
-.flash.success{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#4ade80}
-.panel{display:none}.panel.active{display:flex;gap:0}
-/* ── FORM FIELDS (in sidebar) ── */
-.field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
-.field label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.field input,.field select{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Cairo',sans-serif;font-size:13px;padding:8px 11px;transition:border-color .2s,box-shadow .2s;outline:none;height:38px;width:100%}
-.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(79,110,247,.12)}
-.field select option{background:var(--card)}
-.salle-wrapper{position:relative}
-.salle-box{position:absolute;top:calc(100% + 2px);right:0;left:0;background:var(--card2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.5);display:none}
-.salle-box.open{display:block}
-.salle-item{padding:8px 11px;font-size:12px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border)}
-.salle-item:last-child{border-bottom:none}.salle-item:hover{background:var(--border)}.salle-item.selected{background:var(--accent);color:#fff}
-.conflict-msg{display:none;padding:8px 12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);border-radius:8px;color:#f87171;font-size:12px;font-weight:600;margin-top:8px}
-.conflict-msg.visible{display:flex;align-items:center;gap:6px}
-/* ── BUTTONS ── */
-.btn{border:none;border-radius:8px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;padding:9px 16px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px;text-decoration:none;white-space:nowrap}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;width:100%;justify-content:center;padding:10px}
-.btn-primary:hover{opacity:.88}.btn-primary:disabled{opacity:.4;cursor:not-allowed}
-.btn-danger{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.3)}.btn-danger:hover{background:rgba(239,68,68,.2)}
-.btn-secondary{background:var(--card2);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
-.btn-green{background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.3)}.btn-green:hover{background:rgba(16,185,129,.2)}
-.btn-reset{background:none;border:1px solid var(--border);color:var(--muted);width:100%;justify-content:center;padding:8px;margin-top:6px}
-.btn-reset:hover{border-color:var(--accent);color:var(--accent)}
+.content{flex:1;margin-right:260px;transition:margin-right .3s ease;min-width:0;padding:10px 12px;overflow-x:auto}
+.content.full{margin-right:0}
+
 /* ── SEARCH BAR ── */
-.search-bar{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
-.search-bar input,.search-bar select{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Cairo',sans-serif;font-size:13px;padding:7px 10px;outline:none;height:36px}
+.search-bar{background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap}
+.search-bar input,.search-bar select{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:'Cairo',sans-serif;font-size:12px;padding:5px 8px;outline:none;height:32px}
 .search-bar input:focus,.search-bar select:focus{border-color:var(--accent)}
-.sf{display:flex;flex-direction:column;gap:4px}.sf label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.sf{display:flex;flex-direction:column;gap:3px}
+.sf label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.btn-search{background:var(--topbar);color:#fff;border:none;border-radius:6px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;padding:0 14px;height:32px;cursor:pointer}
+.btn-clear{background:#888;color:#fff;border:none;border-radius:6px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;padding:0 12px;height:32px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+
 /* ── TABLE ── */
-.table-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-.table-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.table-header h2{font-size:15px;font-weight:700;flex:1}
-.count-badge{background:var(--border);color:var(--muted);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700}
-table{width:100%;border-collapse:collapse;font-size:13px}
-thead th{background:var(--card2);color:var(--muted);font-weight:700;text-align:center;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;font-size:11px;letter-spacing:.3px}
-tbody td{padding:11px 12px;text-align:center;border-bottom:1px solid rgba(42,45,62,.5)}
-tbody tr{transition:background .15s;cursor:pointer}tbody tr:hover{background:rgba(79,110,247,.05)}
-tbody tr.selected-row{background:rgba(239,68,68,.08)}tbody tr:last-child td{border-bottom:none}
-.chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
-.chip-matin{background:rgba(37,99,235,.15);color:#60a5fa}.chip-soir{background:rgba(124,58,237,.15);color:#a78bfa}
-.chip-male{background:rgba(16,185,129,.15);color:#34d399}.chip-female{background:rgba(245,158,11,.15);color:#fbbf24}
-.chip-class{background:rgba(79,110,247,.15);color:#818cf8}.chip-lab{background:rgba(239,68,68,.15);color:#f87171}
-/* ── TABLE AREA ── */
-.table-area{flex:1;min-width:0}
-#calendar-container{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
-.fc{--fc-border-color:var(--border);--fc-page-bg-color:transparent;--fc-today-bg-color:rgba(79,110,247,.08)}
-.fc .fc-toolbar-title{font-family:'Cairo',sans-serif;font-size:18px;color:var(--text)}
-.fc .fc-button{background:var(--card2)!important;border:1px solid var(--border)!important;color:var(--text)!important;font-family:'Cairo',sans-serif!important}
-.fc .fc-button:hover{background:var(--border)!important}
-.fc .fc-button-primary:not(:disabled).fc-button-active{background:var(--accent)!important;border-color:var(--accent)!important}
-.fc th{color:var(--muted);font-size:12px}.fc .fc-col-header-cell-cushion,.fc .fc-daygrid-day-number{color:var(--muted)}
-.fc .fc-event{border-radius:6px;border:none!important;padding:2px 6px;font-size:12px;font-family:'Cairo',sans-serif}
-.notif-drawer{position:fixed;top:0;left:0;bottom:0;width:360px;background:var(--card);border-left:1px solid var(--border);z-index:999;transform:translateX(-100%);transition:transform .3s ease;display:flex;flex-direction:column}
+.table-wrap{background:var(--white);border:1.5px solid var(--border);border-radius:8px;overflow:hidden}
+.table-header{background:var(--topbar);padding:10px 16px;display:flex;align-items:center;gap:10px}
+.table-header h2{font-size:14px;font-weight:900;color:#fff;flex:1}
+.count-badge{background:rgba(255,255,255,.25);color:#fff;border-radius:12px;padding:2px 10px;font-size:11px;font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--thead);color:#fff;font-weight:700;text-align:center;padding:8px 10px;white-space:nowrap;font-size:11px;letter-spacing:.3px;border-left:1px solid rgba(255,255,255,.1)}
+thead th:last-child{border-left:none}
+tbody tr{cursor:pointer;transition:background .12s}
+tbody tr:nth-child(even){background:var(--row-even)}
+tbody tr:nth-child(odd){background:var(--white)}
+tbody tr:hover{background:var(--row-hover)}
+tbody tr.selected-row{background:var(--row-sel)!important}
+tbody td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border)}
+tbody td:last-child{border-left:none}
+.chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;color:#fff}
+.chip-q{background:#3d7a6a}.chip-lab{background:#c0392b}
+.chip-m{background:#2980b9}.chip-f{background:#e67e22}
+.chip-s{background:#27ae60}.chip-e{background:#8e44ad}
+
+/* NOTIF DRAWER */
+.notif-drawer{position:fixed;top:44px;left:0;bottom:0;width:320px;background:var(--white);border-right:2px solid var(--border);z-index:999;transform:translateX(-100%);transition:transform .3s ease;display:flex;flex-direction:column}
 .notif-drawer.open{transform:translateX(0)}
-.notif-drawer-header{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.notif-drawer-header h2{font-size:17px;font-weight:700}
-.notif-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer}
-.notif-list{flex:1;overflow-y:auto;padding:12px}
-.notif-item{padding:12px 14px;border-radius:10px;background:var(--card2);border:1px solid var(--border);margin-bottom:8px;font-size:13px;line-height:1.6}
-.notif-item.unread{border-color:rgba(79,110,247,.4);background:rgba(79,110,247,.06)}
-.notif-time{font-size:11px;color:var(--muted);margin-top:4px}
-.notif-mark-btn{margin:12px;background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px;font-family:'Cairo',sans-serif;font-size:13px;cursor:pointer;width:calc(100% - 24px)}
-.notif-mark-btn:hover{border-color:var(--accent);color:var(--accent)}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:998;display:none}.overlay.show{display:block}
-.empty-state{padding:48px;text-align:center;color:var(--muted)}.empty-state .icon{font-size:48px;margin-bottom:12px}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.notif-drawer-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--topbar);color:#fff}
+.notif-drawer-header h2{font-size:14px;font-weight:700}
+.notif-close{background:none;border:none;color:#fff;font-size:18px;cursor:pointer}
+.notif-list{flex:1;overflow-y:auto;padding:10px}
+.notif-item{padding:10px 12px;border-radius:6px;background:var(--row-even);border:1px solid var(--border);margin-bottom:6px;font-size:12px;line-height:1.6}
+.notif-item.unread{border-color:var(--accent);background:#e8f5f2}
+.notif-time{font-size:10px;color:var(--muted);margin-top:3px}
+.notif-mark-btn{margin:10px;background:var(--bg);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:7px;font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer;width:calc(100% - 20px)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:998;display:none}.overlay.show{display:block}
+
+/* CALENDAR */
+#calendar-container{background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:16px}
+.fc{--fc-border-color:var(--border);--fc-today-bg-color:rgba(61,122,106,.1)}
+.fc .fc-toolbar-title{font-family:'Cairo',sans-serif;font-size:16px;color:var(--text)}
+.fc .fc-button{background:var(--topbar)!important;border-color:var(--accent2)!important;color:#fff!important;font-family:'Cairo',sans-serif!important}
+.fc .fc-button:hover{background:var(--accent2)!important}
+.fc .fc-event{border-radius:4px;border:none!important;font-size:11px;font-family:'Cairo',sans-serif}
+
+.empty-state{padding:40px;text-align:center;color:var(--muted)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* IMPORT ROW */
+.import-row{display:flex;flex-direction:column;gap:6px}
+.file-input{font-size:11px;color:var(--muted);width:100%}
 </style></head><body>
 
 <nav class="topbar">
-  <div class="brand"><div class="brand-icon">🏛️</div><span>حجز القاعات</span></div>
-  <div class="tabs" style="margin:0 12px;">
-    <button class="tab active" onclick="switchTab('reservations',this)">📋 الحجوزات</button>
-    <button class="tab" onclick="switchTab('calendar',this)">📅 التقويم</button>
-    {% if role == 'admin' %}<a href="/register" class="tab">👥 المستخدمون</a>{% endif %}
+  <div class="brand">🏛️ حجز القاعات</div>
+  <div class="topbar-center">
+    <button class="tab active" onclick="switchTab('reservations',this)">الحجوزات</button>
+    <button class="tab" onclick="switchTab('calendar',this)">التقويم</button>
+    {% if role == 'admin' %}<a href="/register" class="tab">المستخدمون</a>{% endif %}
   </div>
   <div class="topbar-right">
-    <button class="sidebar-toggle" onclick="toggleSidebar()" title="إظهار/إخفاء نموذج الحجز">✏️</button>
     <button class="notif-btn" onclick="openNotifDrawer()">🔔<span class="notif-badge" id="notif-badge">0</span></button>
     <div class="user-chip">
       <span>{{ user }}</span>
-      <span class="role-badge {% if role=='admin' %}role-admin{% else %}role-user{% endif %}">{{ 'مسؤول' if role=='admin' else 'مستخدم' }}</span>
+      <span class="role-badge">{{ 'مسؤول' if role=='admin' else 'مستخدم' }}</span>
     </div>
-    <a href="/logout" class="logout">خروج ↩</a>
+    <a href="/logout" class="logout">خروج</a>
   </div>
 </nav>
 
-<!-- SIDEBAR: form on right -->
+<!-- SIDEBAR -->
 <div class="sidebar" id="sidebar">
   <div class="sidebar-inner">
+
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for cat,msg in messages %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
     {% endwith %}
 
-    <!-- Stats compact -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
-      <div class="stat" style="flex-direction:column;gap:4px;padding:10px;text-align:center;border-radius:10px;">
-        <div class="stat-icon" style="font-size:18px;">📊</div>
-        <div class="stat-val" style="font-size:18px;">{{ total_count }}</div>
-        <div class="stat-label" style="font-size:10px;">الإجمالي</div>
-      </div>
-      <div class="stat" style="flex-direction:column;gap:4px;padding:10px;text-align:center;border-radius:10px;">
-        <div class="stat-icon" style="font-size:18px;">🏢</div>
-        <div class="stat-val" style="font-size:18px;">{{ occupied_today }}</div>
-        <div class="stat-label" style="font-size:10px;">اليوم</div>
-      </div>
-      <div class="stat" style="flex-direction:column;gap:4px;padding:10px;text-align:center;border-radius:10px;">
-        <div class="stat-icon" style="font-size:18px;">📅</div>
-        <div class="stat-val" style="font-size:18px;">{{ upcoming_count }}</div>
-        <div class="stat-label" style="font-size:10px;">الأسبوع</div>
-      </div>
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val">{{ total_count }}</div><div class="stat-label">الإجمالي</div></div>
+      <div class="stat"><div class="stat-val">{{ occupied_today }}</div><div class="stat-label">اليوم</div></div>
+      <div class="stat"><div class="stat-val">{{ upcoming_count }}</div><div class="stat-label">الأسبوع</div></div>
     </div>
 
-    <h2>➕ حجز جديد <button class="close-sidebar" onclick="toggleSidebar()">✕</button></h2>
-    <form method="POST" id="reservation-form">
-      <div class="field"><label>العنوان</label><input name="titre" placeholder="عنوان الحجز" required></div>
-      <div class="field"><label>المنظم</label><input name="organisateur" placeholder="اسم المنظم" required></div>
+    <!-- FORM -->
+    <div class="sec-title">➕ حجز جديد</div>
+    <input type="hidden" id="edit-id" value="">
+
+    <div class="field"><label>العنوان</label><input id="f-titre" placeholder="عنوان الحجز"></div>
+    <div class="field"><label>المنظم</label><input id="f-organisateur" placeholder="اسم المنظم"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
       <div class="field"><label>الطابق</label>
-        <select name="etage" id="etage" onchange="chargerSalles()">
-          <option value="">اختر الطابق</option>
+        <select id="f-etage" onchange="renderSalleGrid()">
+          <option value="">اختر</option>
           <option value="الأرضي">الأرضي</option><option value="الأول">الأول</option>
-          <option value="الثاني">الثاني</option><option value="الثالث">الثالث</option><option value="الرابع">الرابع</option>
+          <option value="الثاني">الثاني</option><option value="الثالث">الثالث</option>
+          <option value="الرابع">الرابع</option>
         </select></div>
       <div class="field"><label>النوع</label>
-        <select name="type" id="type" onchange="chargerSalles()">
-          <option value="">كل الأنواع</option><option value="قاعة">قاعة</option><option value="مختبر">مختبر</option>
+        <select id="f-type" onchange="renderSalleGrid()">
+          <option value="">الكل</option><option value="قاعة">قاعة</option><option value="مختبر">مختبر</option>
         </select></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
       <div class="field"><label>الجنس</label>
-        <select name="genre">
+        <select id="f-genre">
           <option value="">اختر</option><option value="رجال">رجال</option><option value="نساء">نساء</option>
         </select></div>
       <div class="field"><label>الفترة</label>
-        <select name="periode" id="periode" onchange="checkConflict()">
+        <select id="f-periode" onchange="checkConflict()">
           <option value="">اختر</option><option value="صباحي">صباحي</option><option value="مسائي">مسائي</option>
         </select></div>
-      <div class="field"><label>تاريخ البداية</label><input type="date" name="debut" id="debut" onchange="checkConflict()" required></div>
-      <div class="field"><label>تاريخ النهاية</label><input type="date" name="fin" id="fin" onchange="checkConflict()" required></div>
-      <div class="field salle-wrapper">
-        <label>القاعة</label>
-        <input name="salle" id="salle_input" placeholder="اختر القاعة..." readonly required onclick="toggleSalleBox()" style="cursor:pointer;">
-        <div class="salle-box" id="salles">
-          {% for s in salles %}
-          <div class="salle-item" data-etage="{{ s.etage }}" data-type="{{ s.type }}" data-nom="{{ s.nom }}" onclick="selectSalle(this)">
-            {{ s.nom }} <small style="color:var(--muted);font-size:10px;margin-right:4px;">{{ s.type }}</small>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      <div class="conflict-msg" id="conflict-msg">⚠️ <span id="conflict-text">تعارض</span></div>
-      <div style="margin-top:12px;">
-        <button type="submit" class="btn btn-primary" id="save-btn">💾 حفظ الحجز</button>
-        <button type="button" class="btn btn-reset" onclick="resetForm()">↺ إعادة تعيين</button>
-      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div class="field"><label>البداية</label><input type="date" id="f-debut" onchange="checkConflict()"></div>
+      <div class="field"><label>النهاية</label><input type="date" id="f-fin" onchange="checkConflict()"></div>
+    </div>
+
+    <!-- Salle grid -->
+    <span class="salle-grid-label">القاعة <span id="salle-selected-label" style="color:var(--accent);font-weight:900;"></span></span>
+    <input type="hidden" id="f-salle" value="">
+    <div class="salle-grid" id="salle-grid">
+      <span style="color:var(--muted);font-size:11px;grid-column:1/-1;text-align:center;padding:12px;">اختر الطابق أولاً</span>
+    </div>
+
+    <div class="conflict-box" id="conflict-box">⚠️ <span id="conflict-text"></span></div>
+
+    <button class="btn btn-save" id="btn-save" onclick="submitForm()">💾 حفظ الحجز</button>
+    <button class="btn btn-edit" id="btn-edit" onclick="submitEdit()">✏️ تعديل الحجز</button>
+    <button class="btn btn-reset" onclick="resetForm()">↺ إعادة تعيين</button>
+    <button class="btn btn-cancel" id="btn-cancel" onclick="resetForm()">✕ إلغاء التعديل</button>
+
+    <!-- Hidden forms -->
+    <form method="POST" action="/" id="form-save" style="display:none">
+      <input type="hidden" name="titre" id="h-titre">
+      <input type="hidden" name="organisateur" id="h-organisateur">
+      <input type="hidden" name="etage" id="h-etage">
+      <input type="hidden" name="type" id="h-type">
+      <input type="hidden" name="genre" id="h-genre">
+      <input type="hidden" name="periode" id="h-periode">
+      <input type="hidden" name="debut" id="h-debut">
+      <input type="hidden" name="fin" id="h-fin">
+      <input type="hidden" name="salle" id="h-salle">
+    </form>
+    <form method="POST" action="/update" id="form-edit" style="display:none">
+      <input type="hidden" name="id" id="he-id">
+      <input type="hidden" name="titre" id="he-titre">
+      <input type="hidden" name="organisateur" id="he-organisateur">
+      <input type="hidden" name="etage" id="he-etage">
+      <input type="hidden" name="type" id="he-type">
+      <input type="hidden" name="genre" id="he-genre">
+      <input type="hidden" name="periode" id="he-periode">
+      <input type="hidden" name="debut" id="he-debut">
+      <input type="hidden" name="fin" id="he-fin">
+      <input type="hidden" name="salle" id="he-salle">
     </form>
 
-    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
-      <a href="/export" class="btn btn-green" style="width:100%;justify-content:center;margin-bottom:8px;">📥 تصدير Excel</a>
-      <form action="/import" method="POST" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:8px;">
-        <input type="file" name="file" accept=".xlsx,.xls" style="font-size:12px;color:var(--muted);">
-        <button type="submit" class="btn btn-secondary" style="width:100%;justify-content:center;">📤 استيراد Excel</button>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- MAIN LAYOUT -->
-<div class="layout">
-  <div class="content with-sidebar" id="content">
-
-    <div id="panel-reservations" class="panel active" style="display:block;">
-      <div class="table-area">
-        <!-- Search bar -->
-        <form method="GET" class="search-bar">
-          <div class="sf" style="flex:1;min-width:160px;"><label>بحث</label><input type="text" name="search" placeholder="عنوان، منظم، قاعة..." value="{{ search }}" style="width:100%;"></div>
-          <div class="sf"><label>الطابق</label><select name="f_etage">
-            <option value="">الكل</option>
-            <option value="الأرضي" {% if f_etage=='الأرضي' %}selected{% endif %}>الأرضي</option>
-            <option value="الأول" {% if f_etage=='الأول' %}selected{% endif %}>الأول</option>
-            <option value="الثاني" {% if f_etage=='الثاني' %}selected{% endif %}>الثاني</option>
-            <option value="الثالث" {% if f_etage=='الثالث' %}selected{% endif %}>الثالث</option>
-            <option value="الرابع" {% if f_etage=='الرابع' %}selected{% endif %}>الرابع</option>
-          </select></div>
-          <div class="sf"><label>النوع</label><select name="f_type">
-            <option value="">الكل</option><option value="قاعة" {% if f_type=='قاعة' %}selected{% endif %}>قاعة</option>
-            <option value="مختبر" {% if f_type=='مختبر' %}selected{% endif %}>مختبر</option>
-          </select></div>
-          <div class="sf"><label>الجنس</label><select name="f_genre">
-            <option value="">الكل</option><option value="رجال" {% if f_genre=='رجال' %}selected{% endif %}>رجال</option>
-            <option value="نساء" {% if f_genre=='نساء' %}selected{% endif %}>نساء</option>
-          </select></div>
-          <div class="sf"><label>الفترة</label><select name="f_periode">
-            <option value="">الكل</option><option value="صباحي" {% if f_periode=='صباحي' %}selected{% endif %}>صباحي</option>
-            <option value="مسائي" {% if f_periode=='مسائي' %}selected{% endif %}>مسائي</option>
-          </select></div>
-          <div class="sf"><label>من</label><input type="date" name="f_debut" value="{{ f_debut }}"></div>
-          <div class="sf"><label>إلى</label><input type="date" name="f_fin" value="{{ f_fin }}"></div>
-          <button type="submit" class="btn btn-primary" style="height:36px;padding:0 14px;">🔍</button>
-          <a href="/" class="btn btn-secondary" style="height:36px;padding:0 12px;">✕</a>
+    <div style="margin-top:10px;padding-top:10px;border-top:1.5px solid var(--border);">
+      <a href="/export" class="btn btn-green">📥 تصدير إكسل</a>
+      <div class="import-row">
+        <form action="/import" method="POST" enctype="multipart/form-data">
+          <input type="file" name="file" accept=".xlsx,.xls" class="file-input">
+          <button type="submit" class="btn btn-import" style="margin-top:5px;">📤 استيراد إكسل</button>
         </form>
-
-        <!-- Table -->
-        <div class="table-card">
-          <div class="table-header">
-            <h2>قائمة الحجوزات</h2>
-            <span class="count-badge">{{ data|length }} حجز</span>
-            <button type="button" class="btn btn-danger" onclick="deleteSelected()">🗑️ حذف المحدد</button>
-          </div>
-          {% if data %}
-          <table id="table"><thead><tr>
-            <th><input type="checkbox" id="select-all" onchange="toggleAll(this)"></th>
-            <th>#</th><th>النوع</th><th>الطابق</th><th>القاعة</th><th>الجنس</th><th>الفترة</th><th>البداية</th><th>النهاية</th><th>العنوان</th><th>المنظم</th>
-          </tr></thead><tbody>
-          {% for r in data %}
-          <tr onclick="selectRow(this)">
-            <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" value="{{ r[0] }}"></td>
-            <td>{{ r[0] }}</td>
-            <td><span class="chip {% if r[1]=='قاعة' %}chip-class{% else %}chip-lab{% endif %}">{{ r[1] }}</span></td>
-            <td style="font-size:11px;color:var(--muted);">{{ r[2] }}</td>
-            <td><strong>{{ r[3] }}</strong></td>
-            <td><span class="chip {% if r[4]=='رجال' %}chip-male{% else %}chip-female{% endif %}">{{ r[4] }}</span></td>
-            <td><span class="chip {% if r[5]=='صباحي' %}chip-matin{% else %}chip-soir{% endif %}">{{ r[5] }}</span></td>
-            <td>{{ r[6] }}</td><td>{{ r[7] }}</td><td>{{ r[8] }}</td>
-            <td style="color:var(--muted);font-size:12px;">{{ r[9] }}</td>
-          </tr>
-          {% endfor %}
-          </tbody></table>
-          {% else %}<div class="empty-state"><div class="icon">📭</div><p>لا توجد حجوزات مطابقة</p></div>{% endif %}
-        </div>
-      </div>
-    </div>
-
-    <div id="panel-calendar" class="panel" style="display:none;">
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;">
-        <div id="calendar"></div>
       </div>
     </div>
 
   </div>
 </div>
 
+<!-- MAIN CONTENT -->
+<div class="layout">
+  <div class="content" id="content">
+
+    <!-- RESERVATIONS PANEL -->
+    <div id="panel-reservations" style="display:block;">
+
+      <form method="GET" class="search-bar">
+        <div class="sf" style="flex:1;min-width:140px;"><label>بحث</label><input type="text" name="search" placeholder="عنوان، منظم، قاعة..." value="{{ search }}" style="width:100%;"></div>
+        <div class="sf"><label>العنوان</label><input type="text" name="titre_f" placeholder="العنوان" value="{{ request.args.get('titre_f','') }}" style="width:100px;"></div>
+        <div class="sf"><label>المنظم</label><input type="text" name="org_f" placeholder="المنظم" value="{{ request.args.get('org_f','') }}" style="width:100px;"></div>
+        <div class="sf"><label>الطابق</label><select name="f_etage">
+          <option value="">الكل</option>
+          <option value="الأرضي" {% if f_etage=='الأرضي' %}selected{% endif %}>الأرضي</option>
+          <option value="الأول" {% if f_etage=='الأول' %}selected{% endif %}>الأول</option>
+          <option value="الثاني" {% if f_etage=='الثاني' %}selected{% endif %}>الثاني</option>
+          <option value="الثالث" {% if f_etage=='الثالث' %}selected{% endif %}>الثالث</option>
+          <option value="الرابع" {% if f_etage=='الرابع' %}selected{% endif %}>الرابع</option>
+        </select></div>
+        <div class="sf"><label>النوع</label><select name="f_type">
+          <option value="">الكل</option><option value="قاعة" {% if f_type=='قاعة' %}selected{% endif %}>قاعة</option>
+          <option value="مختبر" {% if f_type=='مختبر' %}selected{% endif %}>مختبر</option>
+        </select></div>
+        <div class="sf"><label>الجنس</label><select name="f_genre">
+          <option value="">الكل</option><option value="رجال" {% if f_genre=='رجال' %}selected{% endif %}>رجال</option>
+          <option value="نساء" {% if f_genre=='نساء' %}selected{% endif %}>نساء</option>
+        </select></div>
+        <div class="sf"><label>الفترة</label><select name="f_periode">
+          <option value="">الكل</option><option value="صباحي" {% if f_periode=='صباحي' %}selected{% endif %}>صباحي</option>
+          <option value="مسائي" {% if f_periode=='مسائي' %}selected{% endif %}>مسائي</option>
+        </select></div>
+        <div class="sf"><label>من</label><input type="date" name="f_debut" value="{{ f_debut }}"></div>
+        <div class="sf"><label>إلى</label><input type="date" name="f_fin" value="{{ f_fin }}"></div>
+        <button type="submit" class="btn-search">بحث</button>
+        <a href="/" class="btn-clear">مسح</a>
+      </form>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <h2>قائمة الحجوزات</h2>
+          <span class="count-badge">{{ data|length }} حجز</span>
+          <button type="button" class="btn btn-del" onclick="deleteSelected()">حذف المحدد</button>
+        </div>
+        {% if data %}
+        <table id="table"><thead><tr>
+          <th><input type="checkbox" id="select-all" onchange="toggleAll(this)"></th>
+          <th>#</th><th>النوع</th><th>الطابق</th><th>القاعة</th><th>الجنس</th><th>الفترة</th>
+          <th>البداية</th><th>النهاية</th><th>العنوان</th><th>المنظم</th>
+        </tr></thead><tbody>
+        {% for r in data %}
+        <tr onclick="fillForm({{ r[0] }},'{{ r[1] }}','{{ r[2] }}','{{ r[3] }}','{{ r[4] }}','{{ r[5] }}','{{ r[6] }}','{{ r[7] }}','{{ r[8] }}','{{ r[9] }}')" data-id="{{ r[0] }}">
+          <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" value="{{ r[0] }}"></td>
+          <td>{{ r[0] }}</td>
+          <td><span class="chip {% if r[1]=='قاعة' %}chip-q{% else %}chip-lab{% endif %}">{{ r[1] }}</span></td>
+          <td>{{ r[2] }}</td>
+          <td><strong>{{ r[3] }}</strong></td>
+          <td><span class="chip {% if r[4]=='رجال' %}chip-m{% else %}chip-f{% endif %}">{{ r[4] }}</span></td>
+          <td><span class="chip {% if r[5]=='صباحي' %}chip-s{% else %}chip-e{% endif %}">{{ r[5] }}</span></td>
+          <td>{{ r[6] }}</td><td>{{ r[7] }}</td><td>{{ r[8] }}</td>
+          <td style="color:var(--muted);">{{ r[9] }}</td>
+        </tr>
+        {% endfor %}
+        </tbody></table>
+        {% else %}<div class="empty-state">📭 لا توجد حجوزات مطابقة</div>{% endif %}
+      </div>
+    </div>
+
+    <!-- CALENDAR PANEL -->
+    <div id="panel-calendar" style="display:none;">
+      <div id="calendar-container"><div id="calendar"></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- NOTIF DRAWER -->
 <div class="overlay" id="overlay" onclick="closeNotifDrawer()"></div>
 <div class="notif-drawer" id="notif-drawer">
   <div class="notif-drawer-header"><h2>🔔 الإشعارات</h2><button class="notif-close" onclick="closeNotifDrawer()">✕</button></div>
   <button class="notif-mark-btn" onclick="markAllRead()">تعليم الكل كمقروء</button>
-  <div class="notif-list" id="notif-list"><p style="color:var(--muted);text-align:center;padding:20px;font-size:13px;">جاري التحميل...</p></div>
+  <div class="notif-list" id="notif-list"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 <script>
-let calendarInit=false;
-let sidebarOpen=true;
+// ── DATA ──────────────────────────────────────────────────────────
+const SALLES = {{ salles|tojson }};
+let reservedSalles = [];
+// Build reserved list from table
+document.querySelectorAll('#table tbody tr').forEach(tr=>{
+  let salle = tr.children[4]?.innerText?.trim();
+  if(salle) reservedSalles.push(salle);
+});
 
-function toggleSidebar(){
-  sidebarOpen=!sidebarOpen;
-  let sb=document.getElementById('sidebar');
-  let ct=document.getElementById('content');
-  if(sidebarOpen){sb.classList.remove('collapsed');ct.classList.add('with-sidebar');}
-  else{sb.classList.add('collapsed');ct.classList.remove('with-sidebar');}
+let currentEditId = null;
+let selectedSalle = '';
+
+// ── SALLE GRID ────────────────────────────────────────────────────
+function renderSalleGrid(preselect){
+  let etage = document.getElementById('f-etage').value;
+  let type  = document.getElementById('f-type').value;
+  let grid  = document.getElementById('salle-grid');
+  selectedSalle = preselect || '';
+  document.getElementById('f-salle').value = selectedSalle;
+  document.getElementById('salle-selected-label').textContent = selectedSalle ? '— '+selectedSalle : '';
+
+  if(!etage){ grid.innerHTML='<span style="color:var(--muted);font-size:11px;grid-column:1/-1;text-align:center;padding:12px;">اختر الطابق أولاً</span>'; return; }
+
+  let filtered = SALLES.filter(s=> s.etage===etage && (!type || s.type===type));
+
+  if(!filtered.length){ grid.innerHTML='<span style="color:var(--muted);font-size:11px;grid-column:1/-1;text-align:center;padding:10px;">لا توجد قاعات</span>'; return; }
+
+  grid.innerHTML = filtered.map(s=>{
+    let isRes = reservedSalles.includes(s.nom) && s.nom !== preselect;
+    return `<button type="button" class="salle-btn ${s.nom===selectedSalle?'active':''} ${isRes?'reserved':''}"
+      onclick="selectSalle('${s.nom}',${isRes})" ${isRes?'title="محجوزة"':''}>
+      ${s.nom}
+    </button>`;
+  }).join('');
 }
 
-function switchTab(tab,btn){
-  document.querySelectorAll('.panel').forEach(p=>p.style.display='none');
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('panel-'+tab).style.display='block';
-  btn.classList.add('active');
-  if(tab==='calendar'&&!calendarInit){initCalendar();calendarInit=true;}
-}
-function chargerSalles(){
-  let etage=document.getElementById('etage').value,type=document.getElementById('type').value;
-  document.querySelectorAll('.salle-item').forEach(s=>{
-    let show=true;
-    if(etage&&s.dataset.etage!==etage)show=false;
-    if(type&&s.dataset.type!==type)show=false;
-    s.style.display=show?'':'none';
-  });
-}
-function toggleSalleBox(){let b=document.getElementById('salles');b.classList.toggle('open');if(b.classList.contains('open'))chargerSalles();}
-function selectSalle(el){
-  document.querySelectorAll('.salle-item').forEach(s=>s.classList.remove('selected'));
-  el.classList.add('selected');
-  document.getElementById('salle_input').value=el.dataset.nom;
-  document.getElementById('salles').classList.remove('open');
+function selectSalle(nom, isReserved){
+  if(isReserved && nom !== currentEditId) return;
+  selectedSalle = nom;
+  document.getElementById('f-salle').value = nom;
+  document.getElementById('salle-selected-label').textContent = '— '+nom;
+  document.querySelectorAll('.salle-btn').forEach(b=>b.classList.toggle('active', b.textContent.trim()===nom));
   checkConflict();
 }
-document.addEventListener('click',e=>{
-  let box=document.getElementById('salles'),inp=document.getElementById('salle_input');
-  if(box&&!box.contains(e.target)&&e.target!==inp)box.classList.remove('open');
-});
+
+// ── CONFLICT CHECK ─────────────────────────────────────────────────
 let ct=null;
-function checkConflict(){clearTimeout(ct);ct=setTimeout(_check,400);}
+function checkConflict(){clearTimeout(ct);ct=setTimeout(_check,350);}
 async function _check(){
-  let salle=document.getElementById('salle_input').value,
-      debut=document.getElementById('debut').value,
-      fin=document.getElementById('fin').value,
-      periode=document.getElementById('periode').value,
-      msg=document.getElementById('conflict-msg'),btn=document.getElementById('save-btn');
-  if(!salle||!debut||!fin||!periode){msg.classList.remove('visible');btn.disabled=false;return;}
+  let salle   = document.getElementById('f-salle').value;
+  let debut   = document.getElementById('f-debut').value;
+  let fin     = document.getElementById('f-fin').value;
+  let periode = document.getElementById('f-periode').value;
+  let box = document.getElementById('conflict-box');
+  if(!salle||!debut||!fin||!periode){box.classList.remove('show');return;}
+  let params = new URLSearchParams({salle,debut,fin,periode});
+  if(currentEditId) params.append('exclude_id', currentEditId);
   try{
-    let r=await fetch('/check_conflict?'+new URLSearchParams({salle,debut,fin,periode}));
-    let d=await r.json();
-    if(d.conflict){msg.classList.add('visible');document.getElementById('conflict-text').textContent=d.detail;btn.disabled=true;}
-    else{msg.classList.remove('visible');btn.disabled=false;}
+    let d = await (await fetch('/check_conflict?'+params)).json();
+    if(d.conflict){box.classList.add('show');document.getElementById('conflict-text').textContent=d.detail;document.getElementById('btn-save').disabled=true;document.getElementById('btn-edit').disabled=true;}
+    else{box.classList.remove('show');document.getElementById('btn-save').disabled=false;document.getElementById('btn-edit').disabled=false;}
   }catch(e){}
 }
-function selectRow(row){row.classList.toggle('selected-row');let cb=row.querySelector('.row-check');cb.checked=!cb.checked;}
-function toggleAll(m){document.querySelectorAll('.row-check').forEach(cb=>{cb.checked=m.checked;cb.closest('tr').classList.toggle('selected-row',m.checked);});}
+
+// ── SUBMIT SAVE ───────────────────────────────────────────────────
+function submitForm(){
+  if(!validate()) return;
+  syncHidden('h');
+  document.getElementById('form-save').submit();
+}
+function submitEdit(){
+  if(!validate()) return;
+  syncHidden('he');
+  document.getElementById('he-id').value = currentEditId;
+  document.getElementById('form-edit').submit();
+}
+function syncHidden(p){
+  document.getElementById(p+'-titre').value        = document.getElementById('f-titre').value;
+  document.getElementById(p+'-organisateur').value = document.getElementById('f-organisateur').value;
+  document.getElementById(p+'-etage').value        = document.getElementById('f-etage').value;
+  document.getElementById(p+'-type').value         = document.getElementById('f-type').value;
+  document.getElementById(p+'-genre').value        = document.getElementById('f-genre').value;
+  document.getElementById(p+'-periode').value      = document.getElementById('f-periode').value;
+  document.getElementById(p+'-debut').value        = document.getElementById('f-debut').value;
+  document.getElementById(p+'-fin').value          = document.getElementById('f-fin').value;
+  document.getElementById(p+'-salle').value        = document.getElementById('f-salle').value;
+}
+function validate(){
+  let fields = [['f-titre','العنوان'],['f-organisateur','المنظم'],['f-etage','الطابق'],['f-genre','الجنس'],['f-periode','الفترة'],['f-debut','البداية'],['f-fin','النهاية']];
+  for(let [id,lbl] of fields){
+    if(!document.getElementById(id).value){alert('يرجى إدخال: '+lbl);return false;}
+  }
+  if(!document.getElementById('f-salle').value){alert('يرجى اختيار القاعة');return false;}
+  return true;
+}
+
+// ── FILL FORM FROM ROW (EDIT MODE) ────────────────────────────────
+function fillForm(id,type,etage,salle,genre,periode,debut,fin,titre,organisateur){
+  currentEditId = id;
+  document.getElementById('f-titre').value        = titre;
+  document.getElementById('f-organisateur').value = organisateur;
+  document.getElementById('f-etage').value        = etage;
+  document.getElementById('f-type').value         = type;
+  document.getElementById('f-genre').value        = genre;
+  document.getElementById('f-periode').value      = periode;
+  document.getElementById('f-debut').value        = debut;
+  document.getElementById('f-fin').value          = fin;
+  document.getElementById('f-salle').value        = salle;
+  selectedSalle = salle;
+
+  renderSalleGrid(salle);
+
+  // Switch buttons to edit mode
+  document.getElementById('btn-save').style.display='none';
+  document.getElementById('btn-edit').style.display='flex';
+  document.getElementById('btn-cancel').style.display='flex';
+  document.getElementById('conflict-box').classList.remove('show');
+
+  // Highlight row
+  document.querySelectorAll('#table tbody tr').forEach(r=>r.classList.remove('selected-row'));
+  let row = document.querySelector(`#table tbody tr[data-id="${id}"]`);
+  if(row){row.classList.add('selected-row'); row.scrollIntoView({block:'nearest',behavior:'smooth'});}
+
+  // Scroll sidebar to top
+  document.querySelector('.sidebar').scrollTop=0;
+  checkConflict();
+}
+
+// ── RESET ─────────────────────────────────────────────────────────
+function resetForm(){
+  currentEditId = null; selectedSalle = '';
+  ['f-titre','f-organisateur','f-debut','f-fin'].forEach(id=>document.getElementById(id).value='');
+  ['f-etage','f-type','f-genre','f-periode'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-salle').value='';
+  document.getElementById('salle-selected-label').textContent='';
+  renderSalleGrid();
+  document.getElementById('conflict-box').classList.remove('show');
+  document.getElementById('btn-save').style.display='flex';
+  document.getElementById('btn-save').disabled=false;
+  document.getElementById('btn-edit').style.display='none';
+  document.getElementById('btn-cancel').style.display='none';
+  document.querySelectorAll('#table tbody tr').forEach(r=>r.classList.remove('selected-row'));
+}
+
+// ── TABLE SELECTION & DELETE ──────────────────────────────────────
+function toggleAll(m){document.querySelectorAll('.row-check').forEach(cb=>{cb.checked=m.checked;});}
 async function deleteSelected(){
   let sel=[...document.querySelectorAll('.row-check:checked')];
   if(!sel.length){alert('اختر عناصر للحذف');return;}
-  if(!confirm('هل تريد حذف '+sel.length+' عنصر؟'))return;
+  if(!confirm('حذف '+sel.length+' عنصر؟'))return;
   await Promise.all(sel.map(el=>fetch('/delete',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'id='+el.value}).then(()=>el.closest('tr').remove())));
 }
-function resetForm(){
-  document.getElementById('reservation-form').reset();
-  document.getElementById('salle_input').value='';
-  document.querySelectorAll('.salle-item').forEach(s=>s.classList.remove('selected'));
-  document.getElementById('conflict-msg').classList.remove('visible');
-  document.getElementById('save-btn').disabled=false;
+
+// ── TABS ──────────────────────────────────────────────────────────
+let calendarInit=false;
+function switchTab(tab,btn){
+  document.getElementById('panel-reservations').style.display = tab==='reservations'?'block':'none';
+  document.getElementById('panel-calendar').style.display     = tab==='calendar'?'block':'none';
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(tab==='calendar'&&!calendarInit){initCalendar();calendarInit=true;}
 }
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────
 async function loadNotifications(){
   try{
-    let r=await fetch('/notifications'),d=await r.json();
+    let d=await(await fetch('/notifications')).json();
     let badge=document.getElementById('notif-badge');
     badge.textContent=d.unread;badge.style.display=d.unread>0?'block':'none';
     let list=document.getElementById('notif-list');
-    if(!d.notifications.length){list.innerHTML='<p style="color:var(--muted);text-align:center;padding:20px;font-size:13px;">لا توجد إشعارات</p>';return;}
-    list.innerHTML=d.notifications.map(n=>`<div class="notif-item ${n.is_read?'':'unread'}">${n.message}<div class="notif-time">${n.created_at}</div></div>`).join('');
+    list.innerHTML=d.notifications.length?d.notifications.map(n=>`<div class="notif-item ${n.is_read?'':'unread'}">${n.message}<div class="notif-time">${n.created_at}</div></div>`).join(''):'<p style="color:var(--muted);text-align:center;padding:16px;font-size:12px;">لا توجد إشعارات</p>';
   }catch(e){}
 }
 function openNotifDrawer(){document.getElementById('notif-drawer').classList.add('open');document.getElementById('overlay').classList.add('show');loadNotifications();}
 function closeNotifDrawer(){document.getElementById('notif-drawer').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
 async function markAllRead(){await fetch('/notifications/read',{method:'POST'});document.getElementById('notif-badge').style.display='none';loadNotifications();}
 setInterval(loadNotifications,30000);loadNotifications();
+
+// ── CALENDAR ─────────────────────────────────────────────────────
 function initCalendar(){
   new FullCalendar.Calendar(document.getElementById('calendar'),{
     initialView:'dayGridMonth',direction:'rtl',
@@ -586,7 +686,7 @@ function initCalendar(){
     events:'/calendar_events',
     eventClick:function(info){
       let p=info.event.extendedProps;
-      alert('📅 '+info.event.title+'\n\n🏢 القاعة: '+p.salle+'\n👤 المنظم: '+p.organisateur+'\n⏰ الفترة: '+p.periode);
+      alert('📅 '+info.event.title+'\n🏢 '+p.salle+'\n👤 '+p.organisateur+'\n⏰ '+p.periode);
     },height:'auto'
   }).render();
 }
@@ -855,6 +955,35 @@ def import_excel():
             continue
     conn.commit(); conn.close()
     flash(f"تم استيراد {imported} حجز بنجاح", "success")
+    return redirect("/")
+
+@app.route("/update", methods=["POST"])
+@login_required
+def update():
+    id_     = request.form.get("id")
+    salle   = request.form.get("salle", "")
+    debut   = request.form.get("debut", "")
+    fin     = request.form.get("fin", "")
+    periode = request.form.get("periode", "")
+    conn = get_conn()
+    # conflict check excluding current record
+    conflict = conn.execute("""SELECT id FROM reservations
+        WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=? AND id!=?""",
+        (salle, periode, fin, debut, id_)).fetchone()
+    if conflict:
+        flash("⚠️ تعارض في الحجز: القاعة محجوزة في هذه الفترة", "error")
+        conn.close(); return redirect("/")
+    conn.execute("""UPDATE reservations SET
+        type=?, etage=?, salle=?, genre=?, periode=?,
+        date_debut=?, date_fin=?, titre=?, organisateur=?
+        WHERE id=?""", (
+        request.form.get("type"), request.form.get("etage"), salle,
+        request.form.get("genre"), periode, debut, fin,
+        request.form.get("titre"), request.form.get("organisateur"), id_))
+    conn.commit()
+    add_notification(session["user"], f"تم تعديل الحجز #{id_}: «{request.form.get('titre')}»")
+    conn.close()
+    flash("✅ تم تعديل الحجز بنجاح", "success")
     return redirect("/")
 
 @app.route("/delete", methods=["POST"])
