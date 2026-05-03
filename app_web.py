@@ -141,6 +141,93 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
   </form>
 </div></body></html>"""
 
+REGISTER_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>إدارة المستخدمين</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#e8f0ee;--sidebar:#c8ddd8;--topbar:#5a8a7a;--accent:#3d7a6a;--accent2:#2d6a5a;--text:#1a2e28;--muted:#5a7a72;--border:#a8c8c0;--white:#fff;--red:#c0392b;--green:#27ae60}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;padding:0}
+.topbar{background:var(--topbar);color:#fff;padding:0 16px;display:flex;align-items:center;gap:12px;height:44px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.topbar h1{font-size:15px;font-weight:900;flex:1}
+a.back{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:5px 14px;font-family:'Cairo',sans-serif;font-size:12px;text-decoration:none}
+a.back:hover{background:rgba(255,255,255,.3)}
+.main{padding:20px;max-width:1000px;margin:0 auto}
+.flash{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;font-weight:600}
+.flash.error{background:#fdecea;border:1px solid #e57373;color:#c0392b}
+.flash.success{background:#e8f5e9;border:1px solid #81c784;color:#2e7d32}
+.grid{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
+.card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:20px}
+.card h2{font-size:14px;font-weight:900;color:var(--accent2);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.field input,.field select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-family:'Cairo',sans-serif;font-size:13px;padding:8px 11px;outline:none;height:36px}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field select option{background:var(--white)}
+.btn-primary{background:var(--green);color:#fff;border:none;border-radius:7px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;width:100%;margin-top:4px}
+.btn-primary:hover{background:#219a52}
+.btn-danger{background:#fdecea;color:var(--red);border:1px solid #e57373;border-radius:6px;font-family:'Cairo',sans-serif;font-size:11px;font-weight:700;padding:5px 12px;cursor:pointer}
+.btn-danger:hover{background:#fbbcba}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--topbar);color:#fff;font-weight:700;text-align:right;padding:9px 12px;font-size:11px;letter-spacing:.3px}
+thead th:first-child{text-align:center}
+tbody tr:nth-child(even){background:#f0f7f5}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border)}
+tbody tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.badge-admin{background:rgba(61,122,106,.15);color:var(--accent2);border:1px solid rgba(61,122,106,.3)}
+.badge-user{background:rgba(90,122,114,.1);color:var(--muted);border:1px solid var(--border)}
+</style></head><body>
+<div class="topbar">
+  <a href="/" class="back">← رجوع</a>
+  <h1>👥 إدارة المستخدمين</h1>
+</div>
+<div class="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat,msg in messages %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+  <div class="grid">
+    <div class="card">
+      <h2>➕ إنشاء مستخدم جديد</h2>
+      <form method="POST" action="/register">
+        <div class="field"><label>اسم المستخدم</label><input type="text" name="username" placeholder="username" required></div>
+        <div class="field"><label>كلمة المرور</label><input type="password" name="password" placeholder="••••••••" required></div>
+        <div class="field"><label>الصلاحية</label>
+          <select name="role">
+            <option value="user">مستخدم عادي</option>
+            <option value="admin">مسؤول</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">✔ إنشاء المستخدم</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>📋 قائمة المستخدمين ({{ users|length }})</h2>
+      <table>
+        <thead><tr><th>#</th><th>اسم المستخدم</th><th>الصلاحية</th><th>الإجراء</th></tr></thead>
+        <tbody>
+        {% for u in users %}
+        <tr>
+          <td style="text-align:center;color:var(--muted);font-size:11px;">{{ u[0] }}</td>
+          <td><strong>{{ u[1] }}</strong></td>
+          <td><span class="badge {% if u[2]=='admin' %}badge-admin{% else %}badge-user{% endif %}">{{ 'مسؤول' if u[2]=='admin' else 'مستخدم' }}</span></td>
+          <td>{% if u[1] != 'admin' %}
+            <form method="POST" action="/delete_user" style="display:inline;" onsubmit="return confirm('حذف المستخدم {{ u[1] }}؟')">
+              <input type="hidden" name="id" value="{{ u[0] }}">
+              <button type="submit" class="btn-danger">حذف</button>
+            </form>
+          {% else %}<span style="color:var(--muted);font-size:11px;">محمي</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div></body></html>"""
+
 INDEX_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
