@@ -41,57 +41,57 @@ def _bootstrap_db():
 _bootstrap_db()
 
 SALLES = [
-    {"nom": "G 11", "etage": "ground floor", "type": "Class"},
-    {"nom": "G 12", "etage": "ground floor", "type": "Class"},
-    {"nom": "G 13", "etage": "ground floor", "type": "Lab"},
-    {"nom": "L1 04", "etage": "first floor", "type": "Class"},
-    {"nom": "L1 05", "etage": "first floor", "type": "Class"},
-    {"nom": "L1 08", "etage": "first floor", "type": "Lab"},
-    {"nom": "L1 18", "etage": "first floor", "type": "Class"},
-    {"nom": "L1 19", "etage": "first floor", "type": "Class"},
-    {"nom": "L1 20", "etage": "first floor", "type": "Class"},
-    {"nom": "L1 21", "etage": "first floor", "type": "Class"},
-    {"nom": "L1 22", "etage": "first floor", "type": "Class"},
-    {"nom": "L1 26", "etage": "first floor", "type": "Lab"},
-    {"nom": "L2 08", "etage": "second floor", "type": "Lab"},
-    {"nom": "L2 09", "etage": "second floor", "type": "Class"},
-    {"nom": "L2 10", "etage": "second floor", "type": "Class"},
-    {"nom": "L2 11", "etage": "second floor", "type": "Class"},
-    {"nom": "L2 14", "etage": "second floor", "type": "Class"},
-    {"nom": "L2 28", "etage": "second floor", "type": "Class"},
-    {"nom": "L2 29", "etage": "second floor", "type": "Class"},
-    {"nom": "L2 30", "etage": "second floor", "type": "Class"},
-    {"nom": "L2 31", "etage": "second floor", "type": "Class"},
-    {"nom": "L2 32", "etage": "second floor", "type": "Class"},
-    {"nom": "L2 33", "etage": "second floor", "type": "Class"},
-    {"nom": "L2 34", "etage": "second floor", "type": "Class"},
-    {"nom": "L2 35", "etage": "second floor", "type": "Class"},
-    {"nom": "L3 08", "etage": "third floor", "type": "Lab"},
-    {"nom": "L3 09", "etage": "third floor", "type": "Class"},
-    {"nom": "L3 10", "etage": "third floor", "type": "Class"},
-    {"nom": "L3 11", "etage": "third floor", "type": "Class"},
-    {"nom": "L3 13", "etage": "third floor", "type": "Class"},
-    {"nom": "L3 27", "etage": "third floor", "type": "Class"},
-    {"nom": "L3 28", "etage": "third floor", "type": "Class"},
-    {"nom": "L3 29", "etage": "third floor", "type": "Class"},
-    {"nom": "L3 30", "etage": "third floor", "type": "Class"},
-    {"nom": "L3 31", "etage": "third floor", "type": "Class"},
-    {"nom": "L3 32", "etage": "third floor", "type": "Class"},
-    {"nom": "L3 33", "etage": "third floor", "type": "Class"},
-    {"nom": "L3 34", "etage": "third floor", "type": "Class"},
-    {"nom": "L4 08", "etage": "fourth floor", "type": "Lab"},
-    {"nom": "L4 09", "etage": "fourth floor", "type": "Class"},
-    {"nom": "L4 10", "etage": "fourth floor", "type": "Class"},
-    {"nom": "L4 11", "etage": "fourth floor", "type": "Class"},
-    {"nom": "L4 14", "etage": "fourth floor", "type": "Class"},
-    {"nom": "L4 29", "etage": "fourth floor", "type": "Class"},
-    {"nom": "L4 30", "etage": "fourth floor", "type": "Class"},
-    {"nom": "L4 31", "etage": "fourth floor", "type": "Class"},
-    {"nom": "L4 32", "etage": "fourth floor", "type": "Class"},
-    {"nom": "L4 33", "etage": "fourth floor", "type": "Class"},
-    {"nom": "L4 34", "etage": "fourth floor", "type": "Class"},
-    {"nom": "L4 35", "etage": "fourth floor", "type": "Class"},
-    {"nom": "L4 36", "etage": "fourth floor", "type": "Class"},
+    {"nom": "G 11", "etage": "الأرضي", "type": "قاعة"},
+    {"nom": "G 12", "etage": "الأرضي", "type": "قاعة"},
+    {"nom": "G 13", "etage": "الأرضي", "type": "مختبر"},
+    {"nom": "L1 04", "etage": "الأول", "type": "قاعة"},
+    {"nom": "L1 05", "etage": "الأول", "type": "قاعة"},
+    {"nom": "L1 08", "etage": "الأول", "type": "مختبر"},
+    {"nom": "L1 18", "etage": "الأول", "type": "قاعة"},
+    {"nom": "L1 19", "etage": "الأول", "type": "قاعة"},
+    {"nom": "L1 20", "etage": "الأول", "type": "قاعة"},
+    {"nom": "L1 21", "etage": "الأول", "type": "قاعة"},
+    {"nom": "L1 22", "etage": "الأول", "type": "قاعة"},
+    {"nom": "L1 26", "etage": "الأول", "type": "مختبر"},
+    {"nom": "L2 08", "etage": "الثاني", "type": "مختبر"},
+    {"nom": "L2 09", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 10", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 11", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 14", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 28", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 29", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 30", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 31", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 32", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 33", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 34", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 35", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L3 08", "etage": "الثالث", "type": "مختبر"},
+    {"nom": "L3 09", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 10", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 11", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 13", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 27", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 28", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 29", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 30", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 31", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 32", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 33", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 34", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L4 08", "etage": "الرابع", "type": "مختبر"},
+    {"nom": "L4 09", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 10", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 11", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 14", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 29", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 30", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 31", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 32", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 33", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 34", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 35", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 36", "etage": "الرابع", "type": "قاعة"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -332,21 +332,21 @@ tbody tr.selected-row{background:rgba(239,68,68,.08)}tbody tr:last-child td{bord
           <div class="field"><label>الطابق</label>
             <select name="etage" id="etage" onchange="chargerSalles()">
               <option value="">اختر الطابق</option>
-              <option value="ground floor">الأرضي</option><option value="first floor">الأول</option>
-              <option value="second floor">الثاني</option><option value="third floor">الثالث</option>
-              <option value="fourth floor">الرابع</option>
+              <option value="الأرضي">الأرضي</option><option value="الأول">الأول</option>
+              <option value="الثاني">الثاني</option><option value="الثالث">الثالث</option>
+              <option value="الرابع">الرابع</option>
             </select></div>
           <div class="field"><label>النوع</label>
             <select name="type" id="type" onchange="chargerSalles()">
-              <option value="">كل الأنواع</option><option value="Class">قاعة</option><option value="Lab">مختبر</option>
+              <option value="">كل الأنواع</option><option value="قاعة">قاعة</option><option value="مختبر">مختبر</option>
             </select></div>
           <div class="field"><label>الجنس</label>
             <select name="genre">
-              <option value="">اختر</option><option value="Male">رجال</option><option value="Female">نساء</option>
+              <option value="">اختر</option><option value="رجال">رجال</option><option value="نساء">نساء</option>
             </select></div>
           <div class="field"><label>الفترة</label>
             <select name="periode" id="periode" onchange="checkConflict()">
-              <option value="">اختر</option><option value="Matin">صباحي</option><option value="Soir">مسائي</option>
+              <option value="">اختر</option><option value="صباحي">صباحي</option><option value="مسائي">مسائي</option>
             </select></div>
           <div class="field"><label>تاريخ البداية</label><input type="date" name="debut" id="debut" onchange="checkConflict()" required></div>
           <div class="field"><label>تاريخ النهاية</label><input type="date" name="fin" id="fin" onchange="checkConflict()" required></div>
@@ -381,23 +381,23 @@ tbody tr.selected-row{background:rgba(239,68,68,.08)}tbody tr:last-child td{bord
       <div class="sf" style="flex:1;min-width:180px;"><label>بحث</label><input type="text" name="search" placeholder="عنوان، منظم، قاعة..." value="{{ search }}" style="width:100%;"></div>
       <div class="sf"><label>الطابق</label><select name="f_etage">
         <option value="">الكل</option>
-        <option value="ground floor" {% if f_etage=='ground floor' %}selected{% endif %}>الأرضي</option>
-        <option value="first floor" {% if f_etage=='first floor' %}selected{% endif %}>الأول</option>
-        <option value="second floor" {% if f_etage=='second floor' %}selected{% endif %}>الثاني</option>
-        <option value="third floor" {% if f_etage=='third floor' %}selected{% endif %}>الثالث</option>
-        <option value="fourth floor" {% if f_etage=='fourth floor' %}selected{% endif %}>الرابع</option>
+        <option value="الأرضي" {% if f_etage=='الأرضي' %}selected{% endif %}>الأرضي</option>
+        <option value="الأول" {% if f_etage=='الأول' %}selected{% endif %}>الأول</option>
+        <option value="الثاني" {% if f_etage=='الثاني' %}selected{% endif %}>الثاني</option>
+        <option value="الثالث" {% if f_etage=='الثالث' %}selected{% endif %}>الثالث</option>
+        <option value="الرابع" {% if f_etage=='الرابع' %}selected{% endif %}>الرابع</option>
       </select></div>
       <div class="sf"><label>النوع</label><select name="f_type">
-        <option value="">الكل</option><option value="Class" {% if f_type=='Class' %}selected{% endif %}>قاعة</option>
-        <option value="Lab" {% if f_type=='Lab' %}selected{% endif %}>مختبر</option>
+        <option value="">الكل</option><option value="قاعة" {% if f_type=='قاعة' %}selected{% endif %}>قاعة</option>
+        <option value="مختبر" {% if f_type=='مختبر' %}selected{% endif %}>مختبر</option>
       </select></div>
       <div class="sf"><label>الجنس</label><select name="f_genre">
-        <option value="">الكل</option><option value="Male" {% if f_genre=='Male' %}selected{% endif %}>رجال</option>
-        <option value="Female" {% if f_genre=='Female' %}selected{% endif %}>نساء</option>
+        <option value="">الكل</option><option value="رجال" {% if f_genre=='رجال' %}selected{% endif %}>رجال</option>
+        <option value="نساء" {% if f_genre=='نساء' %}selected{% endif %}>نساء</option>
       </select></div>
       <div class="sf"><label>الفترة</label><select name="f_periode">
-        <option value="">الكل</option><option value="Matin" {% if f_periode=='Matin' %}selected{% endif %}>صباحي</option>
-        <option value="Soir" {% if f_periode=='Soir' %}selected{% endif %}>مسائي</option>
+        <option value="">الكل</option><option value="صباحي" {% if f_periode=='صباحي' %}selected{% endif %}>صباحي</option>
+        <option value="مسائي" {% if f_periode=='مسائي' %}selected{% endif %}>مسائي</option>
       </select></div>
       <div class="sf"><label>من</label><input type="date" name="f_debut" value="{{ f_debut }}"></div>
       <div class="sf"><label>إلى</label><input type="date" name="f_fin" value="{{ f_fin }}"></div>
@@ -420,11 +420,11 @@ tbody tr.selected-row{background:rgba(239,68,68,.08)}tbody tr:last-child td{bord
       <tr onclick="selectRow(this)">
         <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" value="{{ r[0] }}"></td>
         <td>{{ r[0] }}</td>
-        <td><span class="chip {% if r[1]=='Class' %}chip-class{% else %}chip-lab{% endif %}">{{ r[1] }}</span></td>
+        <td><span class="chip {% if r[1]=='قاعة' %}chip-class{% else %}chip-lab{% endif %}">{{ r[1] }}</span></td>
         <td style="font-size:12px;color:var(--muted);">{{ r[2] }}</td>
         <td><strong>{{ r[3] }}</strong></td>
-        <td><span class="chip {% if r[4]=='Male' %}chip-male{% else %}chip-female{% endif %}">{{ r[4] }}</span></td>
-        <td><span class="chip {% if r[5]=='Matin' %}chip-matin{% else %}chip-soir{% endif %}">{{ r[5] }}</span></td>
+        <td><span class="chip {% if r[4]=='رجال' %}chip-male{% else %}chip-female{% endif %}">{{ r[4] }}</span></td>
+        <td><span class="chip {% if r[5]=='صباحي' %}chip-matin{% else %}chip-soir{% endif %}">{{ r[5] }}</span></td>
         <td>{{ r[6] }}</td><td>{{ r[7] }}</td><td>{{ r[8] }}</td>
         <td style="color:var(--muted);">{{ r[9] }}</td>
       </tr>
@@ -684,7 +684,7 @@ def calendar_events():
     conn = get_conn()
     rows = conn.execute("SELECT id,titre,salle,date_debut,date_fin,genre,periode,organisateur FROM reservations").fetchall()
     conn.close()
-    colors = {"Matin": "#2563eb", "Soir": "#7c3aed"}
+    colors = {"صباحي": "#2563eb", "مسائي": "#7c3aed"}
     return jsonify([{
         "id": r[0], "title": f"{r[1]} — {r[2]}", "start": r[3], "end": r[4],
         "color": colors.get(r[6], "#059669"),
@@ -765,18 +765,40 @@ def export_excel():
 @login_required
 def import_excel():
     file = request.files.get("file")
-    if not file: return "No file", 400
-    df = pd.read_excel(file)
+    if not file or file.filename == "":
+        flash("يرجى اختيار ملف Excel", "error")
+        return redirect("/")
+    try:
+        df = pd.read_excel(file, engine="openpyxl")
+    except Exception as e:
+        flash(f"خطأ في قراءة الملف: {str(e)}", "error")
+        return redirect("/")
+
+    # Normalize column names: strip spaces, lowercase
+    df.columns = [str(c).strip().lower() for c in df.columns]
+
     conn = get_conn()
+    imported = 0
     for _, row in df.iterrows():
-        conn.execute("""INSERT INTO reservations
-            (type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
-            VALUES (?,?,?,?,?,?,?,?,?,?)""", (
-            str(row.get("type", "")), str(row.get("etage", "")), str(row.get("salle", "")),
-            str(row.get("genre", "")), str(row.get("periode", "")),
-            str(row.get("date_debut", ""))[:10], str(row.get("date_fin", ""))[:10],
-            str(row.get("titre", "")), str(row.get("organisateur", "")), session["user"]))
-    conn.commit(); conn.close(); return redirect("/")
+        def g(col, alt=None):
+            for k in ([col] + ([alt] if alt else [])):
+                if k in row and str(row[k]).strip() not in ("", "nan", "None"):
+                    return str(row[k]).strip()
+            return ""
+        try:
+            conn.execute("""INSERT INTO reservations
+                (type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
+                VALUES (?,?,?,?,?,?,?,?,?,?)""", (
+                g("type"), g("etage"), g("salle"), g("genre"), g("periode"),
+                g("date_debut")[:10] if g("date_debut") else "",
+                g("date_fin")[:10]   if g("date_fin")   else "",
+                g("titre"), g("organisateur"), session["user"]))
+            imported += 1
+        except Exception:
+            continue
+    conn.commit(); conn.close()
+    flash(f"تم استيراد {imported} حجز بنجاح", "success")
+    return redirect("/")
 
 @app.route("/delete", methods=["POST"])
 @login_required
