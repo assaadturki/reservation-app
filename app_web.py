@@ -820,25 +820,6 @@ function showTooltipMulti(e, evList){
 function showTooltip(e, ev){
   showTooltipMulti(e, [ev]);
 }
-  tip.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <strong style="font-size:13px;color:#1a2e28;">${ev.salle}</strong>
-      <button onclick="hideTooltip();activeTooltipId=null;" style="background:none;border:none;cursor:pointer;font-size:16px;color:#888;line-height:1;">✕</button>
-    </div>
-    <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px;color:#333;">
-      <span style="color:#888;">رقم الدورة</span><span><b>${ev.course_code||'—'}</b></span>
-      <span style="color:#888;">العنوان</span><span>${ev.titre||'—'}</span>
-      <span style="color:#888;">المنظم</span><span>${ev.organisateur||'—'}</span>
-      <span style="color:#888;">القاعة</span><span>${ev.salle} — ${ev.etage}</span>
-      <span style="color:#888;">الجنس</span><span>${ev.genre}</span>
-      <span style="color:#888;">الفترة</span><span>${ev.periode}</span>
-      <span style="color:#888;">من</span><span>${ev.date_debut}</span>
-      <span style="color:#888;">إلى</span><span>${ev.date_fin}</span>
-    </div>
-  `;
-  tip.style.display = 'block';
-  positionTip(e);
-}
 function positionTip(e){
   let tip=document.getElementById('gantt-tip');
   let x=e.clientX+12, y=e.clientY+12;
