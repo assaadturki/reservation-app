@@ -120,7 +120,7 @@ _bootstrap_db()
 SALLES = [
     {"nom": "G 11", "etage": "الأرضي", "type": "قاعة"},
     {"nom": "G 12", "etage": "الأرضي", "type": "قاعة"},
-    {"nom": "G 13", "etage": "الأرضي", "type": "مختبر"},
+    {"nom": "G 13", "etage": "الأرضي", "type": "قاعة"},
     {"nom": "L1 04", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 05", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 08", "etage": "الأول", "type": "مختبر"},
@@ -128,44 +128,44 @@ SALLES = [
     {"nom": "L1 19", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 20", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 21", "etage": "الأول", "type": "قاعة"},
-    {"nom": "L1 22", "etage": "الأول", "type": "قاعة"},
-    {"nom": "L1 26", "etage": "الأول", "type": "مختبر"},
-    {"nom": "L2 08", "etage": "الثاني", "type": "مختبر"},
+    {"nom": "L1 22", "etage": "الأول", "type": "مختبر"},
+    {"nom": "L1 26", "etage": "الأول", "type": "قاعة"},
+    {"nom": "L2 08", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 09", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 10", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 11", "etage": "الثاني", "type": "قاعة"},
-    {"nom": "L2 14", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 14", "etage": "الثاني", "type": "مختبر"},
     {"nom": "L2 28", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 29", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 30", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 31", "etage": "الثاني", "type": "قاعة"},
-    {"nom": "L2 32", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 32", "etage": "الثاني", "type": "مختبر"},
     {"nom": "L2 33", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 34", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 35", "etage": "الثاني", "type": "قاعة"},
-    {"nom": "L3 08", "etage": "الثالث", "type": "مختبر"},
+    {"nom": "L3 08", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 09", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 10", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 11", "etage": "الثالث", "type": "قاعة"},
-    {"nom": "L3 13", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 13", "etage": "الثالث", "type": "مختبر"},
     {"nom": "L3 27", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 28", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 29", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 30", "etage": "الثالث", "type": "قاعة"},
-    {"nom": "L3 31", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 31", "etage": "الثالث", "type": "مختبر"},
     {"nom": "L3 32", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 33", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 34", "etage": "الثالث", "type": "قاعة"},
-    {"nom": "L4 08", "etage": "الرابع", "type": "مختبر"},
+    {"nom": "L4 08", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 09", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 10", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 11", "etage": "الرابع", "type": "قاعة"},
-    {"nom": "L4 14", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 14", "etage": "الرابع", "type": "مختبر"},
     {"nom": "L4 29", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 30", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 31", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 32", "etage": "الرابع", "type": "قاعة"},
-    {"nom": "L4 33", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 33", "etage": "الرابع", "type": "مختبر"},
     {"nom": "L4 34", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 35", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 36", "etage": "الرابع", "type": "قاعة"},
@@ -1079,19 +1079,32 @@ function ganttNav(dir){
 
 function setGanttView(v){ ganttView=v; renderGantt(); }
 
-// ── TAB SWITCHING (override) ──────────────────────────────────────
+// ── TAB SWITCHING ─────────────────────────────────────────────────
 let calendarInit=false;
 function switchTab(tab,btn){
   document.getElementById('panel-reservations').style.display = tab==='reservations'?'block':'none';
   document.getElementById('panel-calendar').style.display     = tab==='calendar'?'block':'none';
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if(tab==='calendar' && !calendarInit){
-    calendarInit=true;
+
+  let content = document.getElementById('content');
+  let sidebar  = document.getElementById('sidebar');
+
+  if(tab==='calendar'){
+    // Hide sidebar, expand content for full-width gantt
+    if(sidebar) sidebar.classList.add('collapsed');
+    if(content) content.classList.remove('with-sidebar');
+    if(!calendarInit){
+      calendarInit=true;
+    }
     fetch('/calendar_events').then(r=>r.json()).then(data=>{
       ganttEvents=data;
       renderGantt();
     });
+  } else {
+    // Restore sidebar for reservations view
+    if(sidebar) sidebar.classList.remove('collapsed');
+    if(content) content.classList.add('with-sidebar');
   }
 }
 </script>
