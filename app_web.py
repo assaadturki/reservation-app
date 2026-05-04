@@ -793,8 +793,33 @@ const COLOR_OCC  = {bg:'#c0392b', border:'#922b21'}; // occupied
 const COLOR_FREE = {bg:'transparent', border:'transparent'}; // free cell
 
 // ── tooltip ───────────────────────────────────────────────────────
-function showTooltip(e, ev){
+function showTooltipMulti(e, evList){
   let tip = document.getElementById('gantt-tip');
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <strong style="font-size:12px;color:#1a2e28;">${evList[0]?.salle||''}</strong>
+    <button onclick="hideTooltip();activeTooltipId=null;" style="background:none;border:none;cursor:pointer;font-size:16px;color:#888;">✕</button>
+  </div>`;
+
+  evList.forEach((ev, i)=>{
+    if(i>0) html += `<hr style="border:none;border-top:1px solid #e0e0e0;margin:8px 0;">`;
+    html += `<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12px;color:#333;">
+      <span style="color:#888;">رقم الدورة</span><span><b>${ev.course_code||'—'}</b></span>
+      <span style="color:#888;">العنوان</span><span>${ev.titre||'—'}</span>
+      <span style="color:#888;">المنظم</span><span>${ev.organisateur||'—'}</span>
+      <span style="color:#888;">الجنس</span><span>${ev.genre}</span>
+      <span style="color:#888;">الفترة</span><span><b>${ev.periode}</b></span>
+      <span style="color:#888;">من</span><span>${ev.date_debut} → ${ev.date_fin}</span>
+    </div>`;
+  });
+
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  positionTip(e);
+}
+
+function showTooltip(e, ev){
+  showTooltipMulti(e, [ev]);
+}
   tip.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <strong style="font-size:13px;color:#1a2e28;">${ev.salle}</strong>
@@ -838,7 +863,7 @@ function renderGantt(){
     ? ganttEvents.filter(ev=>ev.periode===ganttPeriode)
     : ganttEvents;
 
-  // Build event map: salle → { dayStr → event }
+  // Build event map: salle → { dayStr → [events] }  (array to detect double bookings)
   let evMap = {};
   for(let ev of filteredEvents){
     if(!ev.date_debut || !ev.date_fin) continue;
@@ -846,7 +871,8 @@ function renderGantt(){
     for(let ds of workdaysInRange(start, end)){
       if(!daySet.has(ds)) continue;
       if(!evMap[ev.salle]) evMap[ev.salle]={};
-      evMap[ev.salle][ds] = ev;
+      if(!evMap[ev.salle][ds]) evMap[ev.salle][ds]=[];
+      evMap[ev.salle][ds].push(ev);
     }
   }
 
@@ -929,10 +955,17 @@ function renderGantt(){
                 </td>`;
               }
               let cellBg = isToday ? 'rgba(45,106,90,.06)' : rowBg;
-              if(ev){
+              let evList = sEv[d] || [];
+              if(evList.length > 0){
+                // Purple if booked both matin AND soir
+                let hasMatin = evList.some(e=>e.periode==='صباحي');
+                let hasSoir  = evList.some(e=>e.periode==='مسائي');
+                let color = (hasMatin && hasSoir) ? '#8e44ad' : '#c0392b';
+                let border= (hasMatin && hasSoir) ? '#6c3483' : '#922b21';
+                let firstEv = evList[0];
                 return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
-                  <div style="background:#c0392b;border:1.5px solid #922b21;border-radius:4px;height:20px;cursor:pointer;"
-                    onclick="ganttClick(event,${ev.id})">
+                  <div style="background:${color};border:1.5px solid ${border};border-radius:4px;height:20px;cursor:pointer;"
+                    onclick="ganttClick(event,${firstEv.id},${JSON.stringify(evList).replace(/"/g,'&quot;')})">
                   </div>
                 </td>`;
               }
@@ -946,9 +979,9 @@ function renderGantt(){
     </table>
     </div>
 
-    <!-- Legend -->
     <div style="padding:7px 14px;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;border-top:1px solid var(--border);background:var(--bg);align-items:center;">
       <span><span style="display:inline-block;width:14px;height:14px;background:#c0392b;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مشغول</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#8e44ad;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مشغول (ص+م)</span>
       <span><span style="display:inline-block;width:14px;height:14px;background:#27ae60;opacity:.4;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>متاح</span>
       <span><span style="display:inline-block;width:14px;height:14px;background:repeating-linear-gradient(45deg,#ccc,#ccc 2px,#ddd 2px,#ddd 8px);border-radius:3px;vertical-align:middle;margin-left:4px;"></span>عطلة (ج/س)</span>
       ${ganttPeriode ? `<span style="background:rgba(255,255,255,.3);padding:2px 10px;border-radius:10px;font-weight:700;">الفترة: ${ganttPeriode}</span>` : ''}
@@ -1001,15 +1034,18 @@ function renderGanttList(events){
 
 let activeTooltipId = null;
 
-function ganttClick(e, evId){
+function ganttClick(e, evId, evListJson){
   e.stopPropagation();
-  // Toggle off if same bar clicked again
+  // Parse event list (may be multiple if double-booked)
+  let evList = evListJson ? evListJson : [ganttEvents.find(x=>x.id===evId)].filter(Boolean);
+  if(typeof evListJson === 'string'){
+    try{ evList = JSON.parse(evListJson); }catch(err){ evList = [ganttEvents.find(x=>x.id===evId)].filter(Boolean); }
+  }
   if(activeTooltipId === evId){
     hideTooltip(); return;
   }
   activeTooltipId = evId;
-  let ev = ganttEvents.find(x=>x.id===evId);
-  if(ev) showTooltip(e, ev);
+  showTooltipMulti(e, evList);
 }
 
 function ganttHover(e, evId){
@@ -1205,12 +1241,20 @@ let batchRows = []; // [{id, course_code, salle, ...}, ...]
 
 function addToBatch(){
   if(!validate()) return;
+
+  // Get etage from dropdown; fallback to original row's data-etage
+  let etageVal = document.getElementById('f-etage').value;
+  if(!etageVal && currentEditId){
+    let origRow = document.querySelector(`#table tbody tr[data-id="${currentEditId}"]`);
+    if(origRow) etageVal = origRow.dataset.etage || '';
+  }
+
   let row = {
     id:           currentEditId,
     course_code:  document.getElementById('f-course-code').value,
     titre:        document.getElementById('f-titre').value,
     organisateur: document.getElementById('f-organisateur').value,
-    etage:        document.getElementById('f-etage').value,
+    etage:        etageVal,
     type:         document.getElementById('f-type').value,
     genre:        document.getElementById('f-genre').value,
     periode:      document.getElementById('f-periode').value,
@@ -1606,6 +1650,10 @@ def calendar_events():
         })
     return jsonify(events)
 
+SALLE_TO_ETAGE = {}
+for s in SALLES:
+    SALLE_TO_ETAGE[s["nom"]] = s["etage"]
+
 @app.route("/batch_update", methods=["POST"])
 @login_required
 def batch_update():
@@ -1623,13 +1671,13 @@ def batch_update():
         id_          = row.get("id")
         course_code  = str(row.get("course_code", "")).strip()
         salle        = str(row.get("salle", "")).strip()
+        etage        = SALLE_TO_ETAGE.get(salle, str(row.get("etage", "")).strip())
         debut        = str(row.get("debut", "")).strip()
         fin          = str(row.get("fin", "")).strip()
         periode      = str(row.get("periode", "")).strip()
         titre        = str(row.get("titre", "")).strip()
         organisateur = str(row.get("organisateur", "")).strip()
         type_        = str(row.get("type", "")).strip()
-        etage        = str(row.get("etage", "")).strip()
         genre        = str(row.get("genre", "")).strip()
 
         # Get original to compare
@@ -1827,15 +1875,14 @@ def update():
     id_          = request.form.get("id")
     course_code  = request.form.get("course_code", "").strip()
     salle        = request.form.get("salle", "").strip()
+    etage        = SALLE_TO_ETAGE.get(salle, request.form.get("etage", "").strip())
     debut        = request.form.get("debut", "").strip()
     fin          = request.form.get("fin", "").strip()
     periode      = request.form.get("periode", "").strip()
     titre        = request.form.get("titre", "").strip()
     organisateur = request.form.get("organisateur", "").strip()
     type_        = request.form.get("type", "").strip()
-    etage        = request.form.get("etage", "").strip()
     genre        = request.form.get("genre", "").strip()
-    conn = get_conn()
     orig = fetchone(conn, "SELECT salle,periode,date_debut,date_fin FROM reservations WHERE id=?", (id_,))
     if not orig:
         flash("الحجز غير موجود", "error"); conn.close(); return redirect("/")
