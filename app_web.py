@@ -560,12 +560,23 @@ tbody td:last-child{border-left:none}
     <div class="conflict-box" id="conflict-box">⚠️ <span id="conflict-text"></span></div>
 
     <button class="btn btn-save" id="btn-save" onclick="submitForm()">💾 حفظ الحجز</button>
-    <button class="btn btn-edit" id="btn-edit" onclick="submitEdit()">✏️ تعديل الحجز</button>
+    <button class="btn btn-edit" id="btn-edit" onclick="addToBatch()" style="display:none;">➕ إضافة للدفعة</button>
     <button class="btn btn-reset" onclick="resetForm()">↺ إعادة تعيين</button>
-    <button class="btn btn-cancel" id="btn-cancel" onclick="resetForm()">✕ إلغاء التعديل</button>
+    <button class="btn btn-cancel" id="btn-cancel" onclick="resetForm()" style="display:none;">✕ إلغاء</button>
+
+    <!-- BATCH PANEL -->
+    <div id="batch-panel" style="display:none;margin-top:12px;padding:10px;background:rgba(39,174,96,.1);border:1.5px solid #27ae60;border-radius:8px;">
+      <div style="font-size:12px;font-weight:700;color:#1e8449;margin-bottom:6px;">
+        📦 دفعة معلقة: <span id="batch-count">0</span> تعديل
+      </div>
+      <div id="batch-list" style="font-size:11px;color:var(--muted);max-height:100px;overflow-y:auto;margin-bottom:8px;line-height:1.8;"></div>
+      <button onclick="saveBatch()" style="background:#27ae60;color:#fff;border:none;border-radius:6px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;padding:8px;width:100%;cursor:pointer;margin-bottom:4px;">✅ حفظ الكل دفعة واحدة</button>
+      <button onclick="clearBatch()" style="background:#888;color:#fff;border:none;border-radius:6px;font-family:'Cairo',sans-serif;font-size:12px;padding:6px;width:100%;cursor:pointer;">🗑️ إلغاء الدفعة</button>
+    </div>
 
     <!-- Hidden forms -->
     <form method="POST" action="/" id="form-save" style="display:none">
+      <input type="hidden" name="_qs" id="h-qs">
       <input type="hidden" name="course_code" id="h-course-code">
       <input type="hidden" name="titre" id="h-titre">
       <input type="hidden" name="organisateur" id="h-organisateur">
@@ -578,6 +589,7 @@ tbody td:last-child{border-left:none}
       <input type="hidden" name="salle" id="h-salle">
     </form>
     <form method="POST" action="/update" id="form-edit" style="display:none">
+      <input type="hidden" name="_qs" id="he-qs">
       <input type="hidden" name="id" id="he-id">
       <input type="hidden" name="course_code" id="he-course-code">
       <input type="hidden" name="titre" id="he-titre">
@@ -1188,7 +1200,116 @@ async function _check(){
   }catch(e){}
 }
 
-// ── SUBMIT SAVE ───────────────────────────────────────────────────
+// ── BATCH EDIT ────────────────────────────────────────────────────
+let batchRows = []; // [{id, course_code, salle, ...}, ...]
+
+function addToBatch(){
+  if(!validate()) return;
+  let row = {
+    id:           currentEditId,
+    course_code:  document.getElementById('f-course-code').value,
+    titre:        document.getElementById('f-titre').value,
+    organisateur: document.getElementById('f-organisateur').value,
+    etage:        document.getElementById('f-etage').value,
+    type:         document.getElementById('f-type').value,
+    genre:        document.getElementById('f-genre').value,
+    periode:      document.getElementById('f-periode').value,
+    debut:        document.getElementById('f-debut').value,
+    fin:          document.getElementById('f-fin').value,
+    salle:        document.getElementById('f-salle').value,
+  };
+
+  // Replace if same ID already in batch
+  let idx = batchRows.findIndex(r=>r.id===row.id);
+  if(idx>=0) batchRows[idx]=row; else batchRows.push(row);
+
+  // Mark row in table as pending
+  let tr = document.querySelector(`#table tbody tr[data-id="${row.id}"]`);
+  if(tr){ tr.style.outline='2px solid #27ae60'; tr.style.outlineOffset='-2px'; }
+
+  updateBatchUI();
+  resetForm();
+}
+
+function updateBatchUI(){
+  let panel = document.getElementById('batch-panel');
+  let countEl = document.getElementById('batch-count');
+  let listEl  = document.getElementById('batch-list');
+  if(!batchRows.length){ panel.style.display='none'; return; }
+  panel.style.display = 'block';
+  countEl.textContent = batchRows.length;
+  listEl.innerHTML = batchRows.map(r=>
+    `<div style="border-bottom:1px solid rgba(0,0,0,.08);padding:2px 0;">
+      <b style="color:var(--accent2);">${r.course_code||'#'+r.id}</b>
+      — ${r.salle||'بدون قاعة'}
+      — ${r.periode}
+      <span onclick="removeBatchRow(${r.id})" style="color:#c0392b;cursor:pointer;margin-right:4px;">✕</span>
+    </div>`
+  ).join('');
+}
+
+function removeBatchRow(id){
+  batchRows = batchRows.filter(r=>r.id!==id);
+  let tr = document.querySelector(`#table tbody tr[data-id="${id}"]`);
+  if(tr){ tr.style.outline=''; }
+  updateBatchUI();
+}
+
+async function saveBatch(){
+  if(!batchRows.length) return;
+  let btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري الحفظ...';
+
+  try {
+    let res = await fetch('/batch_update', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({rows: batchRows})
+    });
+    let data = await res.json();
+
+    if(data.ok){
+      let msg = `✅ تم حفظ ${data.saved} تعديل`;
+      if(data.errors.length) msg += `\n⚠️ ${data.errors.join('\n')}`;
+
+      // Update rows in table visually
+      batchRows.forEach(row=>{
+        let tr = document.querySelector(`#table tbody tr[data-id="${row.id}"]`);
+        if(!tr) return;
+        tr.style.outline = '';
+        // Update displayed cells
+        tr.dataset.salle   = row.salle;
+        tr.dataset.etage   = row.etage;
+        tr.dataset.periode = row.periode;
+        if(tr.children[4]) tr.children[4].innerHTML = `<strong>${row.salle}</strong>`;
+        if(tr.children[7]) tr.children[7].textContent = row.debut;
+        if(tr.children[8]) tr.children[8].textContent = row.fin;
+      });
+
+      clearBatch();
+      alert(msg);
+    } else {
+      alert('خطأ: ' + (data.error||''));
+    }
+  } catch(e){
+    alert('خطأ في الاتصال');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✅ حفظ الكل دفعة واحدة';
+  }
+}
+
+function clearBatch(){
+  batchRows.forEach(r=>{
+    let tr=document.querySelector(`#table tbody tr[data-id="${r.id}"]`);
+    if(tr) tr.style.outline='';
+  });
+  batchRows=[];
+  updateBatchUI();
+}
+
+// ── SUBMIT SINGLE SAVE ────────────────────────────────────────────
 function submitForm(){
   if(!validate()) return;
   syncHidden('h');
@@ -1201,6 +1322,8 @@ function submitEdit(){
   document.getElementById('form-edit').submit();
 }
 function syncHidden(p){
+  let qs = window.location.search.replace(/^\?/,'');
+  document.getElementById(p+'-qs').value          = qs;
   document.getElementById(p+'-course-code').value = document.getElementById('f-course-code').value;
   document.getElementById(p+'-titre').value        = document.getElementById('f-titre').value;
   document.getElementById(p+'-organisateur').value = document.getElementById('f-organisateur').value;
@@ -1483,6 +1606,63 @@ def calendar_events():
         })
     return jsonify(events)
 
+@app.route("/batch_update", methods=["POST"])
+@login_required
+def batch_update():
+    """Update multiple reservations in one request."""
+    import json
+    data = request.get_json()
+    if not data or "rows" not in data:
+        return jsonify({"ok": False, "error": "no data"}), 400
+
+    conn = get_conn()
+    saved = 0
+    errors = []
+
+    for row in data["rows"]:
+        id_          = row.get("id")
+        course_code  = str(row.get("course_code", "")).strip()
+        salle        = str(row.get("salle", "")).strip()
+        debut        = str(row.get("debut", "")).strip()
+        fin          = str(row.get("fin", "")).strip()
+        periode      = str(row.get("periode", "")).strip()
+        titre        = str(row.get("titre", "")).strip()
+        organisateur = str(row.get("organisateur", "")).strip()
+        type_        = str(row.get("type", "")).strip()
+        etage        = str(row.get("etage", "")).strip()
+        genre        = str(row.get("genre", "")).strip()
+
+        # Get original to compare
+        orig = fetchone(conn, "SELECT salle,periode,date_debut,date_fin FROM reservations WHERE id=?", (id_,))
+        if not orig:
+            errors.append(f"#{id_} غير موجود")
+            continue
+
+        # Check conflict only if salle/dates/periode changed
+        if salle != orig[0] or periode != orig[1] or debut != orig[2] or fin != orig[3]:
+            conflict = fetchone(conn, """SELECT id FROM reservations
+                WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=? AND id!=?""",
+                (salle, periode, fin, debut, id_))
+            if conflict:
+                errors.append(f"#{id_} تعارض: {salle} محجوزة")
+                continue
+
+        execute(conn, """UPDATE reservations SET
+            course_code=?, type=?, etage=?, salle=?, genre=?, periode=?,
+            date_debut=?, date_fin=?, titre=?, organisateur=?
+            WHERE id=?""",
+            (course_code, type_, etage, salle, genre, periode,
+             debut, fin, titre, organisateur, id_))
+        saved += 1
+
+    conn.commit()
+    conn.close()
+
+    if saved:
+        add_notification(session["user"], f"تم تعديل {saved} حجز دفعة واحدة")
+
+    return jsonify({"ok": True, "saved": saved, "errors": errors})
+
 @app.route("/live_count")
 @login_required
 def live_count():
@@ -1521,7 +1701,9 @@ def index():
         conn.close()
         for u in users:
             add_notification(u[0], f"حجز جديد: «{titre}» في {salle} من {debut} إلى {fin}")
-        return redirect("/")
+        # Preserve filters after save
+        qs = request.form.get("_qs", "")
+        return redirect("/?" + qs if qs else "/")
 
     search    = request.args.get("search", "")
     f_etage   = request.args.get("f_etage", "")
@@ -1673,7 +1855,8 @@ def update():
     conn.close()
     add_notification(session["user"], f"تم تعديل الحجز #{id_} [{course_code}]: «{titre}»")
     flash("✅ تم تعديل الحجز بنجاح", "success")
-    return redirect("/")
+    qs = request.form.get("_qs", "")
+    return redirect("/?" + qs if qs else "/")
 
 @app.route("/delete", methods=["POST"])
 @login_required
