@@ -720,38 +720,53 @@ let ganttYear     = new Date().getFullYear();
 let ganttMonth    = new Date().getMonth(); // 0-based
 let ganttView     = 'month'; // 'month' | 'week' | 'list'
 let ganttFloor    = '';
+let ganttPeriode  = ''; // '' | 'صباحي' | 'مسائي'
 let ganttInited   = false;
 
 // ── helpers ───────────────────────────────────────────────────────
-function isWorkday(d){ const w=d.getDay(); return w!==5 && w!==6; } // 5=Fri,6=Sat
+// JS getDay(): 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+// Working days: Sun(0) Mon(1) Tue(2) Wed(3) Thu(4)  — Fri(5) Sat(6) = weekend
+function isWorkday(d){ const w=d.getDay(); return w!==5 && w!==6; }
 function isWeekend(d){ const w=d.getDay(); return w===5 || w===6; }
-function dateStr(d){ return d.toISOString().slice(0,10); }
-function parseDate(s){ const [y,m,dd]=s.split('-'); return new Date(y,+m-1,+dd); }
 
-// Build ALL days in range (including weekends)
+function dateStr(d){
+  // Use local date to avoid UTC offset shifting the day
+  let y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function parseDate(s){
+  // Parse as local date (NOT UTC) to avoid off-by-one
+  const [y,m,dd]=s.split('-');
+  return new Date(+y, +m-1, +dd);
+}
+
 function allDaysInRange(start, end){
-  let days=[], d=new Date(start);
-  while(d<=end){ days.push(dateStr(d)); d=new Date(d); d.setDate(d.getDate()+1); }
+  let days=[], d=new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  let e=new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  while(d<=e){ days.push(dateStr(d)); d.setDate(d.getDate()+1); }
   return days;
 }
 
-// Build only workdays in range (for event matching)
 function workdaysInRange(start, end){
-  let days=[], d=new Date(start);
-  while(d<=end){ if(isWorkday(d)) days.push(dateStr(d)); d=new Date(d); d.setDate(d.getDate()+1); }
+  let days=[], d=new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  let e=new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  while(d<=e){
+    let w=d.getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+    if(w!==5 && w!==6) days.push(dateStr(d)); // exclude only Fri+Sat
+    d.setDate(d.getDate()+1);
+  }
   return days;
 }
 
-// Get ALL days for current view (including weekends shown in grey)
 function getViewDays(){
   if(ganttView==='month'){
     let start=new Date(ganttYear, ganttMonth, 1);
     let end  =new Date(ganttYear, ganttMonth+1, 0);
     return allDaysInRange(start, end);
-  } else { // week: show Sun→Sat (7 days)
+  } else {
     let now=new Date(ganttYear, ganttMonth, 1);
     while(now.getDay()!==0) now.setDate(now.getDate()+1);
-    let end=new Date(now); end.setDate(end.getDate()+6);
+    let end=new Date(now.getFullYear(), now.getMonth(), now.getDate()+6);
     return allDaysInRange(now, end);
   }
 }
@@ -761,14 +776,9 @@ function monthName(m){
           'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][m];
 }
 
-// ── colors by genre ───────────────────────────────────────────────
-function barColor(genre, periode){
-  if(genre==='نساء') return {bg:'#c0392b', border:'#922b21'};
-  if(genre==='مختلط') return {bg:'#8e44ad', border:'#6c3483'};
-  // رجال — distinguish by periode
-  if(periode==='مسائي') return {bg:'#2471a3', border:'#1a5276'};
-  return {bg:'#1e8449', border:'#145a32'};
-}
+// ── colors: red=occupied, green=free ─────────────────────────────
+const COLOR_OCC  = {bg:'#c0392b', border:'#922b21'}; // occupied
+const COLOR_FREE = {bg:'transparent', border:'transparent'}; // free cell
 
 // ── tooltip ───────────────────────────────────────────────────────
 function showTooltip(e, ev){
@@ -797,74 +807,85 @@ function hideTooltip(){ document.getElementById('gantt-tip').style.display='none
 // ── MAIN RENDER ───────────────────────────────────────────────────
 function renderGantt(){
   let days = getViewDays();
-  if(!days.length){ document.getElementById('gantt-root').innerHTML='<p style="padding:20px;color:var(--muted)">لا توجد أيام عمل في هذه الفترة</p>'; return; }
+  if(!days.length){ document.getElementById('gantt-root').innerHTML='<p style="padding:20px;color:var(--muted)">لا توجد أيام في هذه الفترة</p>'; return; }
 
   let daySet = new Set(days);
 
   // Filter salles by floor
   let salles = ganttFloor ? GANTT_SALLES.filter(s=>s.etage===ganttFloor) : GANTT_SALLES;
 
-  // Build event map: salle → list of workdays occupied
-  let evMap = {}; // salle → { dayStr → event }
-  for(let ev of ganttEvents){
+  // Filter events by periode if selected
+  let filteredEvents = ganttPeriode
+    ? ganttEvents.filter(ev=>ev.periode===ganttPeriode)
+    : ganttEvents;
+
+  // Build event map: salle → { dayStr → event }
+  let evMap = {};
+  for(let ev of filteredEvents){
     if(!ev.date_debut || !ev.date_fin) continue;
     let start=parseDate(ev.date_debut), end=parseDate(ev.date_fin);
-    for(let ds of workdaysInRange(start,end)){
+    for(let ds of workdaysInRange(start, end)){
       if(!daySet.has(ds)) continue;
       if(!evMap[ev.salle]) evMap[ev.salle]={};
       evMap[ev.salle][ds] = ev;
     }
   }
 
-  // ── Header label
   let periodLabel = ganttView==='month'
     ? `شهر ${monthName(ganttMonth)} ${ganttYear}`
-    : `أسبوع ${days[0]} → ${days[days.length-1]}`;
+    : `أسبوع ${days[0]} ← ${days[days.length-1]}`;
 
-  // ── Day headers (reversed: latest on left like screenshot)
   let revDays = [...days].reverse();
+  let CELL=32, LABEL=80;
 
-  let CELL=32, LABEL=80, HEAD=36;
+  const dowMap={0:'أح',1:'إث',2:'ثل',3:'أر',4:'خم',5:'ج',6:'س'};
 
   let html = `
   <div style="background:var(--white);border:1.5px solid var(--border);border-radius:8px;overflow:hidden;font-family:'Cairo',sans-serif;">
 
     <!-- Toolbar -->
-    <div style="background:var(--topbar);padding:10px 16px;display:flex;align-items:center;gap:10px;color:#fff;flex-wrap:wrap;">
+    <div style="background:var(--topbar);padding:10px 16px;display:flex;align-items:center;gap:8px;color:#fff;flex-wrap:wrap;">
       <button onclick="ganttNav(-1)" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:13px;">◀</button>
       <span style="font-weight:900;font-size:15px;flex:1;text-align:center;">${periodLabel}</span>
       <button onclick="ganttNav(1)"  style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:13px;">▶</button>
+
       <button onclick="setGanttView('list')"  style="background:${ganttView==='list' ?'#fff':'rgba(255,255,255,.2)'};color:${ganttView==='list' ?'var(--accent2)':'#fff'};border:none;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;">list</button>
       <button onclick="setGanttView('week')"  style="background:${ganttView==='week' ?'#fff':'rgba(255,255,255,.2)'};color:${ganttView==='week' ?'var(--accent2)':'#fff'};border:none;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;">week</button>
       <button onclick="setGanttView('month')" style="background:${ganttView==='month'?'#fff':'rgba(255,255,255,.2)'};color:${ganttView==='month'?'var(--accent2)':'#fff'};border:none;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;">month</button>
-      <select onchange="ganttFloor=this.value;renderGantt()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 8px;font-family:'Cairo',sans-serif;font-size:12px;">
-        <option value="" style="color:#000" ${!ganttFloor?'selected':''}>اختر الطابق</option>
+
+      <select onchange="ganttFloor=this.value;renderGantt()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:4px 8px;font-family:'Cairo',sans-serif;font-size:12px;">
+        <option value="" style="color:#000" ${!ganttFloor?'selected':''}>كل الطوابق</option>
         <option value="الأرضي" style="color:#000" ${ganttFloor==='الأرضي'?'selected':''}>الأرضي</option>
-        <option value="الأول" style="color:#000" ${ganttFloor==='الأول'?'selected':''}>الأول</option>
+        <option value="الأول"  style="color:#000" ${ganttFloor==='الأول' ?'selected':''}>الأول</option>
         <option value="الثاني" style="color:#000" ${ganttFloor==='الثاني'?'selected':''}>الثاني</option>
         <option value="الثالث" style="color:#000" ${ganttFloor==='الثالث'?'selected':''}>الثالث</option>
         <option value="الرابع" style="color:#000" ${ganttFloor==='الرابع'?'selected':''}>الرابع</option>
       </select>
+
+      <select onchange="ganttPeriode=this.value;renderGantt()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:4px 8px;font-family:'Cairo',sans-serif;font-size:12px;">
+        <option value=""       style="color:#000" ${!ganttPeriode?'selected':''}>الكل (ص+م)</option>
+        <option value="صباحي"  style="color:#000" ${ganttPeriode==='صباحي'?'selected':''}>صباحي فقط</option>
+        <option value="مسائي"  style="color:#000" ${ganttPeriode==='مسائي'?'selected':''}>مسائي فقط</option>
+      </select>
     </div>
 
-    ${ganttView==='list' ? renderGanttList(ganttEvents) : `
+    ${ganttView==='list' ? renderGanttList(filteredEvents) : `
     <!-- Grid -->
-    <div style="overflow-x:auto;">
+    <div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 160px);">
     <table style="border-collapse:collapse;font-size:11px;direction:rtl;">
-      <thead>
+      <thead style="position:sticky;top:0;z-index:3;">
         <tr>
-          <th style="position:sticky;right:0;background:var(--thead);color:#fff;padding:6px 10px;text-align:center;min-width:${LABEL}px;border-left:1px solid rgba(255,255,255,.1);z-index:2;">القاعة</th>
+          <th style="position:sticky;right:0;background:var(--thead);color:#fff;padding:6px 10px;text-align:center;min-width:${LABEL}px;z-index:4;border-left:1px solid rgba(255,255,255,.1);">القاعة</th>
           ${revDays.map(d=>{
             let dt=parseDate(d);
             let day=dt.getDate();
-            const dowMap={0:'أح',1:'إث',2:'ثل',3:'أر',4:'خم',5:'ج',6:'س'};
-            let dow = dowMap[dt.getDay()] || '';
+            let dow=dowMap[dt.getDay()]||'';
             let isToday = d===dateStr(new Date());
             let isWE = isWeekend(dt);
-            let thBg = isToday ? '#2d6a5a' : isWE ? '#7a6a5a' : 'var(--thead)';
-            return `<th style="background:${thBg};color:${isWE?'#ccc':'#fff'};padding:4px 2px;text-align:center;min-width:${CELL}px;max-width:${CELL}px;border-left:1px solid rgba(255,255,255,.1);">
-              <div style="font-size:10px;opacity:.8;">${dow}</div>
-              <div style="font-weight:900;">${day}</div>
+            let thBg = isToday ? '#1a5c4a' : isWE ? '#8a8078' : 'var(--thead)';
+            return `<th style="background:${thBg};color:${isWE?'#ddd':'#fff'};padding:4px 2px;text-align:center;min-width:${CELL}px;max-width:${CELL}px;border-left:1px solid rgba(255,255,255,.1);">
+              <div style="font-size:9px;opacity:.85;">${dow}</div>
+              <div style="font-weight:900;font-size:11px;">${day}</div>
             </th>`;
           }).join('')}
         </tr>
@@ -872,32 +893,31 @@ function renderGantt(){
       <tbody>
         ${salles.map((s,si)=>{
           let sEv = evMap[s.nom] || {};
+          let rowBg = si%2===0 ? 'var(--row-even)' : 'var(--white)';
           return `<tr>
-            <td style="position:sticky;right:0;background:${si%2===0?'var(--row-even)':'var(--white)'};font-weight:700;padding:4px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border);z-index:1;font-size:11px;">${s.nom}</td>
+            <td style="position:sticky;right:0;background:${rowBg};font-weight:700;padding:4px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border);z-index:1;font-size:11px;white-space:nowrap;">${s.nom}</td>
             ${revDays.map(d=>{
-              let ev = sEv[d];
-              let isToday = d===dateStr(new Date());
-              let dt = parseDate(d);
-              let isWE = isWeekend(dt);
-              let bg = isWE
-                ? 'repeating-linear-gradient(45deg,#d0ccc8,#d0ccc8 2px,#e8e4e0 2px,#e8e4e0 8px)'
-                : isToday ? 'rgba(45,106,90,.08)' : (si%2===0?'var(--row-even)':'var(--white)');
-              let cellStyle = `border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.4);padding:3px 2px;`;
+              let dt=parseDate(d);
+              let isWE=isWeekend(dt);
+              let isToday=d===dateStr(new Date());
+              let ev=sEv[d];
+
               if(isWE){
-                return `<td style="background:${bg};${cellStyle}"><div style="height:20px;"></div></td>`;
+                return `<td style="background:repeating-linear-gradient(45deg,#ccc9c5,#ccc9c5 2px,#dedad6 2px,#dedad6 8px);border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;"><div style="height:20px;"></div></td>`;
               }
+              let cellBg = isToday ? 'rgba(45,106,90,.06)' : rowBg;
               if(ev){
-                let c=barColor(ev.genre, ev.periode);
-                return `<td style="background:${isToday?'rgba(45,106,90,.08)':'transparent'};${cellStyle}">
-                  <div data-ev-id="${ev.id}"
-                    style="background:${c.bg};border:1.5px solid ${c.border};border-radius:3px;height:20px;cursor:pointer;"
+                return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
+                  <div style="background:#c0392b;border:1.5px solid #922b21;border-radius:3px;height:20px;cursor:pointer;"
                     onmouseenter="ganttHover(event,${ev.id})"
                     onmousemove="positionTip(event)"
                     onmouseleave="hideTooltip()">
                   </div>
                 </td>`;
               }
-              return `<td style="${cellStyle}background:${isToday?'rgba(45,106,90,.08)':(si%2===0?'var(--row-even)':'var(--white)')};"><div style="height:20px;"></div></td>`;
+              return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
+                <div style="background:#27ae60;border:1.5px solid #1e8449;border-radius:3px;height:20px;opacity:.25;"></div>
+              </td>`;
             }).join('')}
           </tr>`;
         }).join('')}
@@ -906,11 +926,11 @@ function renderGantt(){
     </div>
 
     <!-- Legend -->
-    <div style="padding:8px 14px;display:flex;gap:14px;flex-wrap:wrap;font-size:11px;border-top:1px solid var(--border);background:var(--bg);">
-      <span><span style="display:inline-block;width:14px;height:14px;background:#1e8449;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>رجال صباحي</span>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#2471a3;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>رجال مسائي</span>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#c0392b;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>نساء</span>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#8e44ad;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مختلط</span>
+    <div style="padding:7px 14px;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;border-top:1px solid var(--border);background:var(--bg);align-items:center;">
+      <span><span style="display:inline-block;width:14px;height:14px;background:#c0392b;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مشغول</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#27ae60;opacity:.4;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>متاح</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:repeating-linear-gradient(45deg,#ccc,#ccc 2px,#ddd 2px,#ddd 8px);border-radius:3px;vertical-align:middle;margin-left:4px;"></span>عطلة (ج/س)</span>
+      ${ganttPeriode ? `<span style="background:rgba(255,255,255,.3);padding:2px 10px;border-radius:10px;font-weight:700;">الفترة: ${ganttPeriode}</span>` : ''}
     </div>
     `}
   </div>`;
