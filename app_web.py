@@ -332,6 +332,11 @@ a.logout:hover{background:rgba(255,255,255,.25)}
 .sidebar.collapsed{transform:translateX(100%)}
 .sidebar-inner{padding:12px;flex:1}
 
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;top:44px;right:0;bottom:0;width:300px;background:var(--sidebar);border-left:2px solid var(--border);overflow-y:auto;z-index:150;transition:transform .3s ease;display:flex;flex-direction:column}
+.sidebar.collapsed{transform:translateX(100%)}
+.sidebar-inner{padding:12px;flex:1}
+
 /* STATS */
 .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
 .stat{background:var(--topbar);border-radius:8px;padding:8px 4px;text-align:center;color:#fff}
@@ -345,6 +350,7 @@ a.logout:hover{background:rgba(255,255,255,.25)}
 .field{margin-bottom:8px}
 .field label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
 .field input,.field select{width:100%;background:var(--white);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:'Cairo',sans-serif;font-size:12px;padding:6px 9px;outline:none;height:32px;transition:border-color .2s}
+.field input[type="date"]{font-size:11px;padding:4px 6px}
 .field input:focus,.field select:focus{border-color:var(--accent)}
 .field select option{background:var(--white)}
 
@@ -383,7 +389,7 @@ a.logout:hover{background:rgba(255,255,255,.25)}
 .flash.success{background:#e8f5e9;border:1px solid #81c784;color:#2e7d32}
 
 /* ── CONTENT ── */
-.content{flex:1;margin-right:260px;transition:margin-right .3s ease;min-width:0;padding:10px 12px;overflow-x:auto}
+.content{flex:1;margin-right:300px;transition:margin-right .3s ease;min-width:0;padding:10px 12px;overflow-x:auto}
 .content.full{margin-right:0}
 
 /* ── SEARCH BAR ── */
@@ -400,8 +406,21 @@ a.logout:hover{background:rgba(255,255,255,.25)}
 .table-header{background:var(--topbar);padding:10px 16px;display:flex;align-items:center;gap:10px}
 .table-header h2{font-size:14px;font-weight:900;color:#fff;flex:1}
 .count-badge{background:rgba(255,255,255,.25);color:#fff;border-radius:12px;padding:2px 10px;font-size:11px;font-weight:700}
+/* Scrollable table body */
+.table-scroll{max-height:calc(100vh - 180px);overflow-y:auto;position:relative}
+.table-scroll::-webkit-scrollbar{width:8px}
+.table-scroll::-webkit-scrollbar-track{background:#e8f0ee}
+.table-scroll::-webkit-scrollbar-thumb{background:var(--topbar);border-radius:4px}
+.table-scroll::-webkit-scrollbar-thumb:hover{background:var(--accent2)}
 table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{background:var(--thead);color:#fff;font-weight:700;text-align:center;padding:8px 10px;white-space:nowrap;font-size:11px;letter-spacing:.3px;border-left:1px solid rgba(255,255,255,.1)}
+/* Sticky header */
+thead{position:sticky;top:0;z-index:10}
+thead th{background:var(--thead);color:#fff;font-weight:700;text-align:center;padding:8px 10px;white-space:nowrap;font-size:11px;letter-spacing:.3px;border-left:1px solid rgba(255,255,255,.1);user-select:none}
+thead th.sortable{cursor:pointer}
+thead th.sortable:hover{background:var(--accent2)}
+thead th .sort-icon{display:inline-block;margin-right:4px;opacity:.5;font-size:10px}
+thead th.sort-asc .sort-icon{opacity:1;content:'▲'}
+thead th.sort-desc .sort-icon{opacity:1}
 thead th:last-child{border-left:none}
 tbody tr{cursor:pointer;transition:background .12s}
 tbody tr:nth-child(even){background:var(--row-even)}
@@ -605,15 +624,24 @@ tbody td:last-child{border-left:none}
       <div class="table-wrap">
         <div class="table-header">
           <h2>قائمة الحجوزات</h2>
-          <span class="count-badge">{{ data|length }} حجز</span>
+          <span class="count-badge" id="row-count">{{ data|length }} حجز</span>
           <button type="button" class="btn btn-del" onclick="deleteSelected()">حذف المحدد</button>
         </div>
         {% if data %}
+        <div class="table-scroll">
         <table id="table"><thead><tr>
           <th><input type="checkbox" id="select-all" onchange="toggleAll(this)"></th>
-          <th>رقم الدورة</th><th>النوع</th><th>الطابق</th><th>القاعة</th><th>الجنس</th><th>الفترة</th>
-          <th>البداية</th><th>النهاية</th><th>العنوان</th><th>المنظم</th>
-        </tr></thead><tbody>
+          <th class="sortable" onclick="sortTable(1)"><span class="sort-icon" id="si-1">⇅</span>رقم الدورة</th>
+          <th class="sortable" onclick="sortTable(2)"><span class="sort-icon" id="si-2">⇅</span>النوع</th>
+          <th class="sortable" onclick="sortTable(3)"><span class="sort-icon" id="si-3">⇅</span>الطابق</th>
+          <th class="sortable" onclick="sortTable(4)"><span class="sort-icon" id="si-4">⇅</span>القاعة</th>
+          <th class="sortable" onclick="sortTable(5)"><span class="sort-icon" id="si-5">⇅</span>الجنس</th>
+          <th class="sortable" onclick="sortTable(6)"><span class="sort-icon" id="si-6">⇅</span>الفترة</th>
+          <th class="sortable" onclick="sortTable(7)"><span class="sort-icon" id="si-7">⇅</span>البداية</th>
+          <th class="sortable" onclick="sortTable(8)"><span class="sort-icon" id="si-8">⇅</span>النهاية</th>
+          <th class="sortable" onclick="sortTable(9)"><span class="sort-icon" id="si-9">⇅</span>العنوان</th>
+          <th class="sortable" onclick="sortTable(10)"><span class="sort-icon" id="si-10">⇅</span>المنظم</th>
+        </tr></thead><tbody id="tbody">
         {% for r in data %}
         <tr onclick="fillForm({{ r[0] }})" data-id="{{ r[0] }}"
             data-type="{{ r[1]|e }}"
@@ -637,6 +665,7 @@ tbody td:last-child{border-left:none}
         </tr>
         {% endfor %}
         </tbody></table>
+        </div><!-- /table-scroll -->
         {% else %}<div class="empty-state">📭 لا توجد حجوزات مطابقة</div>{% endif %}
       </div>
     </div>
@@ -893,6 +922,27 @@ function resetForm(){
   document.getElementById('btn-edit').style.display='none';
   document.getElementById('btn-cancel').style.display='none';
   document.querySelectorAll('#table tbody tr').forEach(r=>r.classList.remove('selected-row'));
+}
+
+// ── SORT TABLE ────────────────────────────────────────────────────
+let sortCol = -1, sortAsc = true;
+function sortTable(col){
+  let tbody = document.getElementById('tbody');
+  if(!tbody) return;
+  let rows = Array.from(tbody.querySelectorAll('tr'));
+  if(sortCol === col){ sortAsc = !sortAsc; }
+  else { sortCol = col; sortAsc = true; }
+  for(let i=1;i<=10;i++){
+    let si = document.getElementById('si-'+i);
+    if(si) si.textContent = (i===col) ? (sortAsc?'▲':'▼') : '⇅';
+  }
+  rows.sort((a,b)=>{
+    let av = a.children[col]?.innerText?.trim() || '';
+    let bv = b.children[col]?.innerText?.trim() || '';
+    if(col===1){ return sortAsc ? (+av-(+bv)) : (+bv-(+av)); }
+    return sortAsc ? av.localeCompare(bv,'ar') : bv.localeCompare(av,'ar');
+  });
+  rows.forEach(r => tbody.appendChild(r));
 }
 
 // ── TABLE SELECTION & DELETE ──────────────────────────────────────
