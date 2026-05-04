@@ -61,12 +61,17 @@ def execute(conn, sql, params=()):
 def _bootstrap_db():
     conn = get_conn()
     if PG:
-        # PostgreSQL: SERIAL instead of AUTOINCREMENT, TEXT works fine
         execute(conn, """CREATE TABLE IF NOT EXISTS reservations (
             id SERIAL PRIMARY KEY,
+            course_code TEXT,
             type TEXT, etage TEXT, salle TEXT, genre TEXT, periode TEXT,
             date_debut TEXT, date_fin TEXT, titre TEXT, organisateur TEXT,
             created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        # Migration: add course_code if missing
+        try:
+            execute(conn, "ALTER TABLE reservations ADD COLUMN course_code TEXT")
+        except Exception:
+            pass
         execute(conn, """CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
@@ -82,9 +87,15 @@ def _bootstrap_db():
     else:
         execute(conn, """CREATE TABLE IF NOT EXISTS reservations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            course_code TEXT,
             type TEXT, etage TEXT, salle TEXT, genre TEXT, periode TEXT,
             date_debut TEXT, date_fin TEXT, titre TEXT, organisateur TEXT,
             created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        # Migration: add course_code if missing
+        try:
+            execute(conn, "ALTER TABLE reservations ADD COLUMN course_code TEXT")
+        except Exception:
+            pass
         execute(conn, """CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
@@ -499,6 +510,7 @@ tbody td:last-child{border-left:none}
     <div class="sec-title">➕ حجز جديد</div>
     <input type="hidden" id="edit-id" value="">
 
+    <div class="field"><label>رقم الدورة</label><input id="f-course-code" placeholder="مثال: 202501" maxlength="20" style="letter-spacing:1px;"></div>
     <div class="field"><label>العنوان</label><input id="f-titre" placeholder="عنوان الحجز"></div>
     <div class="field"><label>المنظم</label><input id="f-organisateur" placeholder="اسم المنظم"></div>
 
@@ -548,6 +560,7 @@ tbody td:last-child{border-left:none}
 
     <!-- Hidden forms -->
     <form method="POST" action="/" id="form-save" style="display:none">
+      <input type="hidden" name="course_code" id="h-course-code">
       <input type="hidden" name="titre" id="h-titre">
       <input type="hidden" name="organisateur" id="h-organisateur">
       <input type="hidden" name="etage" id="h-etage">
@@ -560,6 +573,7 @@ tbody td:last-child{border-left:none}
     </form>
     <form method="POST" action="/update" id="form-edit" style="display:none">
       <input type="hidden" name="id" id="he-id">
+      <input type="hidden" name="course_code" id="he-course-code">
       <input type="hidden" name="titre" id="he-titre">
       <input type="hidden" name="organisateur" id="he-organisateur">
       <input type="hidden" name="etage" id="he-etage">
@@ -631,37 +645,40 @@ tbody td:last-child{border-left:none}
         <div class="table-scroll">
         <table id="table"><thead><tr>
           <th><input type="checkbox" id="select-all" onchange="toggleAll(this)"></th>
-          <th class="sortable" onclick="sortTable(1)"><span class="sort-icon" id="si-1">⇅</span>رقم الدورة</th>
-          <th class="sortable" onclick="sortTable(2)"><span class="sort-icon" id="si-2">⇅</span>النوع</th>
-          <th class="sortable" onclick="sortTable(3)"><span class="sort-icon" id="si-3">⇅</span>الطابق</th>
-          <th class="sortable" onclick="sortTable(4)"><span class="sort-icon" id="si-4">⇅</span>القاعة</th>
-          <th class="sortable" onclick="sortTable(5)"><span class="sort-icon" id="si-5">⇅</span>الجنس</th>
-          <th class="sortable" onclick="sortTable(6)"><span class="sort-icon" id="si-6">⇅</span>الفترة</th>
-          <th class="sortable" onclick="sortTable(7)"><span class="sort-icon" id="si-7">⇅</span>البداية</th>
-          <th class="sortable" onclick="sortTable(8)"><span class="sort-icon" id="si-8">⇅</span>النهاية</th>
-          <th class="sortable" onclick="sortTable(9)"><span class="sort-icon" id="si-9">⇅</span>العنوان</th>
-          <th class="sortable" onclick="sortTable(10)"><span class="sort-icon" id="si-10">⇅</span>المنظم</th>
+          <th class="sortable" onclick="sortTable(1)"><span class="sort-icon" id="si-1">⇅</span>ID</th>
+          <th class="sortable" onclick="sortTable(2)"><span class="sort-icon" id="si-2">⇅</span>رقم الدورة</th>
+          <th class="sortable" onclick="sortTable(3)"><span class="sort-icon" id="si-3">⇅</span>النوع</th>
+          <th class="sortable" onclick="sortTable(4)"><span class="sort-icon" id="si-4">⇅</span>الطابق</th>
+          <th class="sortable" onclick="sortTable(5)"><span class="sort-icon" id="si-5">⇅</span>القاعة</th>
+          <th class="sortable" onclick="sortTable(6)"><span class="sort-icon" id="si-6">⇅</span>الجنس</th>
+          <th class="sortable" onclick="sortTable(7)"><span class="sort-icon" id="si-7">⇅</span>الفترة</th>
+          <th class="sortable" onclick="sortTable(8)"><span class="sort-icon" id="si-8">⇅</span>البداية</th>
+          <th class="sortable" onclick="sortTable(9)"><span class="sort-icon" id="si-9">⇅</span>النهاية</th>
+          <th class="sortable" onclick="sortTable(10)"><span class="sort-icon" id="si-10">⇅</span>العنوان</th>
+          <th class="sortable" onclick="sortTable(11)"><span class="sort-icon" id="si-11">⇅</span>المنظم</th>
         </tr></thead><tbody id="tbody">
         {% for r in data %}
         <tr onclick="fillForm({{ r[0] }})" data-id="{{ r[0] }}"
-            data-type="{{ r[1]|e }}"
-            data-etage="{{ r[2]|e }}"
-            data-salle="{{ r[3]|e }}"
-            data-genre="{{ r[4]|e }}"
-            data-periode="{{ r[5]|e }}"
-            data-debut="{{ r[6]|e }}"
-            data-fin="{{ r[7]|e }}"
-            data-titre="{{ r[8]|e }}"
-            data-organisateur="{{ r[9]|e }}">
+            data-course-code="{{ r[1]|e }}"
+            data-type="{{ r[2]|e }}"
+            data-etage="{{ r[3]|e }}"
+            data-salle="{{ r[4]|e }}"
+            data-genre="{{ r[5]|e }}"
+            data-periode="{{ r[6]|e }}"
+            data-debut="{{ r[7]|e }}"
+            data-fin="{{ r[8]|e }}"
+            data-titre="{{ r[9]|e }}"
+            data-organisateur="{{ r[10]|e }}">
           <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" value="{{ r[0] }}"></td>
-          <td>{{ r[0] }}</td>
-          <td><span class="chip {% if r[1]=='قاعة' %}chip-q{% else %}chip-lab{% endif %}">{{ r[1] }}</span></td>
-          <td>{{ r[2] }}</td>
-          <td><strong>{{ r[3] }}</strong></td>
-          <td><span class="chip {% if r[4]=='رجال' %}chip-m{% elif r[4]=='مختلط' %}chip-mix{% else %}chip-f{% endif %}">{{ r[4] }}</span></td>
-          <td><span class="chip {% if r[5]=='صباحي' %}chip-s{% else %}chip-e{% endif %}">{{ r[5] }}</span></td>
-          <td>{{ r[6] }}</td><td>{{ r[7] }}</td><td>{{ r[8] }}</td>
-          <td style="color:var(--muted);">{{ r[9] }}</td>
+          <td style="color:var(--muted);font-size:11px;">{{ r[0] }}</td>
+          <td><strong>{{ r[1] }}</strong></td>
+          <td><span class="chip {% if r[2]=='قاعة' %}chip-q{% else %}chip-lab{% endif %}">{{ r[2] }}</span></td>
+          <td>{{ r[3] }}</td>
+          <td><strong>{{ r[4] }}</strong></td>
+          <td><span class="chip {% if r[5]=='رجال' %}chip-m{% elif r[5]=='مختلط' %}chip-mix{% else %}chip-f{% endif %}">{{ r[5] }}</span></td>
+          <td><span class="chip {% if r[6]=='صباحي' %}chip-s{% else %}chip-e{% endif %}">{{ r[6] }}</span></td>
+          <td>{{ r[7] }}</td><td>{{ r[8] }}</td><td>{{ r[9] }}</td>
+          <td style="color:var(--muted);">{{ r[10] }}</td>
         </tr>
         {% endfor %}
         </tbody></table>
@@ -841,6 +858,7 @@ function submitEdit(){
   document.getElementById('form-edit').submit();
 }
 function syncHidden(p){
+  document.getElementById(p+'-course-code').value = document.getElementById('f-course-code').value;
   document.getElementById(p+'-titre').value        = document.getElementById('f-titre').value;
   document.getElementById(p+'-organisateur').value = document.getElementById('f-organisateur').value;
   document.getElementById(p+'-etage').value        = document.getElementById('f-etage').value;
@@ -862,10 +880,10 @@ function validate(){
 
 // ── FILL FORM FROM ROW (EDIT MODE) ────────────────────────────────
 function fillForm(id){
-  // Read data directly from row data-attributes (avoids JS injection with special chars)
   let row = document.querySelector(`#table tbody tr[data-id="${id}"]`);
   if(!row) return;
 
+  let courseCode   = row.dataset.courseCode   || '';
   let titre        = row.dataset.titre        || '';
   let organisateur = row.dataset.organisateur || '';
   let type         = row.dataset.type         || '';
@@ -880,15 +898,16 @@ function fillForm(id){
   currentEditSalle = salle;
   selectedSalle    = salle;
 
-  document.getElementById('f-titre').value        = titre;
-  document.getElementById('f-organisateur').value = organisateur;
-  document.getElementById('f-etage').value        = etage;
-  document.getElementById('f-type').value         = type;
-  document.getElementById('f-genre').value        = genre;
-  document.getElementById('f-periode').value      = periode;
-  document.getElementById('f-debut').value        = debut;
-  document.getElementById('f-fin').value          = fin;
-  document.getElementById('f-salle').value        = salle;
+  document.getElementById('f-course-code').value  = courseCode;
+  document.getElementById('f-titre').value         = titre;
+  document.getElementById('f-organisateur').value  = organisateur;
+  document.getElementById('f-etage').value         = etage;
+  document.getElementById('f-type').value          = type;
+  document.getElementById('f-genre').value         = genre;
+  document.getElementById('f-periode').value       = periode;
+  document.getElementById('f-debut').value         = debut;
+  document.getElementById('f-fin').value           = fin;
+  document.getElementById('f-salle').value         = salle;
 
   renderSalleGrid(salle);
 
@@ -911,7 +930,7 @@ function fillForm(id){
 // ── RESET ─────────────────────────────────────────────────────────
 function resetForm(){
   currentEditId = null; currentEditSalle = ''; selectedSalle = '';
-  ['f-titre','f-organisateur','f-debut','f-fin'].forEach(id=>document.getElementById(id).value='');
+  ['f-course-code','f-titre','f-organisateur','f-debut','f-fin'].forEach(id=>document.getElementById(id).value='');
   ['f-etage','f-type','f-genre','f-periode'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-salle').value='';
   document.getElementById('salle-selected-label').textContent='';
@@ -1151,10 +1170,11 @@ def index():
     init_db()
     conn = get_conn()
     if request.method == "POST":
-        salle   = request.form.get("salle", "")
-        debut   = request.form.get("debut", "")
-        fin     = request.form.get("fin", "")
-        periode = request.form.get("periode", "")
+        salle        = request.form.get("salle", "")
+        debut        = request.form.get("debut", "")
+        fin          = request.form.get("fin", "")
+        periode      = request.form.get("periode", "")
+        course_code  = request.form.get("course_code", "").strip()
         conflict = fetchone(conn, """SELECT id FROM reservations
             WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=?""",
             (salle, periode, fin, debut))
@@ -1162,8 +1182,9 @@ def index():
             flash("⚠️ تعارض في الحجز: القاعة محجوزة في هذه الفترة", "error")
             conn.close(); return redirect("/")
         execute(conn, """INSERT INTO reservations
-            (type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
-            VALUES (?,?,?,?,?,?,?,?,?,?)""", (
+            (course_code,type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (
+            course_code,
             request.form.get("type"), request.form.get("etage"), salle,
             request.form.get("genre"), periode, debut, fin,
             request.form.get("titre"), request.form.get("organisateur"), session["user"]))
@@ -1184,9 +1205,13 @@ def index():
     f_fin     = request.args.get("f_fin", "")
     dore_f    = request.args.get("dore_f", "")
 
-    q = "SELECT * FROM reservations WHERE 1=1"; params = []
-    if search:    q += " AND (titre LIKE ? OR organisateur LIKE ? OR salle LIKE ? OR CAST(id AS TEXT) LIKE ?)"; params += [f"%{search}%"] * 4
-    if dore_f:    q += " AND CAST(id AS TEXT) LIKE ?"; params.append(f"%{dore_f}%")
+    # Explicit columns: id, course_code, type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur
+    q = """SELECT id, course_code, type, etage, salle, genre, periode,
+                  date_debut, date_fin, titre, organisateur
+           FROM reservations WHERE 1=1"""
+    params = []
+    if search:    q += " AND (titre LIKE ? OR organisateur LIKE ? OR salle LIKE ? OR course_code LIKE ? OR CAST(id AS TEXT) LIKE ?)"; params += [f"%{search}%"] * 5
+    if dore_f:    q += " AND course_code LIKE ?"; params.append(f"%{dore_f}%")
     if f_etage:   q += " AND etage=?";    params.append(f_etage)
     if f_type:    q += " AND type=?";     params.append(f_type)
     if f_genre:   q += " AND genre=?";    params.append(f_genre)
@@ -1216,18 +1241,13 @@ def index():
 def export_excel():
     import io
     conn = get_conn()
-    rows = fetchall(conn, "SELECT * FROM reservations ORDER BY id")
+    rows = fetchall(conn, """SELECT id, course_code, type, etage, salle, genre, periode,
+                                    date_debut, date_fin, titre, organisateur, created_by
+                             FROM reservations ORDER BY id""")
     conn.close()
     cols = ["id", "course code", "type", "etage", "salle", "genre", "periode",
-            "date_debut", "date_fin", "titre", "organisateur", "created_by", "created_at"]
-    # DB has: id,type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by,created_at
-    # Add course_code = same as id for compatibility
-    data_with_cc = []
-    for r in rows:
-        # r = (id, type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur, created_by, created_at)
-        data_with_cc.append((r[0], r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9],
-                             r[10] if len(r) > 10 else "", r[11] if len(r) > 11 else ""))
-    df = pd.DataFrame(data_with_cc, columns=cols)
+            "date_debut", "date_fin", "titre", "organisateur", "created_by"]
+    df = pd.DataFrame(rows, columns=cols)
     buf = io.BytesIO()
     df.to_excel(buf, index=False)
     buf.seek(0)
@@ -1260,7 +1280,7 @@ def import_excel():
                     return v
             return ""
 
-        # Support both old and new column names
+        course_code  = g("course_code", "course code")
         type_       = g("type")
         etage       = g("etage")
         salle       = g("salle")
@@ -1279,9 +1299,9 @@ def import_excel():
 
         try:
             execute(conn, """INSERT INTO reservations
-                (type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
-                VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                (type_, etage, salle, genre, periode,
+                (course_code,type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (course_code, type_, etage, salle, genre, periode,
                  date_debut, date_fin, titre, organisateur, created_by))
             imported += 1
         except Exception:
@@ -1296,6 +1316,7 @@ def import_excel():
 @login_required
 def update():
     id_          = request.form.get("id")
+    course_code  = request.form.get("course_code", "").strip()
     salle        = request.form.get("salle", "").strip()
     debut        = request.form.get("debut", "").strip()
     fin          = request.form.get("fin", "").strip()
@@ -1317,13 +1338,13 @@ def update():
             flash("⚠️ تعارض في الحجز: القاعة محجوزة في هذه الفترة", "error")
             conn.close(); return redirect("/")
     execute(conn, """UPDATE reservations SET
-        type=?, etage=?, salle=?, genre=?, periode=?,
+        course_code=?, type=?, etage=?, salle=?, genre=?, periode=?,
         date_debut=?, date_fin=?, titre=?, organisateur=?
         WHERE id=?""",
-        (type_, etage, salle, genre, periode, debut, fin, titre, organisateur, id_))
+        (course_code, type_, etage, salle, genre, periode, debut, fin, titre, organisateur, id_))
     conn.commit()
     conn.close()
-    add_notification(session["user"], f"تم تعديل الحجز #{id_}: «{titre}»")
+    add_notification(session["user"], f"تم تعديل الحجز #{id_} [{course_code}]: «{titre}»")
     flash("✅ تم تعديل الحجز بنجاح", "success")
     return redirect("/")
 
