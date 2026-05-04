@@ -412,8 +412,8 @@ tbody td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border
 tbody td:last-child{border-left:none}
 .chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;color:#fff}
 .chip-q{background:#3d7a6a}.chip-lab{background:#c0392b}
-.chip-m{background:#2980b9}.chip-f{background:#e67e22}
-.chip-s{background:#27ae60}.chip-e{background:#8e44ad}
+.chip-m{background:#2980b9;color:#fff}.chip-f{background:#e67e22;color:#fff}.chip-mix{background:#8e44ad;color:#fff}
+.chip-s{background:#27ae60;color:#fff}.chip-e{background:#8e44ad;color:#fff}
 
 /* NOTIF DRAWER */
 .notif-drawer{position:fixed;top:44px;left:0;bottom:0;width:320px;background:var(--white);border-right:2px solid var(--border);z-index:999;transform:translateX(-100%);transition:transform .3s ease;display:flex;flex-direction:column}
@@ -499,8 +499,8 @@ tbody td:last-child{border-left:none}
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
       <div class="field"><label>الجنس</label>
-        <select id="f-genre">
-          <option value="">اختر</option><option value="رجال">رجال</option><option value="نساء">نساء</option>
+        <select id="f-genre" onchange="filterSallesByGenre()">
+          <option value="">اختر</option><option value="رجال">رجال</option><option value="نساء">نساء</option><option value="مختلط">مختلط</option>
         </select></div>
       <div class="field"><label>الفترة</label>
         <select id="f-periode" onchange="checkConflict()">
@@ -573,9 +573,8 @@ tbody td:last-child{border-left:none}
     <div id="panel-reservations" style="display:block;">
 
       <form method="GET" class="search-bar">
-        <div class="sf" style="flex:1;min-width:140px;"><label>بحث</label><input type="text" name="search" placeholder="عنوان، منظم، قاعة..." value="{{ search }}" style="width:100%;"></div>
-        <div class="sf"><label>العنوان</label><input type="text" name="titre_f" placeholder="العنوان" value="{{ request.args.get('titre_f','') }}" style="width:100px;"></div>
-        <div class="sf"><label>المنظم</label><input type="text" name="org_f" placeholder="المنظم" value="{{ request.args.get('org_f','') }}" style="width:100px;"></div>
+        <div class="sf" style="flex:1;min-width:140px;"><label>بحث</label><input type="text" name="search" placeholder="رقم الدورة، عنوان، قاعة..." value="{{ search }}" style="width:100%;"></div>
+        <div class="sf"><label>رقم الدورة</label><input type="text" name="dore_f" placeholder="رقم الدورة" value="{{ request.args.get('dore_f','') }}" style="width:110px;"></div>
         <div class="sf"><label>الطابق</label><select name="f_etage">
           <option value="">الكل</option>
           <option value="الأرضي" {% if f_etage=='الأرضي' %}selected{% endif %}>الأرضي</option>
@@ -591,6 +590,7 @@ tbody td:last-child{border-left:none}
         <div class="sf"><label>الجنس</label><select name="f_genre">
           <option value="">الكل</option><option value="رجال" {% if f_genre=='رجال' %}selected{% endif %}>رجال</option>
           <option value="نساء" {% if f_genre=='نساء' %}selected{% endif %}>نساء</option>
+          <option value="مختلط" {% if f_genre=='مختلط' %}selected{% endif %}>مختلط</option>
         </select></div>
         <div class="sf"><label>الفترة</label><select name="f_periode">
           <option value="">الكل</option><option value="صباحي" {% if f_periode=='صباحي' %}selected{% endif %}>صباحي</option>
@@ -611,7 +611,7 @@ tbody td:last-child{border-left:none}
         {% if data %}
         <table id="table"><thead><tr>
           <th><input type="checkbox" id="select-all" onchange="toggleAll(this)"></th>
-          <th>#</th><th>النوع</th><th>الطابق</th><th>القاعة</th><th>الجنس</th><th>الفترة</th>
+          <th>رقم الدورة</th><th>النوع</th><th>الطابق</th><th>القاعة</th><th>الجنس</th><th>الفترة</th>
           <th>البداية</th><th>النهاية</th><th>العنوان</th><th>المنظم</th>
         </tr></thead><tbody>
         {% for r in data %}
@@ -630,7 +630,7 @@ tbody td:last-child{border-left:none}
           <td><span class="chip {% if r[1]=='قاعة' %}chip-q{% else %}chip-lab{% endif %}">{{ r[1] }}</span></td>
           <td>{{ r[2] }}</td>
           <td><strong>{{ r[3] }}</strong></td>
-          <td><span class="chip {% if r[4]=='رجال' %}chip-m{% else %}chip-f{% endif %}">{{ r[4] }}</span></td>
+          <td><span class="chip {% if r[4]=='رجال' %}chip-m{% elif r[4]=='مختلط' %}chip-mix{% else %}chip-f{% endif %}">{{ r[4] }}</span></td>
           <td><span class="chip {% if r[5]=='صباحي' %}chip-s{% else %}chip-e{% endif %}">{{ r[5] }}</span></td>
           <td>{{ r[6] }}</td><td>{{ r[7] }}</td><td>{{ r[8] }}</td>
           <td style="color:var(--muted);">{{ r[9] }}</td>
@@ -661,14 +661,64 @@ tbody td:last-child{border-left:none}
 <script>
 // ── DATA ──────────────────────────────────────────────────────────
 const SALLES = {{ salles|tojson }};
+// Salles autorisées par genre
+const SALLES_MIX    = new Set(['G 11','G 12','G 13','L1 04','L1 05','L1 08','L1 18','L1 19','L1 20','L1 21','L1 22','L1 26','L2 08','L2 09','L2 10','L2 11','L2 14','L2 28','L2 29','L2 30','L2 31','L2 32','L2 33','L2 34','L2 35']);
+const SALLES_FEMALE = new Set(['L3 08','L3 09','L3 10','L3 11','L3 13','L3 27','L3 28','L3 29','L3 30','L3 31','L3 32','L3 33','L3 34','L4 08','L4 09','L4 10','L4 11','L4 14','L4 29','L4 30','L4 31','L4 32','L4 33','L4 34','L4 35','L4 36']);
+
 let currentEditId = null;
 let currentEditSalle = '';
 let selectedSalle = '';
+
+// ── GENRE → SALLE FILTER ─────────────────────────────────────────
+function filterSallesByGenre(){
+  let genre = document.getElementById('f-genre').value;
+  // Auto-suggest etage based on genre
+  let etageEl = document.getElementById('f-etage');
+  if(genre === 'مختلط' && !etageEl.value){
+    etageEl.value = 'الأرضي';
+  } else if(genre === 'نساء' && !etageEl.value){
+    etageEl.value = 'الثالث';
+  }
+  renderSalleGrid(selectedSalle || '');
+}
+
+// ── LIVE AUTO-REFRESH ─────────────────────────────────────────────
+let lastCount = {{ data|length }};
+let liveRefreshActive = true;
+
+async function checkForUpdates(){
+  if(!liveRefreshActive) return;
+  try {
+    let r = await fetch('/live_count');
+    let d = await r.json();
+    if(d.count !== lastCount){
+      lastCount = d.count;
+      // Show subtle notification bar instead of full reload
+      showLiveAlert(d.count);
+    }
+  } catch(e){}
+}
+
+function showLiveAlert(newCount){
+  let bar = document.getElementById('live-alert');
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'live-alert';
+    bar.style.cssText = 'position:fixed;top:44px;left:0;right:260px;background:#2e7d32;color:#fff;text-align:center;padding:8px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;z-index:190;cursor:pointer;transition:all .3s';
+    bar.onclick = () => window.location.reload();
+    document.body.appendChild(bar);
+  }
+  bar.textContent = `🔄 تم تحديث البيانات (${newCount} حجز) — انقر للتحديث`;
+  bar.style.display = 'block';
+}
+
+setInterval(checkForUpdates, 8000); // check every 8 seconds
 
 // ── SALLE GRID ────────────────────────────────────────────────────
 function renderSalleGrid(preselect){
   let etage = document.getElementById('f-etage').value;
   let type  = document.getElementById('f-type').value;
+  let genre = document.getElementById('f-genre').value;
   let grid  = document.getElementById('salle-grid');
   selectedSalle = preselect || '';
   document.getElementById('f-salle').value = selectedSalle;
@@ -676,11 +726,23 @@ function renderSalleGrid(preselect){
 
   if(!etage){ grid.innerHTML='<span style="color:var(--muted);font-size:11px;grid-column:1/-1;text-align:center;padding:12px;">اختر الطابق أولاً</span>'; return; }
 
-  let filtered = SALLES.filter(s=> s.etage===etage && (!type || s.type===type));
+  let filtered = SALLES.filter(s=>{
+    if(s.etage !== etage) return false;
+    if(type && s.type !== type) return false;
+    // Genre restrictions
+    if(genre === 'مختلط'){
+      // Mix only in ground floor and 1st floor (occasionally 2nd)
+      if(s.etage === 'الثالث' || s.etage === 'الرابع') return false;
+    }
+    if(genre === 'رجال'){
+      // Males not in strict female floors
+      if(s.etage === 'الثالث' || s.etage === 'الرابع') return false;
+    }
+    return true;
+  });
 
-  if(!filtered.length){ grid.innerHTML='<span style="color:var(--muted);font-size:11px;grid-column:1/-1;text-align:center;padding:10px;">لا توجد قاعات</span>'; return; }
+  if(!filtered.length){ grid.innerHTML='<span style="color:var(--muted);font-size:11px;grid-column:1/-1;text-align:center;padding:10px;">لا توجد قاعات متاحة لهذا الجنس في هذا الطابق</span>'; return; }
 
-  // All buttons active — conflict is checked via API when dates+periode are set
   grid.innerHTML = filtered.map(s=>{
     let isActive = s.nom === selectedSalle;
     return `<button type="button" class="salle-btn ${isActive?'active':''}"
@@ -1025,6 +1087,14 @@ def calendar_events():
         "extendedProps": {"salle": r[2], "organisateur": r[7], "periode": r[6], "genre": r[5]}
     } for r in rows])
 
+@app.route("/live_count")
+@login_required
+def live_count():
+    conn = get_conn()
+    count = fetchone(conn, "SELECT COUNT(*) FROM reservations")[0]
+    conn.close()
+    return jsonify({"count": count})
+
 @app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
@@ -1062,9 +1132,11 @@ def index():
     f_periode = request.args.get("f_periode", "")
     f_debut   = request.args.get("f_debut", "")
     f_fin     = request.args.get("f_fin", "")
+    dore_f    = request.args.get("dore_f", "")
 
     q = "SELECT * FROM reservations WHERE 1=1"; params = []
-    if search:    q += " AND (titre LIKE ? OR organisateur LIKE ? OR salle LIKE ?)"; params += [f"%{search}%"] * 3
+    if search:    q += " AND (titre LIKE ? OR organisateur LIKE ? OR salle LIKE ? OR CAST(id AS TEXT) LIKE ?)"; params += [f"%{search}%"] * 4
+    if dore_f:    q += " AND CAST(id AS TEXT) LIKE ?"; params.append(f"%{dore_f}%")
     if f_etage:   q += " AND etage=?";    params.append(f_etage)
     if f_type:    q += " AND type=?";     params.append(f_type)
     if f_genre:   q += " AND genre=?";    params.append(f_genre)
