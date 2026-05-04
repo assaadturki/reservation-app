@@ -724,28 +724,35 @@ let ganttInited   = false;
 
 // ── helpers ───────────────────────────────────────────────────────
 function isWorkday(d){ const w=d.getDay(); return w!==5 && w!==6; } // 5=Fri,6=Sat
+function isWeekend(d){ const w=d.getDay(); return w===5 || w===6; }
 function dateStr(d){ return d.toISOString().slice(0,10); }
 function parseDate(s){ const [y,m,dd]=s.split('-'); return new Date(y,+m-1,+dd); }
 
-// Build list of workdays in [start, end] inclusive
+// Build ALL days in range (including weekends)
+function allDaysInRange(start, end){
+  let days=[], d=new Date(start);
+  while(d<=end){ days.push(dateStr(d)); d=new Date(d); d.setDate(d.getDate()+1); }
+  return days;
+}
+
+// Build only workdays in range (for event matching)
 function workdaysInRange(start, end){
   let days=[], d=new Date(start);
   while(d<=end){ if(isWorkday(d)) days.push(dateStr(d)); d=new Date(d); d.setDate(d.getDate()+1); }
   return days;
 }
 
-// Get workdays for current view
+// Get ALL days for current view (including weekends shown in grey)
 function getViewDays(){
   if(ganttView==='month'){
     let start=new Date(ganttYear, ganttMonth, 1);
     let end  =new Date(ganttYear, ganttMonth+1, 0);
-    return workdaysInRange(start, end);
-  } else { // week
+    return allDaysInRange(start, end);
+  } else { // week: show Sun→Sat (7 days)
     let now=new Date(ganttYear, ganttMonth, 1);
-    // find first Sunday >= now
     while(now.getDay()!==0) now.setDate(now.getDate()+1);
-    let end=new Date(now); end.setDate(end.getDate()+4);
-    return workdaysInRange(now, end);
+    let end=new Date(now); end.setDate(end.getDate()+6);
+    return allDaysInRange(now, end);
   }
 }
 
@@ -850,13 +857,13 @@ function renderGantt(){
           ${revDays.map(d=>{
             let dt=parseDate(d);
             let day=dt.getDate();
-            let dow=['أح','إث','ثل','أر','خم'][dt.getDay()===0?0:dt.getDay()-1] || '';
-            // Map: 0=Sun=أح, 1=Mon=إث, 2=Tue=ثل, 3=Wed=أر, 4=Thu=خم
-            const dowMap={0:'أح',1:'إث',2:'ثل',3:'أر',4:'خم'};
-            dow = dowMap[dt.getDay()] || '';
+            const dowMap={0:'أح',1:'إث',2:'ثل',3:'أر',4:'خم',5:'ج',6:'س'};
+            let dow = dowMap[dt.getDay()] || '';
             let isToday = d===dateStr(new Date());
-            return `<th style="background:${isToday?'#2d6a5a':'var(--thead)'};color:#fff;padding:4px 2px;text-align:center;min-width:${CELL}px;max-width:${CELL}px;border-left:1px solid rgba(255,255,255,.1);">
-              <div style="font-size:10px;opacity:.75;">${dow}</div>
+            let isWE = isWeekend(dt);
+            let thBg = isToday ? '#2d6a5a' : isWE ? '#7a6a5a' : 'var(--thead)';
+            return `<th style="background:${thBg};color:${isWE?'#ccc':'#fff'};padding:4px 2px;text-align:center;min-width:${CELL}px;max-width:${CELL}px;border-left:1px solid rgba(255,255,255,.1);">
+              <div style="font-size:10px;opacity:.8;">${dow}</div>
               <div style="font-weight:900;">${day}</div>
             </th>`;
           }).join('')}
@@ -870,10 +877,18 @@ function renderGantt(){
             ${revDays.map(d=>{
               let ev = sEv[d];
               let isToday = d===dateStr(new Date());
-              let bg = isToday ? 'rgba(45,106,90,.08)' : (si%2===0?'var(--row-even)':'var(--white)');
+              let dt = parseDate(d);
+              let isWE = isWeekend(dt);
+              let bg = isWE
+                ? 'repeating-linear-gradient(45deg,#d0ccc8,#d0ccc8 2px,#e8e4e0 2px,#e8e4e0 8px)'
+                : isToday ? 'rgba(45,106,90,.08)' : (si%2===0?'var(--row-even)':'var(--white)');
+              let cellStyle = `border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.4);padding:3px 2px;`;
+              if(isWE){
+                return `<td style="background:${bg};${cellStyle}"><div style="height:20px;"></div></td>`;
+              }
               if(ev){
                 let c=barColor(ev.genre, ev.periode);
-                return `<td style="background:${bg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.4);padding:3px 2px;">
+                return `<td style="background:${isToday?'rgba(45,106,90,.08)':'transparent'};${cellStyle}">
                   <div data-ev-id="${ev.id}"
                     style="background:${c.bg};border:1.5px solid ${c.border};border-radius:3px;height:20px;cursor:pointer;"
                     onmouseenter="ganttHover(event,${ev.id})"
@@ -882,7 +897,7 @@ function renderGantt(){
                   </div>
                 </td>`;
               }
-              return `<td style="background:${bg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.4);padding:3px 2px;"><div style="height:20px;"></div></td>`;
+              return `<td style="${cellStyle}background:${isToday?'rgba(45,106,90,.08)':(si%2===0?'var(--row-even)':'var(--white)')};"><div style="height:20px;"></div></td>`;
             }).join('')}
           </tr>`;
         }).join('')}
