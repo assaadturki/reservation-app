@@ -120,7 +120,7 @@ _bootstrap_db()
 SALLES = [
     {"nom": "G 11", "etage": "الأرضي", "type": "قاعة"},
     {"nom": "G 12", "etage": "الأرضي", "type": "قاعة"},
-    {"nom": "G 13", "etage": "الأرضي", "type": "مختبر"},
+    {"nom": "G 13", "etage": "الأرضي", "type": "قاعة"},
     {"nom": "L1 04", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 05", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 08", "etage": "الأول", "type": "مختبر"},
@@ -128,44 +128,44 @@ SALLES = [
     {"nom": "L1 19", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 20", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 21", "etage": "الأول", "type": "قاعة"},
-    {"nom": "L1 22", "etage": "الأول", "type": "قاعة"},
-    {"nom": "L1 26", "etage": "الأول", "type": "مختبر"},
-    {"nom": "L2 08", "etage": "الثاني", "type": "مختبر"},
+    {"nom": "L1 22", "etage": "الأول", "type": "مختبر"},
+    {"nom": "L1 26", "etage": "الأول", "type": "قاعة"},
+    {"nom": "L2 08", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 09", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 10", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 11", "etage": "الثاني", "type": "قاعة"},
-    {"nom": "L2 14", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 14", "etage": "الثاني", "type": "مختبر"},
     {"nom": "L2 28", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 29", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 30", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 31", "etage": "الثاني", "type": "قاعة"},
-    {"nom": "L2 32", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 32", "etage": "الثاني", "type": "مختبر"},
     {"nom": "L2 33", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 34", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 35", "etage": "الثاني", "type": "قاعة"},
-    {"nom": "L3 08", "etage": "الثالث", "type": "مختبر"},
+    {"nom": "L3 08", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 09", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 10", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 11", "etage": "الثالث", "type": "قاعة"},
-    {"nom": "L3 13", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 13", "etage": "الثالث", "type": "مختبر"},
     {"nom": "L3 27", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 28", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 29", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 30", "etage": "الثالث", "type": "قاعة"},
-    {"nom": "L3 31", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 31", "etage": "الثالث", "type": "مختبر"},
     {"nom": "L3 32", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 33", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 34", "etage": "الثالث", "type": "قاعة"},
-    {"nom": "L4 08", "etage": "الرابع", "type": "مختبر"},
+    {"nom": "L4 08", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 09", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 10", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 11", "etage": "الرابع", "type": "قاعة"},
-    {"nom": "L4 14", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 14", "etage": "الرابع", "type": "مختبر"},
     {"nom": "L4 29", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 30", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 31", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 32", "etage": "الرابع", "type": "قاعة"},
-    {"nom": "L4 33", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 33", "etage": "الرابع", "type": "مختبر"},
     {"nom": "L4 34", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 35", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 36", "etage": "الرابع", "type": "قاعة"},
@@ -963,9 +963,11 @@ function renderGantt(){
                 let color = (hasMatin && hasSoir) ? '#8e44ad' : '#c0392b';
                 let border= (hasMatin && hasSoir) ? '#6c3483' : '#922b21';
                 let firstEv = evList[0];
+                let evIds = evList.map(e=>e.id).join(',');
                 return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
                   <div style="background:${color};border:1.5px solid ${border};border-radius:4px;height:20px;cursor:pointer;"
-                    onclick="ganttClick(event,${firstEv.id},${JSON.stringify(evList).replace(/"/g,'&quot;')})">
+                    data-ev-ids="${evIds}"
+                    onclick="ganttClick(event,this)">
                   </div>
                 </td>`;
               }
@@ -1034,17 +1036,16 @@ function renderGanttList(events){
 
 let activeTooltipId = null;
 
-function ganttClick(e, evId, evListJson){
+function ganttClick(e, el){
   e.stopPropagation();
-  // Parse event list (may be multiple if double-booked)
-  let evList = evListJson ? evListJson : [ganttEvents.find(x=>x.id===evId)].filter(Boolean);
-  if(typeof evListJson === 'string'){
-    try{ evList = JSON.parse(evListJson); }catch(err){ evList = [ganttEvents.find(x=>x.id===evId)].filter(Boolean); }
+  let ids = el.dataset.evIds.split(',').map(Number);
+  let evList = ids.map(id=>ganttEvents.find(x=>x.id===id)).filter(Boolean);
+  if(!evList.length) return;
+  let firstId = ids[0];
+  if(activeTooltipId === firstId){
+    hideTooltip(); activeTooltipId=null; return;
   }
-  if(activeTooltipId === evId){
-    hideTooltip(); return;
-  }
-  activeTooltipId = evId;
+  activeTooltipId = firstId;
   showTooltipMulti(e, evList);
 }
 
@@ -1079,19 +1080,27 @@ function ganttNav(dir){
 
 function setGanttView(v){ ganttView=v; renderGantt(); }
 
-// ── TAB SWITCHING (override) ──────────────────────────────────────
+// ── TAB SWITCHING ─────────────────────────────────────────────────
 let calendarInit=false;
 function switchTab(tab,btn){
   document.getElementById('panel-reservations').style.display = tab==='reservations'?'block':'none';
   document.getElementById('panel-calendar').style.display     = tab==='calendar'?'block':'none';
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if(tab==='calendar' && !calendarInit){
-    calendarInit=true;
+
+  let content = document.getElementById('content');
+  let sidebar  = document.getElementById('sidebar');
+
+  if(tab==='calendar'){
+    if(sidebar) sidebar.style.transform='translateX(100%)';
+    if(content) content.style.marginRight='0';
     fetch('/calendar_events').then(r=>r.json()).then(data=>{
       ganttEvents=data;
       renderGantt();
     });
+  } else {
+    if(sidebar) sidebar.style.transform='';
+    if(content) content.style.marginRight='';
   }
 }
 </script>
