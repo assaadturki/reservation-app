@@ -1318,7 +1318,6 @@ async function deleteSelected(){
 
 // ── TABS (defined in gantt script block above, stub here) ─────────
 function initCalendar(){} // no-op: gantt replaces FullCalendar
-}
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────────
 async function loadNotifications(){
@@ -1334,19 +1333,6 @@ function openNotifDrawer(){document.getElementById('notif-drawer').classList.add
 function closeNotifDrawer(){document.getElementById('notif-drawer').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
 async function markAllRead(){await fetch('/notifications/read',{method:'POST'});document.getElementById('notif-badge').style.display='none';loadNotifications();}
 setInterval(loadNotifications,30000);loadNotifications();
-
-// ── CALENDAR ─────────────────────────────────────────────────────
-function initCalendar(){
-  new FullCalendar.Calendar(document.getElementById('calendar'),{
-    initialView:'dayGridMonth',direction:'rtl',
-    headerToolbar:{start:'prev,next today',center:'title',end:'dayGridMonth,timeGridWeek,listWeek'},
-    events:'/calendar_events',
-    eventClick:function(info){
-      let p=info.event.extendedProps;
-      alert('📅 '+info.event.title+'\n🏢 '+p.salle+'\n👤 '+p.organisateur+'\n⏰ '+p.periode);
-    },height:'auto'
-  }).render();
-}
 </script>
 </body></html>"""
 
