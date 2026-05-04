@@ -963,9 +963,11 @@ function renderGantt(){
                 let color = (hasMatin && hasSoir) ? '#8e44ad' : '#c0392b';
                 let border= (hasMatin && hasSoir) ? '#6c3483' : '#922b21';
                 let firstEv = evList[0];
+                let evIds = evList.map(e=>e.id).join(',');
                 return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
                   <div style="background:${color};border:1.5px solid ${border};border-radius:4px;height:20px;cursor:pointer;"
-                    onclick="ganttClick(event,${firstEv.id},${JSON.stringify(evList).replace(/"/g,'&quot;')})">
+                    data-ev-ids="${evIds}"
+                    onclick="ganttClick(event,this)">
                   </div>
                 </td>`;
               }
@@ -1034,17 +1036,16 @@ function renderGanttList(events){
 
 let activeTooltipId = null;
 
-function ganttClick(e, evId, evListJson){
+function ganttClick(e, el){
   e.stopPropagation();
-  // Parse event list (may be multiple if double-booked)
-  let evList = evListJson ? evListJson : [ganttEvents.find(x=>x.id===evId)].filter(Boolean);
-  if(typeof evListJson === 'string'){
-    try{ evList = JSON.parse(evListJson); }catch(err){ evList = [ganttEvents.find(x=>x.id===evId)].filter(Boolean); }
+  let ids = el.dataset.evIds.split(',').map(Number);
+  let evList = ids.map(id=>ganttEvents.find(x=>x.id===id)).filter(Boolean);
+  if(!evList.length) return;
+  let firstId = ids[0];
+  if(activeTooltipId === firstId){
+    hideTooltip(); activeTooltipId=null; return;
   }
-  if(activeTooltipId === evId){
-    hideTooltip(); return;
-  }
-  activeTooltipId = evId;
+  activeTooltipId = firstId;
   showTooltipMulti(e, evList);
 }
 
