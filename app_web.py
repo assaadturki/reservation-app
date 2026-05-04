@@ -120,7 +120,7 @@ _bootstrap_db()
 SALLES = [
     {"nom": "G 11", "etage": "الأرضي", "type": "قاعة"},
     {"nom": "G 12", "etage": "الأرضي", "type": "قاعة"},
-    {"nom": "G 13", "etage": "الأرضي", "type": "مختبر"},
+    {"nom": "G 13", "etage": "الأرضي", "type": "قاعة"},
     {"nom": "L1 04", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 05", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 08", "etage": "الأول", "type": "مختبر"},
@@ -128,44 +128,44 @@ SALLES = [
     {"nom": "L1 19", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 20", "etage": "الأول", "type": "قاعة"},
     {"nom": "L1 21", "etage": "الأول", "type": "قاعة"},
-    {"nom": "L1 22", "etage": "الأول", "type": "قاعة"},
-    {"nom": "L1 26", "etage": "الأول", "type": "مختبر"},
-    {"nom": "L2 08", "etage": "الثاني", "type": "مختبر"},
+    {"nom": "L1 22", "etage": "الأول", "type": "مختبر"},
+    {"nom": "L1 26", "etage": "الأول", "type": "قاعة"},
+    {"nom": "L2 08", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 09", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 10", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 11", "etage": "الثاني", "type": "قاعة"},
-    {"nom": "L2 14", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 14", "etage": "الثاني", "type": "مختبر"},
     {"nom": "L2 28", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 29", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 30", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 31", "etage": "الثاني", "type": "قاعة"},
-    {"nom": "L2 32", "etage": "الثاني", "type": "قاعة"},
+    {"nom": "L2 32", "etage": "الثاني", "type": "مختبر"},
     {"nom": "L2 33", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 34", "etage": "الثاني", "type": "قاعة"},
     {"nom": "L2 35", "etage": "الثاني", "type": "قاعة"},
-    {"nom": "L3 08", "etage": "الثالث", "type": "مختبر"},
+    {"nom": "L3 08", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 09", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 10", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 11", "etage": "الثالث", "type": "قاعة"},
-    {"nom": "L3 13", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 13", "etage": "الثالث", "type": "مختبر"},
     {"nom": "L3 27", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 28", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 29", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 30", "etage": "الثالث", "type": "قاعة"},
-    {"nom": "L3 31", "etage": "الثالث", "type": "قاعة"},
+    {"nom": "L3 31", "etage": "الثالث", "type": "مختبر"},
     {"nom": "L3 32", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 33", "etage": "الثالث", "type": "قاعة"},
     {"nom": "L3 34", "etage": "الثالث", "type": "قاعة"},
-    {"nom": "L4 08", "etage": "الرابع", "type": "مختبر"},
+    {"nom": "L4 08", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 09", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 10", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 11", "etage": "الرابع", "type": "قاعة"},
-    {"nom": "L4 14", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 14", "etage": "الرابع", "type": "مختبر"},
     {"nom": "L4 29", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 30", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 31", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 32", "etage": "الرابع", "type": "قاعة"},
-    {"nom": "L4 33", "etage": "الرابع", "type": "قاعة"},
+    {"nom": "L4 33", "etage": "الرابع", "type": "مختبر"},
     {"nom": "L4 34", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 35", "etage": "الرابع", "type": "قاعة"},
     {"nom": "L4 36", "etage": "الرابع", "type": "قاعة"},
@@ -793,8 +793,33 @@ const COLOR_OCC  = {bg:'#c0392b', border:'#922b21'}; // occupied
 const COLOR_FREE = {bg:'transparent', border:'transparent'}; // free cell
 
 // ── tooltip ───────────────────────────────────────────────────────
-function showTooltip(e, ev){
+function showTooltipMulti(e, evList){
   let tip = document.getElementById('gantt-tip');
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <strong style="font-size:12px;color:#1a2e28;">${evList[0]?.salle||''}</strong>
+    <button onclick="hideTooltip();activeTooltipId=null;" style="background:none;border:none;cursor:pointer;font-size:16px;color:#888;">✕</button>
+  </div>`;
+
+  evList.forEach((ev, i)=>{
+    if(i>0) html += `<hr style="border:none;border-top:1px solid #e0e0e0;margin:8px 0;">`;
+    html += `<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12px;color:#333;">
+      <span style="color:#888;">رقم الدورة</span><span><b>${ev.course_code||'—'}</b></span>
+      <span style="color:#888;">العنوان</span><span>${ev.titre||'—'}</span>
+      <span style="color:#888;">المنظم</span><span>${ev.organisateur||'—'}</span>
+      <span style="color:#888;">الجنس</span><span>${ev.genre}</span>
+      <span style="color:#888;">الفترة</span><span><b>${ev.periode}</b></span>
+      <span style="color:#888;">من</span><span>${ev.date_debut} → ${ev.date_fin}</span>
+    </div>`;
+  });
+
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  positionTip(e);
+}
+
+function showTooltip(e, ev){
+  showTooltipMulti(e, [ev]);
+}
   tip.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <strong style="font-size:13px;color:#1a2e28;">${ev.salle}</strong>
@@ -838,7 +863,7 @@ function renderGantt(){
     ? ganttEvents.filter(ev=>ev.periode===ganttPeriode)
     : ganttEvents;
 
-  // Build event map: salle → { dayStr → event }
+  // Build event map: salle → { dayStr → [events] }  (array to detect double bookings)
   let evMap = {};
   for(let ev of filteredEvents){
     if(!ev.date_debut || !ev.date_fin) continue;
@@ -846,7 +871,8 @@ function renderGantt(){
     for(let ds of workdaysInRange(start, end)){
       if(!daySet.has(ds)) continue;
       if(!evMap[ev.salle]) evMap[ev.salle]={};
-      evMap[ev.salle][ds] = ev;
+      if(!evMap[ev.salle][ds]) evMap[ev.salle][ds]=[];
+      evMap[ev.salle][ds].push(ev);
     }
   }
 
@@ -929,10 +955,19 @@ function renderGantt(){
                 </td>`;
               }
               let cellBg = isToday ? 'rgba(45,106,90,.06)' : rowBg;
-              if(ev){
+              let evList = sEv[d] || [];
+              if(evList.length > 0){
+                // Purple if booked both matin AND soir
+                let hasMatin = evList.some(e=>e.periode==='صباحي');
+                let hasSoir  = evList.some(e=>e.periode==='مسائي');
+                let color = (hasMatin && hasSoir) ? '#8e44ad' : '#c0392b';
+                let border= (hasMatin && hasSoir) ? '#6c3483' : '#922b21';
+                let firstEv = evList[0];
+                let evIds = evList.map(e=>e.id).join(',');
                 return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
-                  <div style="background:#c0392b;border:1.5px solid #922b21;border-radius:4px;height:20px;cursor:pointer;"
-                    onclick="ganttClick(event,${ev.id})">
+                  <div style="background:${color};border:1.5px solid ${border};border-radius:4px;height:20px;cursor:pointer;"
+                    data-ev-ids="${evIds}"
+                    onclick="ganttClick(event,this)">
                   </div>
                 </td>`;
               }
@@ -946,9 +981,9 @@ function renderGantt(){
     </table>
     </div>
 
-    <!-- Legend -->
     <div style="padding:7px 14px;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;border-top:1px solid var(--border);background:var(--bg);align-items:center;">
       <span><span style="display:inline-block;width:14px;height:14px;background:#c0392b;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مشغول</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#8e44ad;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مشغول (ص+م)</span>
       <span><span style="display:inline-block;width:14px;height:14px;background:#27ae60;opacity:.4;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>متاح</span>
       <span><span style="display:inline-block;width:14px;height:14px;background:repeating-linear-gradient(45deg,#ccc,#ccc 2px,#ddd 2px,#ddd 8px);border-radius:3px;vertical-align:middle;margin-left:4px;"></span>عطلة (ج/س)</span>
       ${ganttPeriode ? `<span style="background:rgba(255,255,255,.3);padding:2px 10px;border-radius:10px;font-weight:700;">الفترة: ${ganttPeriode}</span>` : ''}
@@ -1001,15 +1036,17 @@ function renderGanttList(events){
 
 let activeTooltipId = null;
 
-function ganttClick(e, evId){
+function ganttClick(e, el){
   e.stopPropagation();
-  // Toggle off if same bar clicked again
-  if(activeTooltipId === evId){
-    hideTooltip(); return;
+  let ids = el.dataset.evIds.split(',').map(Number);
+  let evList = ids.map(id=>ganttEvents.find(x=>x.id===id)).filter(Boolean);
+  if(!evList.length) return;
+  let firstId = ids[0];
+  if(activeTooltipId === firstId){
+    hideTooltip(); activeTooltipId=null; return;
   }
-  activeTooltipId = evId;
-  let ev = ganttEvents.find(x=>x.id===evId);
-  if(ev) showTooltip(e, ev);
+  activeTooltipId = firstId;
+  showTooltipMulti(e, evList);
 }
 
 function ganttHover(e, evId){
@@ -1043,19 +1080,32 @@ function ganttNav(dir){
 
 function setGanttView(v){ ganttView=v; renderGantt(); }
 
-// ── TAB SWITCHING (override) ──────────────────────────────────────
+// ── TAB SWITCHING ─────────────────────────────────────────────────
 let calendarInit=false;
 function switchTab(tab,btn){
   document.getElementById('panel-reservations').style.display = tab==='reservations'?'block':'none';
   document.getElementById('panel-calendar').style.display     = tab==='calendar'?'block':'none';
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if(tab==='calendar' && !calendarInit){
-    calendarInit=true;
+
+  let content = document.getElementById('content');
+  let sidebar  = document.getElementById('sidebar');
+
+  if(tab==='calendar'){
+    // Hide sidebar, expand content for full-width gantt
+    if(sidebar) sidebar.classList.add('collapsed');
+    if(content) content.classList.remove('with-sidebar');
+    if(!calendarInit){
+      calendarInit=true;
+    }
     fetch('/calendar_events').then(r=>r.json()).then(data=>{
       ganttEvents=data;
       renderGantt();
     });
+  } else {
+    // Restore sidebar for reservations view
+    if(sidebar) sidebar.classList.remove('collapsed');
+    if(content) content.classList.add('with-sidebar');
   }
 }
 </script>
@@ -1205,12 +1255,20 @@ let batchRows = []; // [{id, course_code, salle, ...}, ...]
 
 function addToBatch(){
   if(!validate()) return;
+
+  // Get etage from dropdown; fallback to original row's data-etage
+  let etageVal = document.getElementById('f-etage').value;
+  if(!etageVal && currentEditId){
+    let origRow = document.querySelector(`#table tbody tr[data-id="${currentEditId}"]`);
+    if(origRow) etageVal = origRow.dataset.etage || '';
+  }
+
   let row = {
     id:           currentEditId,
     course_code:  document.getElementById('f-course-code').value,
     titre:        document.getElementById('f-titre').value,
     organisateur: document.getElementById('f-organisateur').value,
-    etage:        document.getElementById('f-etage').value,
+    etage:        etageVal,
     type:         document.getElementById('f-type').value,
     genre:        document.getElementById('f-genre').value,
     periode:      document.getElementById('f-periode').value,
@@ -1606,6 +1664,10 @@ def calendar_events():
         })
     return jsonify(events)
 
+SALLE_TO_ETAGE = {}
+for s in SALLES:
+    SALLE_TO_ETAGE[s["nom"]] = s["etage"]
+
 @app.route("/batch_update", methods=["POST"])
 @login_required
 def batch_update():
@@ -1623,13 +1685,13 @@ def batch_update():
         id_          = row.get("id")
         course_code  = str(row.get("course_code", "")).strip()
         salle        = str(row.get("salle", "")).strip()
+        etage        = SALLE_TO_ETAGE.get(salle, str(row.get("etage", "")).strip())
         debut        = str(row.get("debut", "")).strip()
         fin          = str(row.get("fin", "")).strip()
         periode      = str(row.get("periode", "")).strip()
         titre        = str(row.get("titre", "")).strip()
         organisateur = str(row.get("organisateur", "")).strip()
         type_        = str(row.get("type", "")).strip()
-        etage        = str(row.get("etage", "")).strip()
         genre        = str(row.get("genre", "")).strip()
 
         # Get original to compare
@@ -1827,15 +1889,14 @@ def update():
     id_          = request.form.get("id")
     course_code  = request.form.get("course_code", "").strip()
     salle        = request.form.get("salle", "").strip()
+    etage        = SALLE_TO_ETAGE.get(salle, request.form.get("etage", "").strip())
     debut        = request.form.get("debut", "").strip()
     fin          = request.form.get("fin", "").strip()
     periode      = request.form.get("periode", "").strip()
     titre        = request.form.get("titre", "").strip()
     organisateur = request.form.get("organisateur", "").strip()
     type_        = request.form.get("type", "").strip()
-    etage        = request.form.get("etage", "").strip()
     genre        = request.form.get("genre", "").strip()
-    conn = get_conn()
     orig = fetchone(conn, "SELECT salle,periode,date_debut,date_fin FROM reservations WHERE id=?", (id_,))
     if not orig:
         flash("الحجز غير موجود", "error"); conn.close(); return redirect("/")
