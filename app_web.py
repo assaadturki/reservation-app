@@ -848,6 +848,14 @@ function positionTip(e){
 }
 function hideTooltip(){ document.getElementById('gantt-tip').style.display='none'; }
 
+// ── colors ────────────────────────────────────────────────────────
+function barColor(genre, periode){
+  if(genre==='نساء') return {bg:'#c0392b'};
+  if(genre==='مختلط') return {bg:'#8e44ad'};
+  if(periode==='مسائي') return {bg:'#2471a3'};
+  return {bg:'#1e8449'};
+}
+
 // ── MAIN RENDER ───────────────────────────────────────────────────
 function renderGantt(){
   let days = getViewDays();
