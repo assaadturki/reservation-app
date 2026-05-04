@@ -67,23 +67,28 @@ def _bootstrap_db():
             type TEXT, etage TEXT, salle TEXT, genre TEXT, periode TEXT,
             date_debut TEXT, date_fin TEXT, titre TEXT, organisateur TEXT,
             created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-        # Migration: add course_code if missing
+        conn.commit()
+        # Migration: add course_code if missing — must commit/rollback between DDL statements in PG
         try:
             execute(conn, "ALTER TABLE reservations ADD COLUMN course_code TEXT")
+            conn.commit()
         except Exception:
-            pass
+            conn.rollback()  # CRITICAL: reset failed transaction before continuing
         execute(conn, """CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
             role TEXT DEFAULT 'user', created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        conn.commit()
         execute(conn, """CREATE TABLE IF NOT EXISTS notifications (
             id SERIAL PRIMARY KEY,
             "user" TEXT, message TEXT, is_read INTEGER DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        conn.commit()
         row = fetchone(conn, "SELECT COUNT(*) FROM users WHERE username=%s", ("admin",))
         if row[0] == 0:
             execute(conn, "INSERT INTO users (username,password,role) VALUES (%s,%s,%s)",
                     ("admin", hashlib.sha256(b"admin123").hexdigest(), "admin"))
+        conn.commit()
     else:
         execute(conn, """CREATE TABLE IF NOT EXISTS reservations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,11 +96,10 @@ def _bootstrap_db():
             type TEXT, etage TEXT, salle TEXT, genre TEXT, periode TEXT,
             date_debut TEXT, date_fin TEXT, titre TEXT, organisateur TEXT,
             created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-        # Migration: add course_code if missing
         try:
             execute(conn, "ALTER TABLE reservations ADD COLUMN course_code TEXT")
         except Exception:
-            pass
+            pass  # SQLite doesn't need rollback for this
         execute(conn, """CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
@@ -108,7 +112,7 @@ def _bootstrap_db():
         if row[0] == 0:
             execute(conn, "INSERT INTO users (username,password,role) VALUES (?,?,?)",
                     ("admin", hashlib.sha256(b"admin123").hexdigest(), "admin"))
-    conn.commit()
+        conn.commit()
     conn.close()
 
 _bootstrap_db()
