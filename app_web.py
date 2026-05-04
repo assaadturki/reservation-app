@@ -217,7 +217,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
     <button type="submit" class="btn">تسجيل الدخول</button>
   </form>
 </div><!-- Gantt Tooltip -->
-<div id="gantt-tip" style="display:none;position:fixed;z-index:9999;background:rgba(26,46,40,.97);color:#fff;border:1.5px solid var(--accent);border-radius:10px;padding:12px 14px;min-width:240px;max-width:280px;font-family:'Cairo',sans-serif;font-size:12px;line-height:1.8;box-shadow:0 8px 24px rgba(0,0,0,.4);pointer-events:none;direction:rtl;"></div>
+<div id="gantt-tip" style="display:none;position:fixed;z-index:9999;background:#fefefe;color:#1a2e28;border:1.5px solid #a8c8c0;border-radius:10px;padding:14px 16px;min-width:220px;max-width:280px;font-family:'Cairo',sans-serif;font-size:12px;line-height:1.8;box-shadow:0 6px 20px rgba(0,0,0,.15);pointer-events:auto;direction:rtl;"></div>
 
 </body></html>"""
 
@@ -784,13 +784,20 @@ const COLOR_FREE = {bg:'transparent', border:'transparent'}; // free cell
 function showTooltip(e, ev){
   let tip = document.getElementById('gantt-tip');
   tip.innerHTML = `
-    <div style="font-weight:900;font-size:13px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.3);padding-bottom:5px">${ev.titre||'—'}</div>
-    <div>📋 <b>رقم الدورة:</b> ${ev.course_code||'—'}</div>
-    <div>👤 <b>المنظم:</b> ${ev.organisateur||'—'}</div>
-    <div>🏢 <b>القاعة:</b> ${ev.salle} (${ev.etage})</div>
-    <div>👥 <b>الجنس:</b> ${ev.genre}</div>
-    <div>⏰ <b>الفترة:</b> ${ev.periode}</div>
-    <div>📅 <b>من:</b> ${ev.date_debut} <b>إلى:</b> ${ev.date_fin}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <strong style="font-size:13px;color:#1a2e28;">${ev.salle}</strong>
+      <button onclick="hideTooltip();activeTooltipId=null;" style="background:none;border:none;cursor:pointer;font-size:16px;color:#888;line-height:1;">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px;color:#333;">
+      <span style="color:#888;">رقم الدورة</span><span><b>${ev.course_code||'—'}</b></span>
+      <span style="color:#888;">العنوان</span><span>${ev.titre||'—'}</span>
+      <span style="color:#888;">المنظم</span><span>${ev.organisateur||'—'}</span>
+      <span style="color:#888;">القاعة</span><span>${ev.salle} — ${ev.etage}</span>
+      <span style="color:#888;">الجنس</span><span>${ev.genre}</span>
+      <span style="color:#888;">الفترة</span><span>${ev.periode}</span>
+      <span style="color:#888;">من</span><span>${ev.date_debut}</span>
+      <span style="color:#888;">إلى</span><span>${ev.date_fin}</span>
+    </div>
   `;
   tip.style.display = 'block';
   positionTip(e);
@@ -903,20 +910,22 @@ function renderGantt(){
               let ev=sEv[d];
 
               if(isWE){
-                return `<td style="background:repeating-linear-gradient(45deg,#ccc9c5,#ccc9c5 2px,#dedad6 2px,#dedad6 8px);border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;"><div style="height:20px;"></div></td>`;
+                // Show salle name in grey weekend column for easy reading
+                let isFirstOrLast = (revDays.indexOf(d)===0 || revDays.indexOf(d)===revDays.length-1);
+                return `<td style="background:repeating-linear-gradient(45deg,#ccc9c5,#ccc9c5 2px,#dedad6 2px,#dedad6 8px);border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
+                  <div style="height:20px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#aaa;font-weight:600;">${s.nom}</div>
+                </td>`;
               }
               let cellBg = isToday ? 'rgba(45,106,90,.06)' : rowBg;
               if(ev){
                 return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
-                  <div style="background:#c0392b;border:1.5px solid #922b21;border-radius:3px;height:20px;cursor:pointer;"
-                    onmouseenter="ganttHover(event,${ev.id})"
-                    onmousemove="positionTip(event)"
-                    onmouseleave="hideTooltip()">
+                  <div style="background:#c0392b;border:1.5px solid #922b21;border-radius:4px;height:20px;cursor:pointer;"
+                    onclick="ganttClick(event,${ev.id})">
                   </div>
                 </td>`;
               }
               return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
-                <div style="background:#27ae60;border:1.5px solid #1e8449;border-radius:3px;height:20px;opacity:.25;"></div>
+                <div style="background:#27ae60;border:1.5px solid #1e8449;border-radius:4px;height:20px;opacity:.2;"></div>
               </td>`;
             }).join('')}
           </tr>`;
@@ -978,10 +987,32 @@ function renderGanttList(events){
   </div>`;
 }
 
+let activeTooltipId = null;
+
+function ganttClick(e, evId){
+  e.stopPropagation();
+  // Toggle off if same bar clicked again
+  if(activeTooltipId === evId){
+    hideTooltip(); return;
+  }
+  activeTooltipId = evId;
+  let ev = ganttEvents.find(x=>x.id===evId);
+  if(ev) showTooltip(e, ev);
+}
+
 function ganttHover(e, evId){
   let ev = ganttEvents.find(x=>x.id===evId);
   if(ev) showTooltip(e, ev);
 }
+
+// Click anywhere else to close tooltip
+document.addEventListener('click', function(e){
+  let tip = document.getElementById('gantt-tip');
+  if(tip && !tip.contains(e.target)){
+    hideTooltip();
+    activeTooltipId = null;
+  }
+});
 
 function ganttNav(dir){
   if(ganttView==='month'){
@@ -1016,6 +1047,7 @@ function switchTab(tab,btn){
   }
 }
 </script>
+<script>
 // ── DATA ──────────────────────────────────────────────────────────
 const SALLES = {{ salles|tojson }};
 // Salles autorisées par genre
@@ -1262,7 +1294,7 @@ function sortTable(col){
   let rows = Array.from(tbody.querySelectorAll('tr'));
   if(sortCol === col){ sortAsc = !sortAsc; }
   else { sortCol = col; sortAsc = true; }
-  for(let i=1;i<=10;i++){
+  for(let i=1;i<=11;i++){
     let si = document.getElementById('si-'+i);
     if(si) si.textContent = (i===col) ? (sortAsc?'▲':'▼') : '⇅';
   }
@@ -1284,14 +1316,8 @@ async function deleteSelected(){
   await Promise.all(sel.map(el=>fetch('/delete',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'id='+el.value}).then(()=>el.closest('tr').remove())));
 }
 
-// ── TABS ──────────────────────────────────────────────────────────
-let calendarInit=false;
-function switchTab(tab,btn){
-  document.getElementById('panel-reservations').style.display = tab==='reservations'?'block':'none';
-  document.getElementById('panel-calendar').style.display     = tab==='calendar'?'block':'none';
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  if(tab==='calendar'&&!calendarInit){initCalendar();calendarInit=true;}
+// ── TABS (defined in gantt script block above, stub here) ─────────
+function initCalendar(){} // no-op: gantt replaces FullCalendar
 }
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────────
