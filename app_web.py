@@ -1218,8 +1218,16 @@ def export_excel():
     conn = get_conn()
     rows = fetchall(conn, "SELECT * FROM reservations ORDER BY id")
     conn.close()
-    cols = ["id","type","etage","salle","genre","periode","date_debut","date_fin","titre","organisateur","created_by","created_at"]
-    df = pd.DataFrame(rows, columns=cols[:len(rows[0])] if rows else cols)
+    cols = ["id", "course code", "type", "etage", "salle", "genre", "periode",
+            "date_debut", "date_fin", "titre", "organisateur", "created_by", "created_at"]
+    # DB has: id,type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by,created_at
+    # Add course_code = same as id for compatibility
+    data_with_cc = []
+    for r in rows:
+        # r = (id, type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur, created_by, created_at)
+        data_with_cc.append((r[0], r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9],
+                             r[10] if len(r) > 10 else "", r[11] if len(r) > 11 else ""))
+    df = pd.DataFrame(data_with_cc, columns=cols)
     buf = io.BytesIO()
     df.to_excel(buf, index=False)
     buf.seek(0)
@@ -1236,26 +1244,52 @@ def import_excel():
         df = pd.read_excel(file, engine="openpyxl")
     except Exception as e:
         flash(f"خطأ في قراءة الملف: {str(e)}", "error"); return redirect("/")
-    df.columns = [str(c).strip().lower() for c in df.columns]
+
+    # Normalize column names
+    df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
+
     conn = get_conn()
     imported = 0
+    skipped  = 0
+
     for _, row in df.iterrows():
-        def g(col):
-            v = str(row.get(col, "")).strip()
-            return "" if v in ("", "nan", "None") else v
+        def g(*cols):
+            for col in cols:
+                v = str(row.get(col, "")).strip()
+                if v and v not in ("nan", "None", "NaT"):
+                    return v
+            return ""
+
+        # Support both old and new column names
+        type_       = g("type")
+        etage       = g("etage")
+        salle       = g("salle")
+        genre       = g("genre")
+        periode     = g("periode")
+        date_debut  = g("date_debut")[:10] if g("date_debut") else ""
+        date_fin    = g("date_fin")[:10]   if g("date_fin")   else ""
+        titre       = g("titre")
+        organisateur = g("organisateur")
+        created_by  = g("created_by") or session["user"]
+
+        # Skip completely empty rows
+        if not titre and not organisateur and not salle:
+            skipped += 1
+            continue
+
         try:
             execute(conn, """INSERT INTO reservations
                 (type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
-                VALUES (?,?,?,?,?,?,?,?,?,?)""", (
-                g("type"), g("etage"), g("salle"), g("genre"), g("periode"),
-                g("date_debut")[:10] if g("date_debut") else "",
-                g("date_fin")[:10]   if g("date_fin")   else "",
-                g("titre"), g("organisateur"), session["user"]))
+                VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (type_, etage, salle, genre, periode,
+                 date_debut, date_fin, titre, organisateur, created_by))
             imported += 1
         except Exception:
+            skipped += 1
             continue
+
     conn.commit(); conn.close()
-    flash(f"تم استيراد {imported} حجز بنجاح", "success")
+    flash(f"✅ تم استيراد {imported} حجز بنجاح" + (f" ({skipped} سطر تم تجاهله)" if skipped else ""), "success")
     return redirect("/")
 
 @app.route("/update", methods=["POST"])
