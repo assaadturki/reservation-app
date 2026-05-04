@@ -216,7 +216,10 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
     <div class="field"><label>كلمة المرور</label><input type="password" name="password" placeholder="أدخل كلمة المرور" required></div>
     <button type="submit" class="btn">تسجيل الدخول</button>
   </form>
-</div></body></html>"""
+</div><!-- Gantt Tooltip -->
+<div id="gantt-tip" style="display:none;position:fixed;z-index:9999;background:rgba(26,46,40,.97);color:#fff;border:1.5px solid var(--accent);border-radius:10px;padding:12px 14px;min-width:240px;max-width:280px;font-family:'Cairo',sans-serif;font-size:12px;line-height:1.8;box-shadow:0 8px 24px rgba(0,0,0,.4);pointer-events:none;direction:rtl;"></div>
+
+</body></html>"""
 
 REGISTER_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -311,7 +314,6 @@ INDEX_TEMPLATE = r"""<!DOCTYPE html>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>حجز القاعات</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -693,7 +695,7 @@ tbody td:last-child{border-left:none}
 
     <!-- CALENDAR PANEL -->
     <div id="panel-calendar" style="display:none;">
-      <div id="calendar-container"><div id="calendar"></div></div>
+      <div id="gantt-root"></div>
     </div>
 
   </div>
@@ -707,8 +709,278 @@ tbody td:last-child{border-left:none}
   <div class="notif-list" id="notif-list"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 <script>
+// ══════════════════════════════════════════════════════════════════
+//  GANTT CHART — Salles vs Jours ouvrables (Dim→Jeu, sans Ven/Sam)
+// ══════════════════════════════════════════════════════════════════
+
+const GANTT_SALLES = {{ salles|tojson }};
+let ganttEvents   = [];
+let ganttYear     = new Date().getFullYear();
+let ganttMonth    = new Date().getMonth(); // 0-based
+let ganttView     = 'month'; // 'month' | 'week' | 'list'
+let ganttFloor    = '';
+let ganttInited   = false;
+
+// ── helpers ───────────────────────────────────────────────────────
+function isWorkday(d){ const w=d.getDay(); return w!==5 && w!==6; } // 5=Fri,6=Sat
+function dateStr(d){ return d.toISOString().slice(0,10); }
+function parseDate(s){ const [y,m,dd]=s.split('-'); return new Date(y,+m-1,+dd); }
+
+// Build list of workdays in [start, end] inclusive
+function workdaysInRange(start, end){
+  let days=[], d=new Date(start);
+  while(d<=end){ if(isWorkday(d)) days.push(dateStr(d)); d=new Date(d); d.setDate(d.getDate()+1); }
+  return days;
+}
+
+// Get workdays for current view
+function getViewDays(){
+  if(ganttView==='month'){
+    let start=new Date(ganttYear, ganttMonth, 1);
+    let end  =new Date(ganttYear, ganttMonth+1, 0);
+    return workdaysInRange(start, end);
+  } else { // week
+    let now=new Date(ganttYear, ganttMonth, 1);
+    // find first Sunday >= now
+    while(now.getDay()!==0) now.setDate(now.getDate()+1);
+    let end=new Date(now); end.setDate(end.getDate()+4);
+    return workdaysInRange(now, end);
+  }
+}
+
+function monthName(m){
+  return ['يناير','فبراير','مارس','أبريل','مايو','يونيو',
+          'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][m];
+}
+
+// ── colors by genre ───────────────────────────────────────────────
+function barColor(genre, periode){
+  if(genre==='نساء') return {bg:'#c0392b', border:'#922b21'};
+  if(genre==='مختلط') return {bg:'#8e44ad', border:'#6c3483'};
+  // رجال — distinguish by periode
+  if(periode==='مسائي') return {bg:'#2471a3', border:'#1a5276'};
+  return {bg:'#1e8449', border:'#145a32'};
+}
+
+// ── tooltip ───────────────────────────────────────────────────────
+function showTooltip(e, ev){
+  let tip = document.getElementById('gantt-tip');
+  tip.innerHTML = `
+    <div style="font-weight:900;font-size:13px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.3);padding-bottom:5px">${ev.titre||'—'}</div>
+    <div>📋 <b>رقم الدورة:</b> ${ev.course_code||'—'}</div>
+    <div>👤 <b>المنظم:</b> ${ev.organisateur||'—'}</div>
+    <div>🏢 <b>القاعة:</b> ${ev.salle} (${ev.etage})</div>
+    <div>👥 <b>الجنس:</b> ${ev.genre}</div>
+    <div>⏰ <b>الفترة:</b> ${ev.periode}</div>
+    <div>📅 <b>من:</b> ${ev.date_debut} <b>إلى:</b> ${ev.date_fin}</div>
+  `;
+  tip.style.display = 'block';
+  positionTip(e);
+}
+function positionTip(e){
+  let tip=document.getElementById('gantt-tip');
+  let x=e.clientX+12, y=e.clientY+12;
+  if(x+260>window.innerWidth) x=e.clientX-270;
+  if(y+200>window.innerHeight) y=e.clientY-210;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function hideTooltip(){ document.getElementById('gantt-tip').style.display='none'; }
+
+// ── MAIN RENDER ───────────────────────────────────────────────────
+function renderGantt(){
+  let days = getViewDays();
+  if(!days.length){ document.getElementById('gantt-root').innerHTML='<p style="padding:20px;color:var(--muted)">لا توجد أيام عمل في هذه الفترة</p>'; return; }
+
+  let daySet = new Set(days);
+
+  // Filter salles by floor
+  let salles = ganttFloor ? GANTT_SALLES.filter(s=>s.etage===ganttFloor) : GANTT_SALLES;
+
+  // Build event map: salle → list of workdays occupied
+  let evMap = {}; // salle → { dayStr → event }
+  for(let ev of ganttEvents){
+    if(!ev.date_debut || !ev.date_fin) continue;
+    let start=parseDate(ev.date_debut), end=parseDate(ev.date_fin);
+    for(let ds of workdaysInRange(start,end)){
+      if(!daySet.has(ds)) continue;
+      if(!evMap[ev.salle]) evMap[ev.salle]={};
+      evMap[ev.salle][ds] = ev;
+    }
+  }
+
+  // ── Header label
+  let periodLabel = ganttView==='month'
+    ? `شهر ${monthName(ganttMonth)} ${ganttYear}`
+    : `أسبوع ${days[0]} → ${days[days.length-1]}`;
+
+  // ── Day headers (reversed: latest on left like screenshot)
+  let revDays = [...days].reverse();
+
+  let CELL=32, LABEL=80, HEAD=36;
+
+  let html = `
+  <div style="background:var(--white);border:1.5px solid var(--border);border-radius:8px;overflow:hidden;font-family:'Cairo',sans-serif;">
+
+    <!-- Toolbar -->
+    <div style="background:var(--topbar);padding:10px 16px;display:flex;align-items:center;gap:10px;color:#fff;flex-wrap:wrap;">
+      <button onclick="ganttNav(-1)" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:13px;">◀</button>
+      <span style="font-weight:900;font-size:15px;flex:1;text-align:center;">${periodLabel}</span>
+      <button onclick="ganttNav(1)"  style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:13px;">▶</button>
+      <button onclick="setGanttView('list')"  style="background:${ganttView==='list' ?'#fff':'rgba(255,255,255,.2)'};color:${ganttView==='list' ?'var(--accent2)':'#fff'};border:none;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;">list</button>
+      <button onclick="setGanttView('week')"  style="background:${ganttView==='week' ?'#fff':'rgba(255,255,255,.2)'};color:${ganttView==='week' ?'var(--accent2)':'#fff'};border:none;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;">week</button>
+      <button onclick="setGanttView('month')" style="background:${ganttView==='month'?'#fff':'rgba(255,255,255,.2)'};color:${ganttView==='month'?'var(--accent2)':'#fff'};border:none;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;">month</button>
+      <select onchange="ganttFloor=this.value;renderGantt()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 8px;font-family:'Cairo',sans-serif;font-size:12px;">
+        <option value="" style="color:#000" ${!ganttFloor?'selected':''}>اختر الطابق</option>
+        <option value="الأرضي" style="color:#000" ${ganttFloor==='الأرضي'?'selected':''}>الأرضي</option>
+        <option value="الأول" style="color:#000" ${ganttFloor==='الأول'?'selected':''}>الأول</option>
+        <option value="الثاني" style="color:#000" ${ganttFloor==='الثاني'?'selected':''}>الثاني</option>
+        <option value="الثالث" style="color:#000" ${ganttFloor==='الثالث'?'selected':''}>الثالث</option>
+        <option value="الرابع" style="color:#000" ${ganttFloor==='الرابع'?'selected':''}>الرابع</option>
+      </select>
+    </div>
+
+    ${ganttView==='list' ? renderGanttList(ganttEvents) : `
+    <!-- Grid -->
+    <div style="overflow-x:auto;">
+    <table style="border-collapse:collapse;font-size:11px;direction:rtl;">
+      <thead>
+        <tr>
+          <th style="position:sticky;right:0;background:var(--thead);color:#fff;padding:6px 10px;text-align:center;min-width:${LABEL}px;border-left:1px solid rgba(255,255,255,.1);z-index:2;">القاعة</th>
+          ${revDays.map(d=>{
+            let dt=parseDate(d);
+            let day=dt.getDate();
+            let dow=['أح','إث','ثل','أر','خم'][dt.getDay()===0?0:dt.getDay()-1] || '';
+            // Map: 0=Sun=أح, 1=Mon=إث, 2=Tue=ثل, 3=Wed=أر, 4=Thu=خم
+            const dowMap={0:'أح',1:'إث',2:'ثل',3:'أر',4:'خم'};
+            dow = dowMap[dt.getDay()] || '';
+            let isToday = d===dateStr(new Date());
+            return `<th style="background:${isToday?'#2d6a5a':'var(--thead)'};color:#fff;padding:4px 2px;text-align:center;min-width:${CELL}px;max-width:${CELL}px;border-left:1px solid rgba(255,255,255,.1);">
+              <div style="font-size:10px;opacity:.75;">${dow}</div>
+              <div style="font-weight:900;">${day}</div>
+            </th>`;
+          }).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${salles.map((s,si)=>{
+          let sEv = evMap[s.nom] || {};
+          return `<tr>
+            <td style="position:sticky;right:0;background:${si%2===0?'var(--row-even)':'var(--white)'};font-weight:700;padding:4px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border);z-index:1;font-size:11px;">${s.nom}</td>
+            ${revDays.map(d=>{
+              let ev = sEv[d];
+              let isToday = d===dateStr(new Date());
+              let bg = isToday ? 'rgba(45,106,90,.08)' : (si%2===0?'var(--row-even)':'var(--white)');
+              if(ev){
+                let c=barColor(ev.genre, ev.periode);
+                return `<td style="background:${bg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.4);padding:3px 2px;">
+                  <div data-ev-id="${ev.id}"
+                    style="background:${c.bg};border:1.5px solid ${c.border};border-radius:3px;height:20px;cursor:pointer;"
+                    onmouseenter="ganttHover(event,${ev.id})"
+                    onmousemove="positionTip(event)"
+                    onmouseleave="hideTooltip()">
+                  </div>
+                </td>`;
+              }
+              return `<td style="background:${bg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.4);padding:3px 2px;"><div style="height:20px;"></div></td>`;
+            }).join('')}
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>
+
+    <!-- Legend -->
+    <div style="padding:8px 14px;display:flex;gap:14px;flex-wrap:wrap;font-size:11px;border-top:1px solid var(--border);background:var(--bg);">
+      <span><span style="display:inline-block;width:14px;height:14px;background:#1e8449;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>رجال صباحي</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#2471a3;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>رجال مسائي</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#c0392b;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>نساء</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#8e44ad;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مختلط</span>
+    </div>
+    `}
+  </div>`;
+
+  document.getElementById('gantt-root').innerHTML = html;
+}
+
+function renderGanttList(events){
+  if(!events.length) return '<div style="padding:20px;text-align:center;color:var(--muted)">لا توجد حجوزات</div>';
+  // Filter by current month
+  let filtered = events.filter(ev=>{
+    if(!ev.date_debut) return false;
+    let d=parseDate(ev.date_debut);
+    return d.getFullYear()===ganttYear && d.getMonth()===ganttMonth;
+  }).sort((a,b)=>a.date_debut>b.date_debut?1:-1);
+
+  return `<div style="overflow-y:auto;max-height:calc(100vh - 200px);">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;direction:rtl;">
+      <thead><tr style="background:var(--thead);color:#fff;">
+        <th style="padding:8px 12px;text-align:right;">رقم الدورة</th>
+        <th style="padding:8px 12px;text-align:right;">العنوان</th>
+        <th style="padding:8px 12px;">القاعة</th>
+        <th style="padding:8px 12px;">الجنس</th>
+        <th style="padding:8px 12px;">الفترة</th>
+        <th style="padding:8px 12px;">البداية</th>
+        <th style="padding:8px 12px;">النهاية</th>
+        <th style="padding:8px 12px;">المنظم</th>
+      </tr></thead>
+      <tbody>
+      ${filtered.map((ev,i)=>{
+        let c=barColor(ev.genre,ev.periode);
+        return `<tr style="background:${i%2===0?'var(--row-even)':'var(--white)'}">
+          <td style="padding:7px 12px;font-weight:700;color:var(--accent2);">${ev.course_code||'—'}</td>
+          <td style="padding:7px 12px;">${ev.titre||'—'}</td>
+          <td style="padding:7px 12px;text-align:center;"><strong>${ev.salle}</strong></td>
+          <td style="padding:7px 12px;text-align:center;"><span style="background:${c.bg};color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">${ev.genre}</span></td>
+          <td style="padding:7px 12px;text-align:center;">${ev.periode}</td>
+          <td style="padding:7px 12px;text-align:center;">${ev.date_debut}</td>
+          <td style="padding:7px 12px;text-align:center;">${ev.date_fin}</td>
+          <td style="padding:7px 12px;color:var(--muted);">${ev.organisateur||'—'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function ganttHover(e, evId){
+  let ev = ganttEvents.find(x=>x.id===evId);
+  if(ev) showTooltip(e, ev);
+}
+
+function ganttNav(dir){
+  if(ganttView==='month'){
+    ganttMonth += dir;
+    if(ganttMonth>11){ ganttMonth=0; ganttYear++; }
+    if(ganttMonth<0) { ganttMonth=11; ganttYear--; }
+  } else {
+    // Move by 1 week (5 workdays)
+    let days=getViewDays();
+    let pivot = dir>0 ? parseDate(days[days.length-1]) : parseDate(days[0]);
+    pivot.setDate(pivot.getDate() + dir*7);
+    ganttMonth=pivot.getMonth(); ganttYear=pivot.getFullYear();
+  }
+  renderGantt();
+}
+
+function setGanttView(v){ ganttView=v; renderGantt(); }
+
+// ── TAB SWITCHING (override) ──────────────────────────────────────
+let calendarInit=false;
+function switchTab(tab,btn){
+  document.getElementById('panel-reservations').style.display = tab==='reservations'?'block':'none';
+  document.getElementById('panel-calendar').style.display     = tab==='calendar'?'block':'none';
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(tab==='calendar' && !calendarInit){
+    calendarInit=true;
+    fetch('/calendar_events').then(r=>r.json()).then(data=>{
+      ganttEvents=data;
+      renderGantt();
+    });
+  }
+}
+</script>
 // ── DATA ──────────────────────────────────────────────────────────
 const SALLES = {{ salles|tojson }};
 // Salles autorisées par genre
@@ -1150,15 +1422,19 @@ def mark_read():
 @login_required
 def calendar_events():
     conn = get_conn()
-    rows = fetchall(conn,
-        "SELECT id,titre,salle,date_debut,date_fin,genre,periode,organisateur FROM reservations")
+    rows = fetchall(conn, """SELECT id, course_code, titre, salle, date_debut, date_fin,
+                                    genre, periode, organisateur, type, etage
+                             FROM reservations ORDER BY salle, date_debut""")
     conn.close()
-    colors = {"صباحي": "#2563eb", "مسائي": "#7c3aed"}
-    return jsonify([{
-        "id": r[0], "title": f"{r[1]} — {r[2]}", "start": r[3], "end": r[4],
-        "color": colors.get(r[6], "#059669"),
-        "extendedProps": {"salle": r[2], "organisateur": r[7], "periode": r[6], "genre": r[5]}
-    } for r in rows])
+    events = []
+    for r in rows:
+        events.append({
+            "id": r[0], "course_code": r[1], "titre": r[2], "salle": r[3],
+            "date_debut": r[4], "date_fin": r[5],
+            "genre": r[6], "periode": r[7], "organisateur": r[8],
+            "type": r[9], "etage": r[10]
+        })
+    return jsonify(events)
 
 @app.route("/live_count")
 @login_required
