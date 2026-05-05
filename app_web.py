@@ -389,6 +389,9 @@ tbody tr:last-child td{border-bottom:none}
   <a href="/" class="back">← رجوع</a>
   <h1>📊 تقرير النشاط — نظام الحجز</h1>
   <a href="/report/export" class="export-btn">📥 تصدير Excel</a>
+  <a href="/admin/clean_empty_salle" class="export-btn" style="background:#c0392b;margin-right:8px;"
+     onclick="return confirm('حذف كل السجلات بدون قاعة؟')">🗑️ حذف السجلات الفارغة</a>
+  <a href="/admin/fix_etage_type" class="export-btn" style="background:#2471a3;margin-right:8px;">🔧 إصلاح الطابق/النوع</a>
 </div>
 <div class="main">
   <div class="card">
@@ -1981,6 +1984,19 @@ def report():
         users_stats=users_stats, recent=recent,
         user=session["user"], role=session["role"])
 
+
+@app.route("/admin/clean_empty_salle")
+@admin_required
+def clean_empty_salle():
+    conn = get_conn()
+    # Count first
+    count = fetchone(conn, "SELECT COUNT(*) FROM reservations WHERE salle IS NULL OR salle = ''")[0]
+    # Delete rows with no salle
+    execute(conn, "DELETE FROM reservations WHERE salle IS NULL OR salle = ''")
+    conn.commit()
+    conn.close()
+    flash(f"✅ تم حذف {count} سجل بدون قاعة", "success")
+    return redirect("/")
 
 @app.route("/admin/fix_etage_type")
 @admin_required
