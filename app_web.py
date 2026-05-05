@@ -1797,6 +1797,28 @@ for s in SALLES:
     SALLE_TO_ETAGE[s["nom"]] = s["etage"]
     SALLE_TO_TYPE[s["nom"]]  = s["type"]
 
+# ── Auto-fix migration: correct etage+type for ALL existing rows ──
+def _fix_etage_type_all():
+    try:
+        conn = get_conn()
+        rows = fetchall(conn, "SELECT id, salle, etage, type FROM reservations")
+        fixed = 0
+        for r in rows:
+            id_, salle, etage, rtype = r[0], r[1] or "", r[2] or "", r[3] or ""
+            ce = SALLE_TO_ETAGE.get(salle)
+            ct = SALLE_TO_TYPE.get(salle)
+            if ce and ct and (ce != etage or ct != rtype):
+                execute(conn, "UPDATE reservations SET etage=?, type=? WHERE id=?",
+                        (ce, ct, id_))
+                fixed += 1
+        if fixed:
+            conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Migration warning: {e}")
+
+_fix_etage_type_all()
+
 @app.route("/batch_update", methods=["POST"])
 @login_required
 def batch_update():
@@ -1946,6 +1968,28 @@ def report():
         users_stats=users_stats, recent=recent,
         user=session["user"], role=session["role"])
 
+
+@app.route("/admin/fix_etage_type")
+@admin_required
+def fix_etage_type():
+    """One-time migration: fix etage and type for all existing reservations based on salle name."""
+    conn = get_conn()
+    rows = fetchall(conn, "SELECT id, salle FROM reservations")
+    fixed = 0
+    for r in rows:
+        id_, salle = r[0], r[1]
+        if not salle:
+            continue
+        correct_etage = SALLE_TO_ETAGE.get(salle)
+        correct_type  = SALLE_TO_TYPE.get(salle)
+        if correct_etage and correct_type:
+            execute(conn, "UPDATE reservations SET etage=?, type=? WHERE id=?",
+                    (correct_etage, correct_type, id_))
+            fixed += 1
+    conn.commit()
+    conn.close()
+    flash(f"✅ تم إصلاح {fixed} سجل — الطابق والنوع تم تصحيحهما", "success")
+    return redirect("/")
 
 @app.route("/live_count")
 @login_required
