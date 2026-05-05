@@ -805,8 +805,8 @@ tbody td:last-child{border-left:none}
           <th class="sortable" onclick="sortTable(1)"><span class="sort-icon" id="si-1">⇅</span>ID</th>
           <th class="sortable" onclick="sortTable(2)"><span class="sort-icon" id="si-2">⇅</span>رقم الدورة</th>
           <th class="sortable" onclick="sortTable(3)"><span class="sort-icon" id="si-3">⇅</span>النوع</th>
-          <th class="sortable" onclick="sortTable(4)"><span class="sort-icon" id="si-4">⇅</span>الطابق</th>
-          <th class="sortable" onclick="sortTable(5)"><span class="sort-icon" id="si-5">⇅</span>القاعة</th>
+          <th class="sortable" onclick="sortTable(4)" style="min-width:70px;"><span class="sort-icon" id="si-4">⇅</span>الطابق</th>
+          <th class="sortable" onclick="sortTable(5)" style="min-width:70px;"><span class="sort-icon" id="si-5">⇅</span>القاعة</th>
           <th class="sortable" onclick="sortTable(6)"><span class="sort-icon" id="si-6">⇅</span>الجنس</th>
           <th class="sortable" onclick="sortTable(7)"><span class="sort-icon" id="si-7">⇅</span>الفترة</th>
           <th class="sortable" onclick="sortTable(8)"><span class="sort-icon" id="si-8">⇅</span>البداية</th>
@@ -834,8 +834,8 @@ tbody td:last-child{border-left:none}
           <td style="color:var(--muted);font-size:11px;">{{ r[0] }}</td>
           <td><strong>{{ r[1] }}</strong></td>
           <td><span class="chip {% if r[2]=='قاعة' %}chip-q{% else %}chip-lab{% endif %}">{{ r[2] }}</span></td>
-          <td style="font-size:11px;color:var(--muted);">{{ r[3] }}</td>
-          <td><strong style="color:var(--accent2);">{{ r[4] }}</strong></td>
+          <td style="font-size:11px;color:var(--muted);white-space:nowrap;">{{ r[3] }}</td>
+          <td style="white-space:nowrap;"><strong style="color:var(--accent2);">{{ r[4] }}</strong></td>
           <td><span class="chip {% if r[5]=='رجال' %}chip-m{% elif r[5]=='مختلط' %}chip-mix{% else %}chip-f{% endif %}">{{ r[5] }}</span></td>
           <td><span class="chip {% if r[6]=='صباحي' %}chip-s{% else %}chip-e{% endif %}">{{ r[6] }}</span></td>
           <td>{{ r[7] }}</td><td>{{ r[8] }}</td><td>{{ r[9] }}</td>
@@ -1805,14 +1805,27 @@ def _fix_etage_type_all():
         fixed = 0
         for r in rows:
             id_, salle, etage, rtype = r[0], r[1] or "", r[2] or "", r[3] or ""
-            ce = SALLE_TO_ETAGE.get(salle)
-            ct = SALLE_TO_TYPE.get(salle)
-            if ce and ct and (ce != etage or ct != rtype):
-                execute(conn, "UPDATE reservations SET etage=?, type=? WHERE id=?",
-                        (ce, ct, id_))
+
+            # Case 1: salle is correct, just fix etage/type
+            if salle and salle in SALLE_TO_ETAGE:
+                ce = SALLE_TO_ETAGE[salle]
+                ct = SALLE_TO_TYPE[salle]
+                if ce != etage or ct != rtype:
+                    execute(conn, "UPDATE reservations SET etage=?, type=? WHERE id=?",
+                            (ce, ct, id_))
+                    fixed += 1
+
+            # Case 2: salle is empty but etage contains the salle name (old bug)
+            elif not salle and etage in SALLE_TO_ETAGE:
+                ce = SALLE_TO_ETAGE[etage]
+                ct = SALLE_TO_TYPE[etage]
+                execute(conn, "UPDATE reservations SET salle=?, etage=?, type=? WHERE id=?",
+                        (etage, ce, ct, id_))
                 fixed += 1
+
         if fixed:
             conn.commit()
+            print(f"Migration: fixed {fixed} rows")
         conn.close()
     except Exception as e:
         print(f"Migration warning: {e}")
