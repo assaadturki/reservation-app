@@ -308,6 +308,143 @@ tbody tr:last-child td{border-bottom:none}
   </div>
 </div></body></html>"""
 
+PROFILE_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>الملف الشخصي</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#e8f0ee;--topbar:#5a8a7a;--accent:#3d7a6a;--accent2:#2d6a5a;--text:#1a2e28;--muted:#5a7a72;--border:#a8c8c0;--white:#fff;--green:#27ae60;--red:#c0392b}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl}
+.topbar{background:var(--topbar);color:#fff;padding:0 16px;display:flex;align-items:center;gap:12px;height:44px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.topbar h1{font-size:15px;font-weight:900;flex:1}
+a.back{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:5px 14px;font-family:'Cairo',sans-serif;font-size:12px;text-decoration:none}
+.main{padding:24px;max-width:600px;margin:0 auto}
+.flash{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;font-weight:600}
+.flash.error{background:#fdecea;border:1px solid #e57373;color:var(--red)}
+.flash.success{background:#e8f5e9;border:1px solid #81c784;color:#2e7d32}
+.card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px}
+.card h2{font-size:15px;font-weight:900;color:var(--accent2);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.field input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-family:'Cairo',sans-serif;font-size:13px;padding:9px 12px;outline:none;height:38px}
+.field input:focus{border-color:var(--accent)}
+.btn-primary{background:var(--green);color:#fff;border:none;border-radius:7px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;width:100%;margin-top:4px}
+.btn-primary:hover{background:#219a52}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat-box{background:var(--topbar);border-radius:8px;padding:14px;text-align:center;color:#fff}
+.stat-val{font-size:28px;font-weight:900}
+.stat-label{font-size:11px;opacity:.85;margin-top:4px}
+</style></head><body>
+<div class="topbar"><a href="/" class="back">← رجوع</a><h1>👤 الملف الشخصي</h1></div>
+<div class="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat,msg in messages %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+  <div class="card">
+    <h2>📊 إحصائياتي</h2>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val">{{ total_added }}</div><div class="stat-label">حجز أضفته</div></div>
+      <div class="stat-box" style="background:var(--accent2);"><div class="stat-val">{{ 'مسؤول' if role=='admin' else 'مستخدم' }}</div><div class="stat-label">{{ user }}</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>🔒 تغيير كلمة المرور</h2>
+    <form method="POST" action="/profile">
+      <div class="field"><label>كلمة المرور الحالية</label><input type="password" name="old_password" required placeholder="••••••••"></div>
+      <div class="field"><label>كلمة المرور الجديدة</label><input type="password" name="new_password" required placeholder="6 أحرف على الأقل"></div>
+      <div class="field"><label>تأكيد كلمة المرور الجديدة</label><input type="password" name="confirm_password" required placeholder="••••••••"></div>
+      <button type="submit" class="btn-primary">✔ حفظ كلمة المرور الجديدة</button>
+    </form>
+  </div>
+</div></body></html>"""
+
+REPORT_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>تقرير النشاط</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#e8f0ee;--topbar:#5a8a7a;--accent:#3d7a6a;--accent2:#2d6a5a;--text:#1a2e28;--muted:#5a7a72;--border:#a8c8c0;--white:#fff;--thead:#5a8a7a}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl}
+.topbar{background:var(--topbar);color:#fff;padding:0 16px;display:flex;align-items:center;gap:12px;height:44px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.topbar h1{font-size:15px;font-weight:900;flex:1}
+a.back{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:5px 14px;font-family:'Cairo',sans-serif;font-size:12px;text-decoration:none}
+a.export-btn{background:#27ae60;border:none;color:#fff;border-radius:6px;padding:5px 14px;font-family:'Cairo',sans-serif;font-size:12px;text-decoration:none;font-weight:700}
+.main{padding:20px;max-width:1200px;margin:0 auto}
+.card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.card-header{background:var(--topbar);padding:12px 18px;color:#fff;font-size:14px;font-weight:900}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--thead);color:#fff;padding:9px 12px;text-align:center;font-size:11px;letter-spacing:.3px;border-left:1px solid rgba(255,255,255,.1)}
+thead th:last-child{border-left:none}
+tbody tr:nth-child(even){background:#f0f7f5}
+tbody td{padding:9px 12px;text-align:center;border-bottom:1px solid var(--border)}
+tbody tr:last-child td{border-bottom:none}
+.bar{height:16px;background:var(--accent);border-radius:3px;display:inline-block;min-width:4px;transition:width .3s}
+.user-tag{background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+</style></head><body>
+<div class="topbar">
+  <a href="/" class="back">← رجوع</a>
+  <h1>📊 تقرير النشاط — نظام الحجز</h1>
+  <a href="/report/export" class="export-btn">📥 تصدير Excel</a>
+</div>
+<div class="main">
+  <div class="card">
+    <div class="card-header">👥 ملخص النشاط حسب المستخدم</div>
+    <table>
+      <thead><tr>
+        <th>المستخدم</th><th>الإجمالي</th><th>رجال</th><th>نساء</th><th>مختلط</th>
+        <th>صباحي</th><th>مسائي</th><th>أول حجز</th><th>آخر حجز</th><th>نسبة</th>
+      </tr></thead>
+      <tbody>
+      {% set grand_total = users_stats|sum(attribute=1) %}
+      {% for u in users_stats %}
+      {% set pct = (u[1] / grand_total * 100)|round(1) if grand_total else 0 %}
+      <tr>
+        <td><span class="user-tag">{{ u[0] or '—' }}</span></td>
+        <td><strong>{{ u[1] }}</strong></td>
+        <td>{{ u[2] }}</td><td>{{ u[3] }}</td><td>{{ u[4] }}</td>
+        <td>{{ u[5] }}</td><td>{{ u[6] }}</td>
+        <td style="font-size:11px;color:var(--muted);">{{ u[7] or '—' }}</td>
+        <td style="font-size:11px;color:var(--muted);">{{ u[8] or '—' }}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="bar" style="width:{{ [pct*2,100]|min }}px;"></div>
+            <span style="font-size:11px;">{{ pct }}%</span>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-header">🕐 آخر 50 حجز مضافة</div>
+    <table>
+      <thead><tr>
+        <th>المستخدم</th><th>ID</th><th>رقم الدورة</th><th>العنوان</th>
+        <th>القاعة</th><th>البداية</th><th>تاريخ الإضافة</th>
+      </tr></thead>
+      <tbody>
+      {% for r in recent %}
+      <tr>
+        <td><span class="user-tag">{{ r[0] or '—' }}</span></td>
+        <td style="color:var(--muted);font-size:11px;">{{ r[1] }}</td>
+        <td><strong>{{ r[2] or '—' }}</strong></td>
+        <td>{{ r[3] or '—' }}</td>
+        <td><strong>{{ r[4] or '—' }}</strong></td>
+        <td>{{ r[5] or '—' }}</td>
+        <td style="font-size:11px;color:var(--muted);">{{ r[6] or '—' }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div></body></html>"""
+
 INDEX_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -493,6 +630,8 @@ tbody td:last-child{border-left:none}
       <span>{{ user }}</span>
       <span class="role-badge">{{ 'مسؤول' if role=='admin' else 'مستخدم' }}</span>
     </div>
+    <a href="/profile" class="logout">👤 ملفي</a>
+    {% if role == 'admin' %}<a href="/report" class="logout">📊 تقرير</a>{% endif %}
     <a href="/logout" class="logout">خروج</a>
   </div>
 </nav>
@@ -686,13 +825,17 @@ tbody td:last-child{border-left:none}
             data-debut="{{ r[7]|e }}"
             data-fin="{{ r[8]|e }}"
             data-titre="{{ r[9]|e }}"
-            data-organisateur="{{ r[10]|e }}">
-          <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" value="{{ r[0] }}"></td>
+            data-organisateur="{{ r[10]|e }}"
+            data-created-by="{{ r[11]|e if r|length > 11 else '' }}">
+          <td onclick="event.stopPropagation()">
+            <input type="checkbox" class="row-check" value="{{ r[0] }}"
+              {% if role != 'admin' and (r|length <= 11 or r[11] != user) %}disabled title="لا يمكنك حذف هذا الحجز"{% endif %}>
+          </td>
           <td style="color:var(--muted);font-size:11px;">{{ r[0] }}</td>
           <td><strong>{{ r[1] }}</strong></td>
           <td><span class="chip {% if r[2]=='قاعة' %}chip-q{% else %}chip-lab{% endif %}">{{ r[2] }}</span></td>
-          <td>{{ r[3] }}</td>
-          <td><strong>{{ r[4] }}</strong></td>
+          <td style="font-size:11px;color:var(--muted);">{{ r[3] }}</td>
+          <td><strong style="color:var(--accent2);">{{ r[4] }}</strong></td>
           <td><span class="chip {% if r[5]=='رجال' %}chip-m{% elif r[5]=='مختلط' %}chip-mix{% else %}chip-f{% endif %}">{{ r[5] }}</span></td>
           <td><span class="chip {% if r[6]=='صباحي' %}chip-s{% else %}chip-e{% endif %}">{{ r[6] }}</span></td>
           <td>{{ r[7] }}</td><td>{{ r[8] }}</td><td>{{ r[9] }}</td>
@@ -1709,6 +1852,99 @@ def batch_update():
 
     return jsonify({"ok": True, "saved": saved, "errors": errors})
 
+@app.route("/report/export")
+@admin_required
+def report_export():
+    import io
+    conn = get_conn()
+    rows = fetchall(conn, """
+        SELECT created_by, COUNT(*) as total,
+               SUM(CASE WHEN genre='رجال' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN genre='نساء' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN genre='مختلط' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN periode='صباحي' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN periode='مسائي' THEN 1 ELSE 0 END),
+               MIN(date_debut), MAX(date_fin)
+        FROM reservations WHERE created_by IS NOT NULL
+        GROUP BY created_by ORDER BY total DESC
+    """)
+    conn.close()
+    cols = ["المستخدم","الإجمالي","رجال","نساء","مختلط","صباحي","مسائي","أول حجز","آخر حجز"]
+    df = pd.DataFrame(rows, columns=cols)
+    buf = io.BytesIO(); df.to_excel(buf, index=False); buf.seek(0)
+    return send_file(buf, as_attachment=True, download_name="rapport_activite.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+@app.route("/profile", methods=["GET", "POST"])
+@login_required
+def profile():
+    if request.method == "POST":
+        old_pw   = request.form.get("old_password", "")
+        new_pw   = request.form.get("new_password", "")
+        confirm  = request.form.get("confirm_password", "")
+        if not old_pw or not new_pw or not confirm:
+            flash("يرجى ملء جميع الحقول", "error")
+            return redirect("/profile")
+        if new_pw != confirm:
+            flash("كلمة المرور الجديدة غير متطابقة", "error")
+            return redirect("/profile")
+        if len(new_pw) < 6:
+            flash("كلمة المرور يجب أن تكون 6 أحرف على الأقل", "error")
+            return redirect("/profile")
+        conn = get_conn()
+        row = fetchone(conn, "SELECT id FROM users WHERE username=? AND password=?",
+                       (session["user"], hash_password(old_pw)))
+        if not row:
+            conn.close()
+            flash("كلمة المرور الحالية غير صحيحة", "error")
+            return redirect("/profile")
+        execute(conn, "UPDATE users SET password=? WHERE username=?",
+                (hash_password(new_pw), session["user"]))
+        conn.commit(); conn.close()
+        flash("✅ تم تغيير كلمة المرور بنجاح", "success")
+        return redirect("/profile")
+
+    conn = get_conn()
+    stats = fetchone(conn, "SELECT COUNT(*) FROM reservations WHERE created_by=?", (session["user"],))
+    conn.close()
+    return render_template_string(PROFILE_TEMPLATE,
+        user=session["user"], role=session["role"],
+        total_added=stats[0] if stats else 0)
+
+
+@app.route("/report")
+@admin_required
+def report():
+    conn = get_conn()
+    # Activity per user
+    users_stats = fetchall(conn, """
+        SELECT created_by,
+               COUNT(*) as total,
+               SUM(CASE WHEN genre='رجال' THEN 1 ELSE 0 END) as men,
+               SUM(CASE WHEN genre='نساء' THEN 1 ELSE 0 END) as women,
+               SUM(CASE WHEN genre='مختلط' THEN 1 ELSE 0 END) as mixed,
+               SUM(CASE WHEN periode='صباحي' THEN 1 ELSE 0 END) as morning,
+               SUM(CASE WHEN periode='مسائي' THEN 1 ELSE 0 END) as evening,
+               MIN(date_debut) as first_date,
+               MAX(date_fin) as last_date
+        FROM reservations
+        WHERE created_by IS NOT NULL AND created_by != ''
+        GROUP BY created_by
+        ORDER BY total DESC
+    """)
+    # Recent activity per user (last 10 actions)
+    recent = fetchall(conn, """
+        SELECT created_by, id, course_code, titre, salle, date_debut, created_at
+        FROM reservations
+        ORDER BY created_at DESC
+        LIMIT 50
+    """)
+    conn.close()
+    return render_template_string(REPORT_TEMPLATE,
+        users_stats=users_stats, recent=recent,
+        user=session["user"], role=session["role"])
+
+
 @app.route("/live_count")
 @login_required
 def live_count():
@@ -1760,9 +1996,9 @@ def index():
     f_fin     = request.args.get("f_fin", "")
     dore_f    = request.args.get("dore_f", "")
 
-    # Explicit columns: id, course_code, type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur
+    # Explicit columns: id, course_code, type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur, created_by
     q = """SELECT id, course_code, type, etage, salle, genre, periode,
-                  date_debut, date_fin, titre, organisateur
+                  date_debut, date_fin, titre, organisateur, created_by
            FROM reservations WHERE 1=1"""
     params = []
     if search:    q += " AND (titre LIKE ? OR organisateur LIKE ? OR salle LIKE ? OR course_code LIKE ? OR CAST(id AS TEXT) LIKE ?)"; params += [f"%{search}%"] * 5
