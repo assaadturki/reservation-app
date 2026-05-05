@@ -66,14 +66,23 @@ def _bootstrap_db():
             course_code TEXT,
             type TEXT, etage TEXT, salle TEXT, genre TEXT, periode TEXT,
             date_debut TEXT, date_fin TEXT, titre TEXT, organisateur TEXT,
+            level TEXT, competance TEXT, method TEXT, registred INTEGER DEFAULT 0, status TEXT,
             created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
         conn.commit()
-        # Migration: add course_code if missing — must commit/rollback between DDL statements in PG
-        try:
-            execute(conn, "ALTER TABLE reservations ADD COLUMN course_code TEXT")
-            conn.commit()
-        except Exception:
-            conn.rollback()  # CRITICAL: reset failed transaction before continuing
+        # Migrations — each in its own try/except + rollback
+        for col, defval in [
+            ("course_code", "TEXT"),
+            ("level",       "TEXT"),
+            ("competance",  "TEXT"),
+            ("method",      "TEXT"),
+            ("registred",   "INTEGER DEFAULT 0"),
+            ("status",      "TEXT"),
+        ]:
+            try:
+                execute(conn, f"ALTER TABLE reservations ADD COLUMN {col} {defval}")
+                conn.commit()
+            except Exception:
+                conn.rollback()
         execute(conn, """CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
@@ -95,11 +104,20 @@ def _bootstrap_db():
             course_code TEXT,
             type TEXT, etage TEXT, salle TEXT, genre TEXT, periode TEXT,
             date_debut TEXT, date_fin TEXT, titre TEXT, organisateur TEXT,
+            level TEXT, competance TEXT, method TEXT, registred INTEGER DEFAULT 0, status TEXT,
             created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-        try:
-            execute(conn, "ALTER TABLE reservations ADD COLUMN course_code TEXT")
-        except Exception:
-            pass  # SQLite doesn't need rollback for this
+        for col, defval in [
+            ("course_code", "TEXT"),
+            ("level",       "TEXT"),
+            ("competance",  "TEXT"),
+            ("method",      "TEXT"),
+            ("registred",   "INTEGER DEFAULT 0"),
+            ("status",      "TEXT"),
+        ]:
+            try:
+                execute(conn, f"ALTER TABLE reservations ADD COLUMN {col} {defval}")
+            except Exception:
+                pass
         execute(conn, """CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
@@ -663,6 +681,43 @@ tbody td:last-child{border-left:none}
     <div class="field"><label>المنظم</label><input id="f-organisateur" placeholder="اسم المنظم"></div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div class="field"><label>المستوى</label>
+        <select id="f-level">
+          <option value="">—</option>
+          <option value="مبتدئ">مبتدئ</option>
+          <option value="متوسط">متوسط</option>
+          <option value="متقدم">متقدم</option>
+          <option value="خبير">خبير</option>
+        </select></div>
+      <div class="field"><label>الكفاءة</label>
+        <select id="f-competance">
+          <option value="">—</option>
+          <option value="سلوكية">سلوكية</option>
+          <option value="قيادية">قيادية</option>
+          <option value="فنية">فنية</option>
+          <option value="تطويري">تطويري</option>
+        </select></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div class="field"><label>الأسلوب</label>
+        <select id="f-method">
+          <option value="">—</option>
+          <option value="نظامي">نظامي</option>
+          <option value="عن بعد">عن بعد</option>
+          <option value="تطبيقي">تطبيقي</option>
+        </select></div>
+      <div class="field"><label>الحالة</label>
+        <select id="f-status">
+          <option value="">—</option>
+          <option value="ملغى">ملغى</option>
+          <option value="نشط">نشط</option>
+          <option value="بالتنفيذ">بالتنفيذ</option>
+          <option value="منتهي">منتهي</option>
+        </select></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
       <div class="field"><label>الطابق</label>
         <select id="f-etage" onchange="renderSalleGrid()">
           <option value="">اختر</option>
@@ -729,6 +784,11 @@ tbody td:last-child{border-left:none}
       <input type="hidden" name="debut" id="h-debut">
       <input type="hidden" name="fin" id="h-fin">
       <input type="hidden" name="salle" id="h-salle">
+      <input type="hidden" name="level" id="h-level">
+      <input type="hidden" name="competance" id="h-competance">
+      <input type="hidden" name="method" id="h-method">
+      <input type="hidden" name="registred" id="h-registred">
+      <input type="hidden" name="status" id="h-status">
     </form>
     <form method="POST" action="/update" id="form-edit" style="display:none">
       <input type="hidden" name="_qs" id="he-qs">
@@ -743,6 +803,11 @@ tbody td:last-child{border-left:none}
       <input type="hidden" name="debut" id="he-debut">
       <input type="hidden" name="fin" id="he-fin">
       <input type="hidden" name="salle" id="he-salle">
+      <input type="hidden" name="level" id="he-level">
+      <input type="hidden" name="competance" id="he-competance">
+      <input type="hidden" name="method" id="he-method">
+      <input type="hidden" name="registred" id="he-registred">
+      <input type="hidden" name="status" id="he-status">
     </form>
 
     <div style="margin-top:10px;padding-top:10px;border-top:1.5px solid var(--border);">
@@ -816,6 +881,10 @@ tbody td:last-child{border-left:none}
           <th class="sortable" onclick="sortTable(9)"><span class="sort-icon" id="si-9">⇅</span>النهاية</th>
           <th class="sortable" onclick="sortTable(10)"><span class="sort-icon" id="si-10">⇅</span>العنوان</th>
           <th class="sortable" onclick="sortTable(11)"><span class="sort-icon" id="si-11">⇅</span>المنظم</th>
+          <th class="sortable" onclick="sortTable(12)"><span class="sort-icon" id="si-12">⇅</span>المستوى</th>
+          <th class="sortable" onclick="sortTable(13)"><span class="sort-icon" id="si-13">⇅</span>الكفاءة</th>
+          <th class="sortable" onclick="sortTable(14)"><span class="sort-icon" id="si-14">⇅</span>الأسلوب</th>
+          <th class="sortable" onclick="sortTable(15)"><span class="sort-icon" id="si-15">⇅</span>الحالة</th>
         </tr></thead><tbody id="tbody">
         {% for r in data %}
         <tr onclick="fillForm({{ r[0] }})" data-id="{{ r[0] }}"
@@ -829,10 +898,14 @@ tbody td:last-child{border-left:none}
             data-fin="{{ r[8]|e }}"
             data-titre="{{ r[9]|e }}"
             data-organisateur="{{ r[10]|e }}"
-            data-created-by="{{ r[11]|e if r|length > 11 else '' }}">
+            data-level="{{ r[11]|e if r[11] else '' }}"
+            data-competance="{{ r[12]|e if r[12] else '' }}"
+            data-method="{{ r[13]|e if r[13] else '' }}"
+            data-status="{{ r[15]|e if r[15] else '' }}"
+            data-created-by="{{ r[16]|e if r[16] else '' }}">
           <td onclick="event.stopPropagation()">
             <input type="checkbox" class="row-check" value="{{ r[0] }}"
-              {% if role != 'admin' and (r|length <= 11 or r[11] != user) %}disabled title="لا يمكنك حذف هذا الحجز"{% endif %}>
+              {% if role != 'admin' and (not r[16] or r[16] != user) %}disabled title="لا يمكنك حذف هذا الحجز"{% endif %}>
           </td>
           <td style="color:var(--muted);font-size:11px;">{{ r[0] }}</td>
           <td><strong>{{ r[1] }}</strong></td>
@@ -843,6 +916,14 @@ tbody td:last-child{border-left:none}
           <td><span class="chip {% if r[6]=='صباحي' %}chip-s{% else %}chip-e{% endif %}">{{ r[6] }}</span></td>
           <td>{{ r[7] }}</td><td>{{ r[8] }}</td><td>{{ r[9] }}</td>
           <td style="color:var(--muted);">{{ r[10] }}</td>
+          <td style="font-size:11px;">{{ r[11] or '' }}</td>
+          <td style="font-size:11px;">{{ r[12] or '' }}</td>
+          <td style="font-size:11px;">{{ r[13] or '' }}</td>
+          <td style="font-size:11px;">
+            {% if r[15] %}
+            <span class="chip {% if r[15]=='ملغى' %}chip-lab{% elif r[15]=='نشط' %}chip-s{% elif r[15]=='بالتنفيذ' %}chip-mix{% else %}chip-m{% endif %}">{{ r[15] }}</span>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
         </tbody></table>
@@ -1522,6 +1603,11 @@ function syncHidden(p){
   document.getElementById(p+'-debut').value        = document.getElementById('f-debut').value;
   document.getElementById(p+'-fin').value          = document.getElementById('f-fin').value;
   document.getElementById(p+'-salle').value        = document.getElementById('f-salle').value;
+  document.getElementById(p+'-level').value        = document.getElementById('f-level').value;
+  document.getElementById(p+'-competance').value   = document.getElementById('f-competance').value;
+  document.getElementById(p+'-method').value       = document.getElementById('f-method').value;
+  document.getElementById(p+'-registred').value    = document.getElementById('f-registred')?.value || 0;
+  document.getElementById(p+'-status').value       = document.getElementById('f-status').value;
 }
 function validate(){
   let fields = [['f-titre','العنوان'],['f-organisateur','المنظم'],['f-genre','الجنس'],['f-periode','الفترة'],['f-debut','البداية'],['f-fin','النهاية']];
@@ -1562,6 +1648,10 @@ function fillForm(id){
   document.getElementById('f-debut').value         = debut;
   document.getElementById('f-fin').value           = fin;
   document.getElementById('f-salle').value         = salle;
+  document.getElementById('f-level').value         = row.dataset.level     || '';
+  document.getElementById('f-competance').value    = row.dataset.competance || '';
+  document.getElementById('f-method').value        = row.dataset.method     || '';
+  document.getElementById('f-status').value        = row.dataset.status     || '';
 
   renderSalleGrid(salle);
 
@@ -1605,7 +1695,7 @@ function sortTable(col){
   let rows = Array.from(tbody.querySelectorAll('tr'));
   if(sortCol === col){ sortAsc = !sortAsc; }
   else { sortCol = col; sortAsc = true; }
-  for(let i=1;i<=11;i++){
+  for(let i=1;i<=15;i++){
     let si = document.getElementById('si-'+i);
     if(si) si.textContent = (i===col) ? (sortAsc?'▲':'▼') : '⇅';
   }
@@ -1860,6 +1950,11 @@ def batch_update():
         titre        = str(row.get("titre", "")).strip()
         organisateur = str(row.get("organisateur", "")).strip()
         genre        = str(row.get("genre", "")).strip()
+        level        = str(row.get("level", "")).strip()
+        competance   = str(row.get("competance", "")).strip()
+        method       = str(row.get("method", "")).strip()
+        registred    = int(row.get("registred", 0) or 0)
+        status       = str(row.get("status", "")).strip()
 
         # Get original to compare
         orig = fetchone(conn, "SELECT salle,periode,date_debut,date_fin FROM reservations WHERE id=?", (id_,))
@@ -1878,10 +1973,12 @@ def batch_update():
 
         execute(conn, """UPDATE reservations SET
             course_code=?, type=?, etage=?, salle=?, genre=?, periode=?,
-            date_debut=?, date_fin=?, titre=?, organisateur=?
+            date_debut=?, date_fin=?, titre=?, organisateur=?,
+            level=?, competance=?, method=?, registred=?, status=?
             WHERE id=?""",
             (course_code, type_, etage, salle, genre, periode,
-             debut, fin, titre, organisateur, id_))
+             debut, fin, titre, organisateur,
+             level, competance, method, registred, status, id_))
         saved += 1
 
     conn.commit()
@@ -2049,11 +2146,15 @@ def index():
             flash("⚠️ تعارض في الحجز: القاعة محجوزة في هذه الفترة", "error")
             conn.close(); return redirect("/")
         execute(conn, """INSERT INTO reservations
-            (course_code,type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (
+            (course_code,type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,
+             level,competance,method,registred,status,created_by)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
             course_code, type_, etage, salle,
             request.form.get("genre"), periode, debut, fin,
-            request.form.get("titre"), request.form.get("organisateur"), session["user"]))
+            request.form.get("titre"), request.form.get("organisateur"),
+            request.form.get("level",""), request.form.get("competance",""),
+            request.form.get("method",""), int(request.form.get("registred",0) or 0),
+            request.form.get("status",""), session["user"]))
         conn.commit()
         titre = request.form.get("titre", "")
         users = fetchall(conn, "SELECT username FROM users")
@@ -2073,9 +2174,12 @@ def index():
     f_fin     = request.args.get("f_fin", "")
     dore_f    = request.args.get("dore_f", "")
 
-    # Explicit columns: id, course_code, type, etage, salle, genre, periode, date_debut, date_fin, titre, organisateur, created_by
+    # r[0]=id r[1]=course_code r[2]=type r[3]=etage r[4]=salle r[5]=genre r[6]=periode
+    # r[7]=date_debut r[8]=date_fin r[9]=titre r[10]=organisateur
+    # r[11]=level r[12]=competance r[13]=method r[14]=registred r[15]=status r[16]=created_by
     q = """SELECT id, course_code, type, etage, salle, genre, periode,
-                  date_debut, date_fin, titre, organisateur, created_by
+                  date_debut, date_fin, titre, organisateur,
+                  level, competance, method, registred, status, created_by
            FROM reservations WHERE 1=1"""
     params = []
     if search:    q += " AND (titre LIKE ? OR organisateur LIKE ? OR salle LIKE ? OR course_code LIKE ? OR CAST(id AS TEXT) LIKE ?)"; params += [f"%{search}%"] * 5
@@ -2110,11 +2214,13 @@ def export_excel():
     import io
     conn = get_conn()
     rows = fetchall(conn, """SELECT id, course_code, type, etage, salle, genre, periode,
-                                    date_debut, date_fin, titre, organisateur, created_by
+                                    date_debut, date_fin, titre, organisateur,
+                                    level, competance, method, registred, status, created_by
                              FROM reservations ORDER BY id""")
     conn.close()
-    cols = ["id", "course code", "type", "etage", "salle", "genre", "periode",
-            "date_debut", "date_fin", "titre", "organisateur", "created_by"]
+    cols = ["id","course code","type","etage","salle","genre","periode",
+            "date_debut","date_fin","titre","organisateur",
+            "Level","competance","method","registred","status","created_by"]
     df = pd.DataFrame(rows, columns=cols)
     buf = io.BytesIO()
     df.to_excel(buf, index=False)
@@ -2150,7 +2256,6 @@ def import_excel():
 
         course_code  = g("course_code", "course code")
         salle       = g("salle")
-        # Always derive etage and type from salle name
         etage       = SALLE_TO_ETAGE.get(salle, g("etage"))
         type_       = SALLE_TO_TYPE.get(salle,  g("type"))
         genre       = g("genre")
@@ -2159,19 +2264,25 @@ def import_excel():
         date_fin    = g("date_fin")[:10]   if g("date_fin")   else ""
         titre       = g("titre")
         organisateur = g("organisateur")
+        level       = g("level")
+        competance  = g("competance")
+        method      = g("method")
+        registred   = int(g("registred") or 0)
+        status      = g("status")
         created_by  = g("created_by") or session["user"]
 
-        # Skip completely empty rows
         if not titre and not organisateur and not salle:
             skipped += 1
             continue
 
         try:
             execute(conn, """INSERT INTO reservations
-                (course_code,type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (course_code,type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,
+                 level,competance,method,registred,status,created_by)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (course_code, type_, etage, salle, genre, periode,
-                 date_debut, date_fin, titre, organisateur, created_by))
+                 date_debut, date_fin, titre, organisateur,
+                 level, competance, method, registred, status, created_by))
             imported += 1
         except Exception:
             skipped += 1
@@ -2195,7 +2306,29 @@ def update():
     titre        = request.form.get("titre", "").strip()
     organisateur = request.form.get("organisateur", "").strip()
     genre        = request.form.get("genre", "").strip()
+    level        = request.form.get("level", "").strip()
+    competance   = request.form.get("competance", "").strip()
+    method       = request.form.get("method", "").strip()
+    registred    = int(request.form.get("registred", 0) or 0)
+    status       = request.form.get("status", "").strip()
+    conn = get_conn()
     orig = fetchone(conn, "SELECT salle,periode,date_debut,date_fin FROM reservations WHERE id=?", (id_,))
+    if not orig:
+        flash("الحجز غير موجود", "error"); conn.close(); return redirect("/")
+    if salle != orig[0] or periode != orig[1] or debut != orig[2] or fin != orig[3]:
+        conflict = fetchone(conn, """SELECT id FROM reservations
+            WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=? AND id!=?""",
+            (salle, periode, fin, debut, id_))
+        if conflict:
+            flash("⚠️ تعارض في الحجز: القاعة محجوزة في هذه الفترة", "error")
+            conn.close(); return redirect("/")
+    execute(conn, """UPDATE reservations SET
+        course_code=?, type=?, etage=?, salle=?, genre=?, periode=?,
+        date_debut=?, date_fin=?, titre=?, organisateur=?,
+        level=?, competance=?, method=?, registred=?, status=?
+        WHERE id=?""",
+        (course_code, type_, etage, salle, genre, periode, debut, fin, titre, organisateur,
+         level, competance, method, registred, status, id_))
     if not orig:
         flash("الحجز غير موجود", "error"); conn.close(); return redirect("/")
     if salle != orig[0] or periode != orig[1] or debut != orig[2] or fin != orig[3]:
