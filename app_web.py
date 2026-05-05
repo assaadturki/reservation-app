@@ -1524,7 +1524,7 @@ function syncHidden(p){
   document.getElementById(p+'-salle').value        = document.getElementById('f-salle').value;
 }
 function validate(){
-  let fields = [['f-titre','العنوان'],['f-organisateur','المنظم'],['f-etage','الطابق'],['f-genre','الجنس'],['f-periode','الفترة'],['f-debut','البداية'],['f-fin','النهاية']];
+  let fields = [['f-titre','العنوان'],['f-organisateur','المنظم'],['f-genre','الجنس'],['f-periode','الفترة'],['f-debut','البداية'],['f-fin','النهاية']];
   for(let [id,lbl] of fields){
     if(!document.getElementById(id).value){alert('يرجى إدخال: '+lbl);return false;}
   }
