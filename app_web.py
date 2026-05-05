@@ -1792,8 +1792,10 @@ def calendar_events():
     return jsonify(events)
 
 SALLE_TO_ETAGE = {}
+SALLE_TO_TYPE  = {}
 for s in SALLES:
     SALLE_TO_ETAGE[s["nom"]] = s["etage"]
+    SALLE_TO_TYPE[s["nom"]]  = s["type"]
 
 @app.route("/batch_update", methods=["POST"])
 @login_required
@@ -1813,12 +1815,12 @@ def batch_update():
         course_code  = str(row.get("course_code", "")).strip()
         salle        = str(row.get("salle", "")).strip()
         etage        = SALLE_TO_ETAGE.get(salle, str(row.get("etage", "")).strip())
+        type_        = SALLE_TO_TYPE.get(salle,  str(row.get("type",  "")).strip())
         debut        = str(row.get("debut", "")).strip()
         fin          = str(row.get("fin", "")).strip()
         periode      = str(row.get("periode", "")).strip()
         titre        = str(row.get("titre", "")).strip()
         organisateur = str(row.get("organisateur", "")).strip()
-        type_        = str(row.get("type", "")).strip()
         genre        = str(row.get("genre", "")).strip()
 
         # Get original to compare
@@ -1959,11 +1961,14 @@ def index():
     init_db()
     conn = get_conn()
     if request.method == "POST":
-        salle        = request.form.get("salle", "")
+        salle        = request.form.get("salle", "").strip()
         debut        = request.form.get("debut", "")
         fin          = request.form.get("fin", "")
         periode      = request.form.get("periode", "")
         course_code  = request.form.get("course_code", "").strip()
+        # Always derive etage from salle name — never trust form etage field
+        etage = SALLE_TO_ETAGE.get(salle, request.form.get("etage", "").strip())
+        type_ = SALLE_TO_TYPE.get(salle, request.form.get("type", "").strip())
         conflict = fetchone(conn, """SELECT id FROM reservations
             WHERE salle=? AND periode=? AND date_debut<=? AND date_fin>=?""",
             (salle, periode, fin, debut))
@@ -1973,8 +1978,7 @@ def index():
         execute(conn, """INSERT INTO reservations
             (course_code,type,etage,salle,genre,periode,date_debut,date_fin,titre,organisateur,created_by)
             VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (
-            course_code,
-            request.form.get("type"), request.form.get("etage"), salle,
+            course_code, type_, etage, salle,
             request.form.get("genre"), periode, debut, fin,
             request.form.get("titre"), request.form.get("organisateur"), session["user"]))
         conn.commit()
@@ -2072,9 +2076,10 @@ def import_excel():
             return ""
 
         course_code  = g("course_code", "course code")
-        type_       = g("type")
-        etage       = g("etage")
         salle       = g("salle")
+        # Always derive etage and type from salle name
+        etage       = SALLE_TO_ETAGE.get(salle, g("etage"))
+        type_       = SALLE_TO_TYPE.get(salle,  g("type"))
         genre       = g("genre")
         periode     = g("periode")
         date_debut  = g("date_debut")[:10] if g("date_debut") else ""
@@ -2110,12 +2115,12 @@ def update():
     course_code  = request.form.get("course_code", "").strip()
     salle        = request.form.get("salle", "").strip()
     etage        = SALLE_TO_ETAGE.get(salle, request.form.get("etage", "").strip())
+    type_        = SALLE_TO_TYPE.get(salle,  request.form.get("type",  "").strip())
     debut        = request.form.get("debut", "").strip()
     fin          = request.form.get("fin", "").strip()
     periode      = request.form.get("periode", "").strip()
     titre        = request.form.get("titre", "").strip()
     organisateur = request.form.get("organisateur", "").strip()
-    type_        = request.form.get("type", "").strip()
     genre        = request.form.get("genre", "").strip()
     orig = fetchone(conn, "SELECT salle,periode,date_debut,date_fin FROM reservations WHERE id=?", (id_,))
     if not orig:
