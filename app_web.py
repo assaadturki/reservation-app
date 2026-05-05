@@ -1173,13 +1173,25 @@ function renderGantt(){
               let cellBg = isToday ? 'rgba(45,106,90,.06)' : rowBg;
               let evList = sEv[d] || [];
               if(evList.length > 0){
-                // Purple if booked both matin AND soir
                 let hasMatin = evList.some(e=>e.periode==='صباحي');
                 let hasSoir  = evList.some(e=>e.periode==='مسائي');
-                let color = (hasMatin && hasSoir) ? '#8e44ad' : '#c0392b';
-                let border= (hasMatin && hasSoir) ? '#6c3483' : '#922b21';
-                let firstEv = evList[0];
-                let evIds = evList.map(e=>e.id).join(',');
+                let firstEv  = evList[0];
+                let evIds    = evList.map(e=>e.id).join(',');
+                let allIPA   = evList.every(e=>(e.organisateur||'').trim()==='IPA - CGB');
+
+                let color, border;
+                if(allIPA){
+                  // IPA-CGB: teal/blue palette
+                  if(hasMatin && hasSoir){ color='#1a3a5c'; border='#0f2440'; }  // bleu foncé  ص+م
+                  else if(hasSoir)       { color='#5b9bd5'; border='#3a7ab8'; }  // bleu clair  مسائي
+                  else                   { color='#7bbfb0'; border='#5aa396'; }  // vert teal   صباحي
+                } else {
+                  // Autre organisateur: jaune/orange/rouge selon période
+                  if(hasMatin && hasSoir){ color='#c0392b'; border='#922b21'; }  // rouge carmin ص+م
+                  else if(hasSoir)       { color='#e8a020'; border='#c07010'; }  // orange       مسائي
+                  else                   { color='#f0cc40'; border='#c8a010'; }  // jaune        صباحي
+                }
+
                 return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
                   <div style="background:${color};border:1.5px solid ${border};border-radius:4px;height:20px;cursor:pointer;"
                     data-ev-ids="${evIds}"
@@ -1188,7 +1200,7 @@ function renderGantt(){
                 </td>`;
               }
               return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
-                <div style="background:#27ae60;border:1.5px solid #1e8449;border-radius:4px;height:20px;opacity:.2;"></div>
+                <div style="background:#a8d5cb;border-radius:4px;height:20px;opacity:.35;"></div>
               </td>`;
             }).join('')}
           </tr>`;
@@ -1197,12 +1209,20 @@ function renderGantt(){
     </table>
     </div>
 
-    <div style="padding:7px 14px;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;border-top:1px solid var(--border);background:var(--bg);align-items:center;">
-      <span><span style="display:inline-block;width:14px;height:14px;background:#c0392b;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مشغول</span>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#8e44ad;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مشغول (ص+م)</span>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#27ae60;opacity:.4;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>متاح</span>
-      <span><span style="display:inline-block;width:14px;height:14px;background:repeating-linear-gradient(45deg,#ccc,#ccc 2px,#ddd 2px,#ddd 8px);border-radius:3px;vertical-align:middle;margin-left:4px;"></span>عطلة (ج/س)</span>
-      ${ganttPeriode ? `<span style="background:rgba(255,255,255,.3);padding:2px 10px;border-radius:10px;font-weight:700;">الفترة: ${ganttPeriode}</span>` : ''}
+    <div style="padding:8px 14px;display:flex;gap:14px;flex-wrap:wrap;font-size:11px;border-top:1px solid var(--border);background:var(--bg);align-items:center;">
+      <strong style="color:var(--muted)">IPA-CGB:</strong>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#7bbfb0;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>صباحي</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#5b9bd5;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مسائي</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#1a3a5c;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>ص+م</span>
+      <span style="border-right:1px solid var(--border);padding-right:14px;margin-right:0;"></span>
+      <strong style="color:var(--muted)">جهة خارجية:</strong>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#f0cc40;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>صباحي</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#e8a020;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مسائي</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#c0392b;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>ص+م</span>
+      <span style="border-right:1px solid var(--border);padding-right:14px;margin-right:0;"></span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#a8d5cb;opacity:.5;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>متاح</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:repeating-linear-gradient(45deg,#ccc,#ccc 2px,#ddd 2px,#ddd 8px);border-radius:3px;vertical-align:middle;margin-left:4px;"></span>عطلة</span>
+      ${ganttPeriode ? `<span style="background:rgba(0,0,0,.1);padding:2px 10px;border-radius:10px;font-weight:700;">الفترة: ${ganttPeriode}</span>` : ''}
     </div>
     `}
   </div>`;
