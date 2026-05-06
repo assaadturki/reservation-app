@@ -1,12 +1,20 @@
 import os
 import hashlib
+import json
 from functools import wraps
 from datetime import datetime, timedelta
+from collections import defaultdict
 
 import pandas as pd
 from flask import Flask, request, redirect, send_file, session, jsonify, flash, render_template_string
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "change_this_secret_key_in_production")
+
+# ─── In-memory online users tracker ──────────────────────────────────────────
+# {username: {"last_seen": datetime, "login_time": datetime, "ip": str}}
+ONLINE_USERS = {}
+ONLINE_TIMEOUT = 300  # 5 min inactivity = considered offline
 app.secret_key = os.environ.get("SECRET_KEY", "change_this_secret_key_in_production")
 
 # ─── DATABASE: PostgreSQL (Render) ou SQLite (local) ──────────────────────────
@@ -93,6 +101,11 @@ def _bootstrap_db():
             "user" TEXT, message TEXT, is_read INTEGER DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
         conn.commit()
+        execute(conn, """CREATE TABLE IF NOT EXISTS user_sessions (
+            id SERIAL PRIMARY KEY,
+            username TEXT, login_at TEXT, logout_at TEXT,
+            duration_seconds INTEGER DEFAULT 0, ip TEXT)""")
+        conn.commit()
         row = fetchone(conn, "SELECT COUNT(*) FROM users WHERE username=%s", ("admin",))
         if row[0] == 0:
             execute(conn, "INSERT INTO users (username,password,role) VALUES (%s,%s,%s)",
@@ -126,6 +139,10 @@ def _bootstrap_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user TEXT, message TEXT, is_read INTEGER DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        execute(conn, """CREATE TABLE IF NOT EXISTS user_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT, login_at TEXT, logout_at TEXT,
+            duration_seconds INTEGER DEFAULT 0, ip TEXT)""")
         row = fetchone(conn, "SELECT COUNT(*) FROM users WHERE username=?", ("admin",))
         if row[0] == 0:
             execute(conn, "INSERT INTO users (username,password,role) VALUES (?,?,?)",
@@ -325,6 +342,208 @@ tbody tr:last-child td{border-bottom:none}
     </div>
   </div>
 </div></body></html>"""
+
+DASHBOARD_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>لوحة التحكم</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#e8f0ee;--topbar:#5a8a7a;--accent:#3d7a6a;--accent2:#2d6a5a;--text:#1a2e28;--muted:#5a7a72;--border:#a8c8c0;--white:#fff;--green:#27ae60;--red:#c0392b;--blue:#2471a3;--orange:#e67e22}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);direction:rtl}
+.topbar{background:var(--topbar);color:#fff;padding:0 16px;display:flex;align-items:center;gap:10px;height:44px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.topbar h1{font-size:14px;font-weight:900;flex:1}
+a.tbtn{color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 12px;font-family:'Cairo',sans-serif;font-size:11px;text-decoration:none;font-weight:700}
+a.tbtn:hover{background:rgba(255,255,255,.2)}
+.main{padding:16px;max-width:1400px;margin:0 auto}
+.filter-bar{background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.filter-bar label{font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:3px;text-transform:uppercase}
+.filter-bar input{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-family:'Cairo',sans-serif;font-size:12px;height:32px;outline:none}
+.filter-bar input:focus{border-color:var(--accent)}
+.fbtn{background:var(--topbar);color:#fff;border:none;border-radius:6px;padding:0 16px;height:32px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:16px;text-align:center;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;right:0;left:0;height:4px}
+.kpi.green::before{background:var(--green)}.kpi.blue::before{background:var(--blue)}
+.kpi.red::before{background:var(--red)}.kpi.orange::before{background:var(--orange)}
+.kpi.teal::before{background:var(--topbar)}
+.kpi-val{font-size:32px;font-weight:900;color:var(--accent2);line-height:1}
+.kpi-label{font-size:11px;color:var(--muted);margin-top:5px;font-weight:600}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.dash-grid.three{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:900px){.dash-grid,.dash-grid.three{grid-template-columns:1fr}}
+.card{background:var(--white);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:0}
+.card-header{background:var(--topbar);padding:10px 14px;color:#fff;font-size:13px;font-weight:900;display:flex;align-items:center;gap:8px}
+.card-body{padding:14px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px}
+.bar-label{min-width:80px;text-align:right;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.bar-track{flex:1;background:#e8f0ee;border-radius:4px;height:20px}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-right:6px;justify-content:flex-end;min-width:24px}
+.bar-val{font-size:10px;font-weight:700;color:#fff}
+.donut-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px}
+.dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.donut-label{flex:1;font-weight:600}
+.donut-pct{font-weight:700;color:var(--accent2)}
+.online-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:14px}
+.user-card{border:1.5px solid var(--border);border-radius:8px;padding:10px 12px}
+.user-card.active{border-color:var(--green);background:#f0faf4}
+.user-card.idle{border-color:var(--orange);background:#fef8f0}
+.user-name{font-size:13px;font-weight:900;color:var(--accent2)}
+.user-meta{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.6}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:4px}
+.status-dot.active{background:var(--green)}.status-dot.idle{background:var(--orange)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--topbar);color:#fff;padding:8px 10px;text-align:center;font-size:11px}
+tbody td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)}
+tbody tr:nth-child(even){background:#f5faf8}
+</style></head>
+<body>
+<div class="topbar">
+  <a href="/" class="tbtn">← رجوع</a>
+  <h1>📊 لوحة التحكم — إحصائيات النظام</h1>
+  <a href="/report" class="tbtn">👥 تقرير المستخدمين</a>
+</div>
+<div class="main">
+  <form method="GET" class="filter-bar">
+    <div><label>من تاريخ</label><input type="date" name="f_debut" value="{{ f_debut }}"></div>
+    <div><label>إلى تاريخ</label><input type="date" name="f_fin"   value="{{ f_fin }}"></div>
+    <button type="submit" class="fbtn">🔍 تطبيق</button>
+    <a href="/dashboard" class="tbtn" style="height:32px;display:inline-flex;align-items:center;background:var(--topbar);">✕ مسح</a>
+  </form>
+
+  <div class="kpi-grid">
+    <div class="kpi green"><div class="kpi-val">{{ total }}</div><div class="kpi-label">إجمالي الحجوزات</div></div>
+    <div class="kpi blue"><div class="kpi-val">{{ salle_count }}</div><div class="kpi-label">حجوزات قاعات</div></div>
+    <div class="kpi red"><div class="kpi-val">{{ lab_count }}</div><div class="kpi-label">حجوزات مختبرات</div></div>
+    <div class="kpi orange"><div class="kpi-val">{{ by_etage|length }}</div><div class="kpi-label">طوابق نشطة</div></div>
+    <div class="kpi teal"><div class="kpi-val">{{ by_org|length }}</div><div class="kpi-label">منظمون مختلفون</div></div>
+    <div class="kpi green"><div class="kpi-val" id="kpi-online">—</div><div class="kpi-label">متصلون الآن</div></div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="card"><div class="card-header">🏢 الحجوزات حسب الطابق</div><div class="card-body">
+      {% set max_e = namespace(v=1) %}{% for r in by_etage %}{% if r[1]>max_e.v %}{% set max_e.v=r[1] %}{% endif %}{% endfor %}
+      {% for row in by_etage %}{% set pct=(row[1]/max_e.v*100)|round|int %}
+      <div class="bar-row"><span class="bar-label">{{ row[0] or '—' }}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:{{ pct }}%;background:var(--accent)"><span class="bar-val">{{ row[1] }}</span></div></div>
+      </div>{% endfor %}
+    </div></div>
+
+    <div class="card"><div class="card-header">🏆 أكثر القاعات استخداماً</div><div class="card-body">
+      {% set max_s = namespace(v=1) %}{% if by_salle %}{% set max_s.v=by_salle[0][1] %}{% endif %}
+      {% for row in by_salle %}{% set pct=(row[1]/max_s.v*100)|round|int %}
+      {% set col=['#c0392b','#c0392b','#c0392b','#2471a3','#2471a3','#2471a3','#3d7a6a','#3d7a6a','#3d7a6a','#3d7a6a','#3d7a6a','#3d7a6a','#3d7a6a','#3d7a6a','#3d7a6a'] %}
+      <div class="bar-row"><span class="bar-label">{{ row[0] }}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:{{ pct }}%;background:{{ col[loop.index0] }}"><span class="bar-val">{{ row[1] }}</span></div></div>
+      </div>{% endfor %}
+    </div></div>
+  </div>
+
+  <div class="dash-grid three">
+    <div class="card"><div class="card-header">👥 حسب الجنس</div><div class="card-body">
+      {% set tot_g=namespace(v=1) %}{% for r in by_genre %}{% set tot_g.v=tot_g.v+r[1] %}{% endfor %}
+      {% set cg=['#2980b9','#e67e22','#8e44ad'] %}
+      {% for row in by_genre %}<div class="donut-row">
+        <span class="dot" style="background:{{ cg[loop.index0%3] }}"></span>
+        <span class="donut-label">{{ row[0] }}</span>
+        <span class="donut-pct">{{ row[1] }} <small style="color:var(--muted)">({{ (row[1]/tot_g.v*100)|round(1) }}%)</small></span>
+      </div>{% endfor %}
+    </div></div>
+
+    <div class="card"><div class="card-header">⏰ حسب الفترة</div><div class="card-body">
+      {% set tot_p=namespace(v=1) %}{% for r in by_periode %}{% set tot_p.v=tot_p.v+r[1] %}{% endfor %}
+      {% for row in by_periode %}<div class="donut-row">
+        <span class="dot" style="background:{% if row[0]=='صباحي' %}#27ae60{% else %}#8e44ad{% endif %}"></span>
+        <span class="donut-label">{{ row[0] }}</span>
+        <span class="donut-pct">{{ row[1] }} <small style="color:var(--muted)">({{ (row[1]/tot_p.v*100)|round(1) }}%)</small></span>
+      </div>{% endfor %}
+    </div></div>
+
+    <div class="card"><div class="card-header">🏛️ قاعة vs مختبر</div><div class="card-body">
+      {% set tot_t=namespace(v=1) %}{% for r in by_type %}{% set tot_t.v=tot_t.v+r[1] %}{% endfor %}
+      {% for row in by_type %}<div class="donut-row">
+        <span class="dot" style="background:{% if row[0]=='قاعة' %}#3d7a6a{% else %}#c0392b{% endif %}"></span>
+        <span class="donut-label">{{ row[0] }}</span>
+        <span class="donut-pct">{{ row[1] }} <small style="color:var(--muted)">({{ (row[1]/tot_t.v*100)|round(1) }}%)</small></span>
+      </div>{% endfor %}
+    </div></div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="card"><div class="card-header">📅 التوزيع الشهري</div><div class="card-body">
+      {% set max_m=namespace(v=1) %}{% for r in by_month %}{% if r[1]>max_m.v %}{% set max_m.v=r[1] %}{% endif %}{% endfor %}
+      {% for row in by_month|reverse %}{% set pct=(row[1]/max_m.v*100)|round|int %}
+      <div class="bar-row"><span class="bar-label">{{ row[0] }}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:{{ pct }}%;background:var(--blue)"><span class="bar-val">{{ row[1] }}</span></div></div>
+      </div>{% endfor %}
+    </div></div>
+
+    <div class="card"><div class="card-header">🏢 أكثر المنظمين نشاطاً</div><div class="card-body">
+      {% set max_o=namespace(v=1) %}{% if by_org %}{% set max_o.v=by_org[0][1] %}{% endif %}
+      {% for row in by_org %}{% set pct=(row[1]/max_o.v*100)|round|int %}
+      <div class="bar-row"><span class="bar-label" title="{{ row[0] }}">{{ row[0][:18] }}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:{{ pct }}%;background:var(--orange)"><span class="bar-val">{{ row[1] }}</span></div></div>
+      </div>{% endfor %}
+    </div></div>
+  </div>
+
+  <!-- Online users -->
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-header">🟢 المستخدمون المتصلون الآن
+      <span id="online-count" style="background:rgba(255,255,255,.25);padding:1px 10px;border-radius:10px;font-size:11px;margin-right:8px;">—</span>
+      <button onclick="loadOnline()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:11px;">🔄</button>
+    </div>
+    <div id="online-grid" class="online-grid">
+      <div style="padding:20px;text-align:center;color:var(--muted);grid-column:1/-1;">جاري التحميل...</div>
+    </div>
+  </div>
+
+  <!-- Session stats -->
+  <div class="card">
+    <div class="card-header">⏱️ إحصائيات جلسات المستخدمين</div>
+    <table><thead><tr>
+      <th>المستخدم</th><th>عدد الجلسات</th><th>إجمالي وقت النشاط</th><th>متوسط الجلسة</th><th>آخر دخول</th>
+    </tr></thead><tbody>
+    {% for r in session_stats %}
+    <tr>
+      <td><strong style="color:var(--accent2)">{{ r[0] }}</strong></td>
+      <td>{{ r[1] }}</td>
+      <td>{% set h=(r[2]//3600)|int %}{% set m=((r[2]%3600)//60)|int %}{{ h }}س {{ m }}د</td>
+      <td>{% if r[3] %}{{ (r[3]//60)|int }}د{% else %}—{% endif %}</td>
+      <td style="font-size:11px;color:var(--muted)">{{ r[4] or '—' }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">لا توجد بيانات جلسات بعد</td></tr>
+    {% endfor %}
+    </tbody></table>
+  </div>
+</div>
+
+<script>
+async function loadOnline(){
+  try{
+    let data=await(await fetch('/api/online_users')).json();
+    document.getElementById('online-count').textContent=data.length+' متصل';
+    let kpi=document.getElementById('kpi-online');
+    if(kpi) kpi.textContent=data.length;
+    let grid=document.getElementById('online-grid');
+    if(!data.length){grid.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);grid-column:1/-1;">لا يوجد مستخدمون متصلون حالياً</div>';return;}
+    grid.innerHTML=data.map(u=>`
+      <div class="user-card ${u.status==='نشط'?'active':'idle'}">
+        <div class="user-name"><span class="status-dot ${u.status==='نشط'?'active':'idle'}"></span>${u.username}</div>
+        <div class="user-meta">🕐 دخل: ${u.login_time}</div>
+        <div class="user-meta">👁️ آخر نشاط: ${u.last_seen}</div>
+        <div class="user-meta">⏱️ مدة: ${u.active_minutes} دقيقة</div>
+        <div class="user-meta">🌐 ${u.ip}</div>
+        <div class="user-meta" style="font-weight:700;color:${u.status==='نشط'?'#27ae60':'#e67e22'}">${u.status}</div>
+      </div>`).join('');
+  }catch(e){console.error(e);}
+}
+loadOnline();
+setInterval(loadOnline,30000);
+</script>
+</body></html>"""
 
 PROFILE_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -652,7 +871,8 @@ tbody td:last-child{border-left:none}
       <span class="role-badge">{{ 'مسؤول' if role=='admin' else 'مستخدم' }}</span>
     </div>
     <a href="/profile" class="logout">👤 ملفي</a>
-    {% if role == 'admin' %}<a href="/report" class="logout">📊 تقرير</a>{% endif %}
+    {% if role == 'admin' %}<a href="/dashboard" class="logout">📊 لوحة</a>{% endif %}
+    {% if role == 'admin' %}<a href="/report" class="logout">📋 تقرير</a>{% endif %}
     <a href="/logout" class="logout">خروج</a>
   </div>
 </nav>
@@ -1754,6 +1974,10 @@ function openNotifDrawer(){document.getElementById('notif-drawer').classList.add
 function closeNotifDrawer(){document.getElementById('notif-drawer').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
 async function markAllRead(){await fetch('/notifications/read',{method:'POST'});document.getElementById('notif-badge').style.display='none';loadNotifications();}
 setInterval(loadNotifications,30000);loadNotifications();
+
+// ── HEARTBEAT (keep online status) ───────────────────────────────
+setInterval(()=>fetch('/heartbeat',{method:'POST'}), 60000);
+fetch('/heartbeat',{method:'POST'}); // immediate on load
 </script>
 </body></html>"""
 
@@ -1803,13 +2027,44 @@ def login():
                        (u, hash_password(p)))
         conn.close()
         if row:
-            session["user"] = row[0]; session["role"] = row[1]; return redirect("/")
+            session["user"] = row[0]
+            session["role"] = row[1]
+            session["login_time"] = datetime.now().isoformat()
+            # Track online
+            ONLINE_USERS[row[0]] = {
+                "last_seen": datetime.now(),
+                "login_time": datetime.now(),
+                "ip": request.remote_addr or "—"
+            }
+            # Log session to DB
+            conn2 = get_conn()
+            execute(conn2, "INSERT INTO user_sessions (username, login_at, ip) VALUES (?,?,?)",
+                    (row[0], datetime.now().isoformat(), request.remote_addr or ""))
+            conn2.commit(); conn2.close()
+            return redirect("/")
         flash("اسم المستخدم أو كلمة المرور غير صحيحة", "error")
     return render_template_string(LOGIN_TEMPLATE)
 
 @app.route("/logout")
 def logout():
-    session.clear(); return redirect("/login")
+    u = session.get("user")
+    login_time_str = session.get("login_time")
+    if u and login_time_str:
+        try:
+            login_dt = datetime.fromisoformat(login_time_str)
+            duration = int((datetime.now() - login_dt).total_seconds())
+            conn = get_conn()
+            # Update last open session
+            execute(conn, """UPDATE user_sessions SET logout_at=?, duration_seconds=?
+                WHERE username=? AND logout_at IS NULL
+                ORDER BY id DESC LIMIT 1""",
+                (datetime.now().isoformat(), duration, u))
+            conn.commit(); conn.close()
+        except Exception:
+            pass
+        ONLINE_USERS.pop(u, None)
+    session.clear()
+    return redirect("/login")
 
 @app.route("/register", methods=["GET", "POST"])
 @admin_required
@@ -2069,6 +2324,73 @@ def profile():
         total_added=stats[0] if stats else 0)
 
 
+@app.route("/dashboard")
+@admin_required
+def dashboard():
+    conn = get_conn()
+    f_debut = request.args.get("f_debut", "")
+    f_fin   = request.args.get("f_fin", "")
+
+    where = "WHERE 1=1"
+    params = []
+    if f_debut: where += " AND date_debut>=?"; params.append(f_debut)
+    if f_fin:   where += " AND date_fin<=?";   params.append(f_fin)
+
+    # Global stats
+    total = fetchone(conn, f"SELECT COUNT(*) FROM reservations {where}", params)[0]
+
+    # By etage
+    by_etage = fetchall(conn, f"""SELECT etage, COUNT(*) FROM reservations {where}
+        AND etage!='' GROUP BY etage ORDER BY etage""", params)
+
+    # By salle (top 15)
+    by_salle = fetchall(conn, f"""SELECT salle, COUNT(*) as n FROM reservations {where}
+        AND salle!='' GROUP BY salle ORDER BY n DESC LIMIT 15""", params)
+
+    # By type (قاعة/مختبر)
+    by_type = fetchall(conn, f"""SELECT type, COUNT(*) FROM reservations {where}
+        AND type!='' GROUP BY type""", params)
+
+    # By genre
+    by_genre = fetchall(conn, f"""SELECT genre, COUNT(*) FROM reservations {where}
+        AND genre!='' GROUP BY genre""", params)
+
+    # By periode
+    by_periode = fetchall(conn, f"""SELECT periode, COUNT(*) FROM reservations {where}
+        AND periode!='' GROUP BY periode""", params)
+
+    # By month (last 12 months)
+    by_month = fetchall(conn, f"""SELECT SUBSTR(date_debut,1,7) as m, COUNT(*)
+        FROM reservations {where} AND date_debut!=''
+        GROUP BY m ORDER BY m DESC LIMIT 12""", params)
+
+    # Occupancy rate per salle (days occupied / total workdays in range)
+    # Top organisateurs
+    by_org = fetchall(conn, f"""SELECT organisateur, COUNT(*) as n FROM reservations {where}
+        AND organisateur!='' GROUP BY organisateur ORDER BY n DESC LIMIT 10""", params)
+
+    # Lab vs Salle stats
+    lab_count  = fetchone(conn, f"SELECT COUNT(*) FROM reservations {where} AND type='مختبر'", params)[0]
+    salle_count= fetchone(conn, f"SELECT COUNT(*) FROM reservations {where} AND type='قاعة'", params)[0]
+
+    # Session stats per user
+    session_stats = fetchall(conn, """
+        SELECT username, COUNT(*) as sessions,
+               SUM(duration_seconds) as total_sec,
+               AVG(duration_seconds) as avg_sec,
+               MAX(login_at) as last_login
+        FROM user_sessions WHERE duration_seconds > 0
+        GROUP BY username ORDER BY total_sec DESC""")
+
+    conn.close()
+    return render_template_string(DASHBOARD_TEMPLATE,
+        total=total, by_etage=by_etage, by_salle=by_salle,
+        by_type=by_type, by_genre=by_genre, by_periode=by_periode,
+        by_month=by_month, by_org=by_org, lab_count=lab_count,
+        salle_count=salle_count, session_stats=session_stats,
+        f_debut=f_debut, f_fin=f_fin,
+        user=session["user"], role=session["role"])
+
 @app.route("/report")
 @admin_required
 def report():
@@ -2136,6 +2458,39 @@ def fix_etage_type():
     conn.close()
     flash(f"✅ تم إصلاح {fixed} سجل — الطابق والنوع تم تصحيحهما", "success")
     return redirect("/")
+
+@app.route("/heartbeat", methods=["POST"])
+@login_required
+def heartbeat():
+    u = session.get("user")
+    if u:
+        if u not in ONLINE_USERS:
+            ONLINE_USERS[u] = {"login_time": datetime.now(), "ip": request.remote_addr or "—"}
+        ONLINE_USERS[u]["last_seen"] = datetime.now()
+    return jsonify({"ok": True})
+
+@app.route("/api/online_users")
+@admin_required
+def online_users_api():
+    now = datetime.now()
+    result = []
+    for uname, info in list(ONLINE_USERS.items()):
+        last = info.get("last_seen", now)
+        inactive = (now - last).total_seconds()
+        if inactive > ONLINE_TIMEOUT:
+            continue  # expired
+        login_t = info.get("login_time", last)
+        active_sec = int((now - login_t).total_seconds())
+        result.append({
+            "username": uname,
+            "ip": info.get("ip", "—"),
+            "login_time": login_t.strftime("%H:%M:%S"),
+            "last_seen": last.strftime("%H:%M:%S"),
+            "active_minutes": active_sec // 60,
+            "inactive_seconds": int(inactive),
+            "status": "نشط" if inactive < 60 else "خامل"
+        })
+    return jsonify(result)
 
 @app.route("/live_count")
 @login_required
