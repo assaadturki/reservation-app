@@ -1485,7 +1485,7 @@ function renderGantt(){
 
   document.getElementById('gantt-root').innerHTML = html;
 
-  // Build user legend AFTER innerHTML is set (avoids </script> inside template literal)
+  // Build user legend AFTER innerHTML is set (no nested script tags in template literals)
   const UC=[
     {base:'#1a3a5c'},{base:'#7d2e1e'},{base:'#1e5e3a'},{base:'#5a2d82'},
     {base:'#7a5200'},{base:'#1a5c5c'},{base:'#7a2060'},{base:'#4a4a00'},{base:'#3a1a00'}
