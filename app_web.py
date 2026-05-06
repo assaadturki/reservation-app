@@ -901,14 +901,18 @@ tbody td:last-child{border-left:none}
     <div class="field"><label>المنظم</label><input id="f-organisateur" placeholder="اسم المنظم"></div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-      <div class="field"><label>المستوى</label>
+      <div class="field"><label>نوع النشاط</label>
         <select id="f-level">
           <option value="">—</option>
-          <option value="مبتدئ">مبتدئ</option>
-          <option value="متوسط">متوسط</option>
-          <option value="متقدم">متقدم</option>
-          <option value="خبير">خبير</option>
-        </select></div>
+          <option value="دورة تدريبية">دورة تدريبية</option>
+          <option value="ورشة تدريبية">ورشة تدريبية</option>
+          <option value="اجتماع">اجتماع</option>
+          <option value="لقاء">لقاء</option>
+          <option value="ملتقى">ملتقى</option>
+          <option value="مؤتمر">مؤتمر</option>
+          <option value="أخرى" id="level-other-opt">أخرى...</option>
+        </select>
+        <input type="text" id="f-level-custom" placeholder="نوع النشاط المخصص" style="display:none;margin-top:4px;"></div>
       <div class="field"><label>الكفاءة</label>
         <select id="f-competance">
           <option value="">—</option>
@@ -968,7 +972,11 @@ tbody td:last-child{border-left:none}
     </div>
 
     <!-- Salle grid -->
-    <span class="salle-grid-label">القاعة <span id="salle-selected-label" style="color:var(--accent);font-weight:900;"></span></span>
+    <span class="salle-grid-label">القاعة
+      <span id="salle-selected-label" style="color:var(--accent);font-weight:900;"></span>
+      <button type="button" id="btn-clear-salle" onclick="clearSalle()" title="إلغاء تحديد القاعة"
+        style="display:none;background:none;border:none;color:#c0392b;cursor:pointer;font-size:13px;margin-right:4px;">✕ إلغاء القاعة</button>
+    </span>
     <input type="hidden" id="f-salle" value="">
     <div class="salle-grid" id="salle-grid">
       <span style="color:var(--muted);font-size:11px;grid-column:1/-1;text-align:center;padding:12px;">اختر الطابق أولاً</span>
@@ -989,6 +997,22 @@ tbody td:last-child{border-left:none}
       <div id="batch-list" style="font-size:11px;color:var(--muted);max-height:100px;overflow-y:auto;margin-bottom:8px;line-height:1.8;"></div>
       <button onclick="saveBatch()" style="background:#27ae60;color:#fff;border:none;border-radius:6px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;padding:8px;width:100%;cursor:pointer;margin-bottom:4px;">✅ حفظ الكل دفعة واحدة</button>
       <button onclick="clearBatch()" style="background:#888;color:#fff;border:none;border-radius:6px;font-family:'Cairo',sans-serif;font-size:12px;padding:6px;width:100%;cursor:pointer;">🗑️ إلغاء الدفعة</button>
+    </div>
+
+    <!-- SWAP PANEL -->
+    <div style="margin-top:10px;padding:10px;background:rgba(36,113,163,.08);border:1.5px solid #2471a3;border-radius:8px;">
+      <div style="font-size:12px;font-weight:700;color:#1a5276;margin-bottom:6px;">🔄 تبادل القاعات</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">اختر حجزين من نفس التاريخ لتبادل قاعتيهما</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+        <div><label style="font-size:10px;color:var(--muted);">ID الحجز 1</label>
+          <input type="number" id="swap-id1" placeholder="ID" style="width:100%;border:1.5px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--white);">
+        </div>
+        <div><label style="font-size:10px;color:var(--muted);">ID الحجز 2</label>
+          <input type="number" id="swap-id2" placeholder="ID" style="width:100%;border:1.5px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--white);">
+        </div>
+      </div>
+      <button onclick="swapSalles()" style="background:#2471a3;color:#fff;border:none;border-radius:6px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;padding:7px;width:100%;cursor:pointer;">🔄 تبادل القاعتين</button>
+      <div id="swap-result" style="margin-top:6px;font-size:11px;display:none;"></div>
     </div>
 
     <!-- Hidden forms -->
@@ -1101,7 +1125,7 @@ tbody td:last-child{border-left:none}
           <th class="sortable" onclick="sortTable(9)"><span class="sort-icon" id="si-9">⇅</span>النهاية</th>
           <th class="sortable" onclick="sortTable(10)"><span class="sort-icon" id="si-10">⇅</span>العنوان</th>
           <th class="sortable" onclick="sortTable(11)"><span class="sort-icon" id="si-11">⇅</span>المنظم</th>
-          <th class="sortable" onclick="sortTable(12)"><span class="sort-icon" id="si-12">⇅</span>المستوى</th>
+          <th class="sortable" onclick="sortTable(12)"><span class="sort-icon" id="si-12">⇅</span>نوع النشاط</th>
           <th class="sortable" onclick="sortTable(13)"><span class="sort-icon" id="si-13">⇅</span>الكفاءة</th>
           <th class="sortable" onclick="sortTable(14)"><span class="sort-icon" id="si-14">⇅</span>الأسلوب</th>
           <th class="sortable" onclick="sortTable(15)"><span class="sort-icon" id="si-15">⇅</span>الحالة</th>
@@ -1131,7 +1155,13 @@ tbody td:last-child{border-left:none}
           <td><strong>{{ r[1] }}</strong></td>
           <td><span class="chip {% if r[2]=='قاعة' %}chip-q{% else %}chip-lab{% endif %}">{{ r[2] }}</span></td>
           <td style="font-size:11px;color:var(--muted);white-space:nowrap;">{{ r[3] }}</td>
-          <td style="white-space:nowrap;"><strong style="color:var(--accent2);">{{ r[4] }}</strong></td>
+          <td style="white-space:nowrap;">
+            <strong style="color:var(--accent2);">{{ r[4] }}</strong>
+            {% if r[4] and (role=='admin' or r[16]==user) %}
+            <button onclick="event.stopPropagation();clearSalleFromRow({{ r[0] }},this)" title="إلغاء القاعة"
+              style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:11px;margin-right:2px;">✕</button>
+            {% endif %}
+          </td>
           <td><span class="chip {% if r[5]=='رجال' %}chip-m{% elif r[5]=='مختلط' %}chip-mix{% else %}chip-f{% endif %}">{{ r[5] }}</span></td>
           <td><span class="chip {% if r[6]=='صباحي' %}chip-s{% else %}chip-e{% endif %}">{{ r[6] }}</span></td>
           <td>{{ r[7] }}</td><td>{{ r[8] }}</td><td>{{ r[9] }}</td>
@@ -1397,20 +1427,31 @@ function renderGantt(){
                 let hasSoir  = evList.some(e=>e.periode==='مسائي');
                 let firstEv  = evList[0];
                 let evIds    = evList.map(e=>e.id).join(',');
-                let allIPA   = evList.every(e=>(e.organisateur||'').trim()==='IPA - CGB');
+
+                // 9 distinct user colors — same user always gets same color
+                const USER_COLORS = [
+                  {base:'#1a3a5c', light:'#5b9bd5', dark:'#0f2240'},  // bleu
+                  {base:'#7d2e1e', light:'#e05a40', dark:'#4a1a10'},  // rouge
+                  {base:'#1e5e3a', light:'#4caf80', dark:'#0f3020'},  // vert
+                  {base:'#5a2d82', light:'#a06cc0', dark:'#3a1a58'},  // violet
+                  {base:'#7a5200', light:'#e8a020', dark:'#503600'},  // orange
+                  {base:'#1a5c5c', light:'#40b0b0', dark:'#0f3a3a'},  // teal
+                  {base:'#7a2060', light:'#d060a0', dark:'#501040'},  // rose
+                  {base:'#4a4a00', light:'#a8a820', dark:'#2e2e00'},  // olive
+                  {base:'#3a1a00', light:'#a06030', dark:'#201000'},  // brun
+                ];
+
+                // Build user→color index from ganttEvents
+                let userList = [...new Set(ganttEvents.map(e=>e.created_by||e.organisateur||'').filter(Boolean))];
+                let creator = firstEv.created_by || firstEv.organisateur || '';
+                let idx = userList.indexOf(creator) % USER_COLORS.length;
+                if(idx < 0) idx = 0;
+                let uc = USER_COLORS[idx];
 
                 let color, border;
-                if(allIPA){
-                  // IPA-CGB: teal/blue palette
-                  if(hasMatin && hasSoir){ color='#1a3a5c'; border='#0f2440'; }  // bleu foncé  ص+م
-                  else if(hasSoir)       { color='#5b9bd5'; border='#3a7ab8'; }  // bleu clair  مسائي
-                  else                   { color='#7bbfb0'; border='#5aa396'; }  // vert teal   صباحي
-                } else {
-                  // Autre organisateur: jaune/orange/rouge selon période
-                  if(hasMatin && hasSoir){ color='#c0392b'; border='#922b21'; }  // rouge carmin ص+م
-                  else if(hasSoir)       { color='#e8a020'; border='#c07010'; }  // orange       مسائي
-                  else                   { color='#f0cc40'; border='#c8a010'; }  // jaune        صباحي
-                }
+                if(hasMatin && hasSoir){ color=uc.dark;  border=uc.dark; }
+                else if(hasSoir)       { color=uc.base;  border=uc.dark; }
+                else                   { color=uc.light; border=uc.base; }
 
                 return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
                   <div style="background:${color};border:1.5px solid ${border};border-radius:4px;height:20px;cursor:pointer;"
@@ -1429,21 +1470,29 @@ function renderGantt(){
     </table>
     </div>
 
-    <div style="padding:8px 14px;display:flex;gap:14px;flex-wrap:wrap;font-size:11px;border-top:1px solid var(--border);background:var(--bg);align-items:center;">
-      <strong style="color:var(--muted)">IPA-CGB:</strong>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#7bbfb0;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>صباحي</span>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#5b9bd5;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مسائي</span>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#1a3a5c;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>ص+م</span>
-      <span style="border-right:1px solid var(--border);padding-right:14px;margin-right:0;"></span>
-      <strong style="color:var(--muted)">جهة خارجية:</strong>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#f0cc40;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>صباحي</span>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#e8a020;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مسائي</span>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#c0392b;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>ص+م</span>
-      <span style="border-right:1px solid var(--border);padding-right:14px;margin-right:0;"></span>
-      <span><span style="display:inline-block;width:14px;height:14px;background:#a8d5cb;opacity:.5;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>متاح</span>
+    <div style="padding:8px 14px;display:flex;gap:14px;flex-wrap:wrap;font-size:11px;border-top:1px solid var(--border);background:var(--bg);align-items:center;" id="gantt-legend">
+      <strong style="color:var(--muted)">الكثافة:</strong>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#aaa;border-radius:3px;vertical-align:middle;margin-left:4px;opacity:.6;"></span>صباحي (فاتح)</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#666;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>مسائي</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#222;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>ص+م (داكن)</span>
+      <span style="border-right:1px solid var(--border);padding-right:10px;"></span>
+      <span id="gantt-user-legend"></span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#a8d5cb;opacity:.4;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>متاح</span>
       <span><span style="display:inline-block;width:14px;height:14px;background:repeating-linear-gradient(45deg,#ccc,#ccc 2px,#ddd 2px,#ddd 8px);border-radius:3px;vertical-align:middle;margin-left:4px;"></span>عطلة</span>
-      ${ganttPeriode ? `<span style="background:rgba(0,0,0,.1);padding:2px 10px;border-radius:10px;font-weight:700;">الفترة: ${ganttPeriode}</span>` : ''}
     </div>
+    <script>
+    (function(){
+      const UC=[
+        {base:'#1a3a5c'},{base:'#7d2e1e'},{base:'#1e5e3a'},{base:'#5a2d82'},
+        {base:'#7a5200'},{base:'#1a5c5c'},{base:'#7a2060'},{base:'#4a4a00'},{base:'#3a1a00'}
+      ];
+      let users=[...new Set((ganttEvents||[]).map(e=>e.created_by||'').filter(Boolean))];
+      let leg=document.getElementById('gantt-user-legend');
+      if(leg) leg.innerHTML=users.slice(0,9).map((u,i)=>
+        `<span style="margin-left:8px;"><span style="display:inline-block;width:14px;height:14px;background:${UC[i%9].base};border-radius:3px;vertical-align:middle;margin-left:4px;"></span>${u}</span>`
+      ).join('');
+    })();
+    </script>
     `}
   </div>`;
 
@@ -1658,6 +1707,7 @@ function selectSalle(nom){
   selectedSalle = nom;
   document.getElementById('f-salle').value = nom;
   document.getElementById('salle-selected-label').textContent = '— '+nom;
+  document.getElementById('btn-clear-salle').style.display = nom ? 'inline' : 'none';
   document.querySelectorAll('.salle-btn').forEach(b=>b.classList.toggle('active', b.textContent.trim()===nom));
   checkConflict();
 }
@@ -1843,7 +1893,9 @@ function syncHidden(p){
   document.getElementById(p+'-debut').value        = document.getElementById('f-debut').value;
   document.getElementById(p+'-fin').value          = document.getElementById('f-fin').value;
   document.getElementById(p+'-salle').value        = document.getElementById('f-salle').value;
-  document.getElementById(p+'-level').value        = document.getElementById('f-level').value;
+  let levelVal = document.getElementById('f-level').value;
+  if(levelVal === 'أخرى') levelVal = document.getElementById('f-level-custom').value || 'أخرى';
+  document.getElementById(p+'-level').value        = levelVal;
   document.getElementById(p+'-competance').value   = document.getElementById('f-competance').value;
   document.getElementById(p+'-method').value       = document.getElementById('f-method').value;
   document.getElementById(p+'-registred').value    = document.getElementById('f-registred')?.value || 0;
@@ -1888,7 +1940,24 @@ function fillForm(id){
   document.getElementById('f-debut').value         = debut;
   document.getElementById('f-fin').value           = fin;
   document.getElementById('f-salle').value         = salle;
-  document.getElementById('f-level').value         = row.dataset.level     || '';
+  if(salle) document.getElementById('btn-clear-salle').style.display='inline';
+  else document.getElementById('btn-clear-salle').style.display='none';
+
+  // Handle activity type (level)
+  let levelVal = row.dataset.level || '';
+  let levelSel = document.getElementById('f-level');
+  let opts = Array.from(levelSel.options).map(o=>o.value);
+  if(opts.includes(levelVal)){
+    levelSel.value = levelVal;
+    document.getElementById('f-level-custom').style.display='none';
+  } else if(levelVal){
+    levelSel.value = 'أخرى';
+    document.getElementById('f-level-custom').style.display='block';
+    document.getElementById('f-level-custom').value = levelVal;
+  } else {
+    levelSel.value = '';
+    document.getElementById('f-level-custom').style.display='none';
+  }
   document.getElementById('f-competance').value    = row.dataset.competance || '';
   document.getElementById('f-method').value        = row.dataset.method     || '';
   document.getElementById('f-status').value        = row.dataset.status     || '';
@@ -1926,6 +1995,49 @@ function resetForm(){
   document.getElementById('btn-cancel').style.display='none';
   document.querySelectorAll('#table tbody tr').forEach(r=>r.classList.remove('selected-row'));
 }
+
+// ── SWAP SALLES ───────────────────────────────────────────────────
+async function swapSalles(){
+  let id1 = document.getElementById('swap-id1').value;
+  let id2 = document.getElementById('swap-id2').value;
+  let res = document.getElementById('swap-result');
+  if(!id1 || !id2){ res.style.display='block';res.style.color='#c0392b';res.textContent='يرجى إدخال ID حجزين';return;}
+  try{
+    let r = await (await fetch('/swap_salles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id1:+id1,id2:+id2})})).json();
+    res.style.display='block';
+    res.style.color = r.ok ? '#27ae60' : '#c0392b';
+    res.textContent = r.ok ? r.msg : '⚠️ '+r.error;
+    if(r.ok){ document.getElementById('swap-id1').value=''; document.getElementById('swap-id2').value=''; }
+  }catch(e){res.style.display='block';res.style.color='#c0392b';res.textContent='خطأ في الاتصال';}
+}
+
+// ── CLEAR SALLE ───────────────────────────────────────────────────
+function clearSalle(){
+  selectedSalle='';
+  document.getElementById('f-salle').value='';
+  document.getElementById('salle-selected-label').textContent='';
+  document.getElementById('btn-clear-salle').style.display='none';
+  document.querySelectorAll('.salle-btn').forEach(b=>b.classList.remove('active'));
+  checkConflict();
+}
+
+// ── إلغاء تحديد القاعة من صف الجدول ─────────────────────────────
+async function clearSalleFromRow(id, btn){
+  if(!confirm('إلغاء تحديد القاعة لهذا الحجز؟')) return;
+  let r = await (await fetch('/clear_salle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})})).json();
+  if(r.ok){
+    let tr = document.querySelector(`#table tbody tr[data-id="${id}"]`);
+    if(tr){ tr.dataset.salle=''; tr.children[5].innerHTML='<strong style="color:var(--muted)">—</strong>'; tr.children[4].textContent=''; }
+    btn.parentElement.querySelector('strong').style.color='var(--muted)';
+  } else alert(r.error);
+}
+
+// ── CUSTOM LEVEL ──────────────────────────────────────────────────
+document.getElementById('f-level')?.addEventListener('change', function(){
+  let custom = document.getElementById('f-level-custom');
+  if(this.value==='أخرى'){ custom.style.display='block'; custom.focus(); }
+  else { custom.style.display='none'; }
+});
 
 // ── SORT TABLE ────────────────────────────────────────────────────
 let sortCol = -1, sortAsc = true;
@@ -2146,7 +2258,7 @@ def mark_read():
 def calendar_events():
     conn = get_conn()
     rows = fetchall(conn, """SELECT id, course_code, titre, salle, date_debut, date_fin,
-                                    genre, periode, organisateur, type, etage
+                                    genre, periode, organisateur, type, etage, created_by
                              FROM reservations ORDER BY salle, date_debut""")
     conn.close()
     events = []
@@ -2155,7 +2267,7 @@ def calendar_events():
             "id": r[0], "course_code": r[1], "titre": r[2], "salle": r[3],
             "date_debut": r[4], "date_fin": r[5],
             "genre": r[6], "periode": r[7], "organisateur": r[8],
-            "type": r[9], "etage": r[10]
+            "type": r[9], "etage": r[10], "created_by": r[11] or ""
         })
     return jsonify(events)
 
@@ -2199,6 +2311,38 @@ def _fix_etage_type_all():
         print(f"Migration warning: {e}")
 
 _fix_etage_type_all()
+
+@app.route("/swap_salles", methods=["POST"])
+@login_required
+def swap_salles():
+    data = request.get_json()
+    id1, id2 = data.get("id1"), data.get("id2")
+    if not id1 or not id2 or str(id1)==str(id2):
+        return jsonify({"ok": False, "error": "يرجى إدخال ID حجزين مختلفين"})
+    conn = get_conn()
+    r1 = fetchone(conn, "SELECT id,salle,etage,type,date_debut,date_fin FROM reservations WHERE id=?", (id1,))
+    r2 = fetchone(conn, "SELECT id,salle,etage,type,date_debut,date_fin FROM reservations WHERE id=?", (id2,))
+    if not r1 or not r2:
+        conn.close(); return jsonify({"ok": False, "error": "أحد الحجزين غير موجود"})
+    execute(conn, "UPDATE reservations SET salle=?, etage=?, type=? WHERE id=?", (r2[1],r2[2],r2[3],id1))
+    execute(conn, "UPDATE reservations SET salle=?, etage=?, type=? WHERE id=?", (r1[1],r1[2],r1[3],id2))
+    conn.commit(); conn.close()
+    add_notification(session["user"], f"تم تبادل القاعتين: #{id1}({r1[1]}) ↔ #{id2}({r2[1]})")
+    return jsonify({"ok": True, "msg": f"✅ #{id1} ← {r2[1]}  |  #{id2} ← {r1[1]}"})
+
+@app.route("/clear_salle", methods=["POST"])
+@login_required
+def clear_salle():
+    id_ = request.get_json().get("id")
+    conn = get_conn()
+    row = fetchone(conn, "SELECT salle, created_by FROM reservations WHERE id=?", (id_,))
+    if not row:
+        conn.close(); return jsonify({"ok": False, "error": "الحجز غير موجود"})
+    if session["role"] != "admin" and row[1] != session["user"]:
+        conn.close(); return jsonify({"ok": False, "error": "غير مصرح"})
+    execute(conn, "UPDATE reservations SET salle='', etage='', type='' WHERE id=?", (id_,))
+    conn.commit(); conn.close()
+    return jsonify({"ok": True, "old_salle": row[0]})
 
 @app.route("/batch_update", methods=["POST"])
 @login_required
