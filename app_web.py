@@ -12,10 +12,12 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change_this_secret_key_in_production")
 
 # ─── In-memory online users tracker ──────────────────────────────────────────
-# {username: {"last_seen": datetime, "login_time": datetime, "ip": str}}
 ONLINE_USERS = {}
-ONLINE_TIMEOUT = 300  # 5 min inactivity = considered offline
-app.secret_key = os.environ.get("SECRET_KEY", "change_this_secret_key_in_production")
+ONLINE_TIMEOUT = 300
+
+# ─── User gantt colors (admin-assignable, stored in DB settings table) ────────
+# Loaded at startup, key=username, value=hex color
+USER_GANTT_COLORS = {}
 
 # ─── DATABASE: PostgreSQL (Render) ou SQLite (local) ──────────────────────────
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
@@ -106,6 +108,15 @@ def _bootstrap_db():
             username TEXT, login_at TEXT, logout_at TEXT,
             duration_seconds INTEGER DEFAULT 0, ip TEXT)""")
         conn.commit()
+        execute(conn, """CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY, value TEXT)""")
+        conn.commit()
+        # Add مدير role to users table if not exists
+        try:
+            execute(conn, "ALTER TABLE users ADD COLUMN gantt_color TEXT")
+            conn.commit()
+        except Exception:
+            conn.rollback()
         row = fetchone(conn, "SELECT COUNT(*) FROM users WHERE username=%s", ("admin",))
         if row[0] == 0:
             execute(conn, "INSERT INTO users (username,password,role) VALUES (%s,%s,%s)",
@@ -143,6 +154,12 @@ def _bootstrap_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT, login_at TEXT, logout_at TEXT,
             duration_seconds INTEGER DEFAULT 0, ip TEXT)""")
+        execute(conn, """CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY, value TEXT)""")
+        try:
+            execute(conn, "ALTER TABLE users ADD COLUMN gantt_color TEXT")
+        except Exception:
+            pass
         row = fetchone(conn, "SELECT COUNT(*) FROM users WHERE username=?", ("admin",))
         if row[0] == 0:
             execute(conn, "INSERT INTO users (username,password,role) VALUES (?,?,?)",
@@ -269,8 +286,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 .topbar{background:var(--topbar);color:#fff;padding:0 16px;display:flex;align-items:center;gap:12px;height:44px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .topbar h1{font-size:15px;font-weight:900;flex:1}
 a.back{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:5px 14px;font-family:'Cairo',sans-serif;font-size:12px;text-decoration:none}
-a.back:hover{background:rgba(255,255,255,.3)}
-.main{padding:20px;max-width:1000px;margin:0 auto}
+.main{padding:20px;max-width:1100px;margin:0 auto}
 .flash{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;font-weight:600}
 .flash.error{background:#fdecea;border:1px solid #e57373;color:#c0392b}
 .flash.success{background:#e8f5e9;border:1px solid #81c784;color:#2e7d32}
@@ -281,60 +297,83 @@ a.back:hover{background:rgba(255,255,255,.3)}
 .field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
 .field input,.field select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-family:'Cairo',sans-serif;font-size:13px;padding:8px 11px;outline:none;height:36px}
 .field input:focus,.field select:focus{border-color:var(--accent)}
-.field select option{background:var(--white)}
 .btn-primary{background:var(--green);color:#fff;border:none;border-radius:7px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;width:100%;margin-top:4px}
-.btn-primary:hover{background:#219a52}
 .btn-danger{background:#fdecea;color:var(--red);border:1px solid #e57373;border-radius:6px;font-family:'Cairo',sans-serif;font-size:11px;font-weight:700;padding:5px 12px;cursor:pointer}
-.btn-danger:hover{background:#fbbcba}
 table{width:100%;border-collapse:collapse;font-size:13px}
-thead th{background:var(--topbar);color:#fff;font-weight:700;text-align:right;padding:9px 12px;font-size:11px;letter-spacing:.3px}
-thead th:first-child{text-align:center}
+thead th{background:var(--topbar);color:#fff;font-weight:700;text-align:right;padding:9px 12px;font-size:11px}
 tbody tr:nth-child(even){background:#f0f7f5}
-tbody td{padding:10px 12px;border-bottom:1px solid var(--border)}
-tbody tr:last-child td{border-bottom:none}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700}
-.badge-admin{background:rgba(61,122,106,.15);color:var(--accent2);border:1px solid rgba(61,122,106,.3)}
+.badge-admin{background:rgba(192,57,43,.15);color:#c0392b;border:1px solid rgba(192,57,43,.3)}
+.badge-manager{background:rgba(36,113,163,.15);color:#1a5276;border:1px solid rgba(36,113,163,.3)}
 .badge-user{background:rgba(90,122,114,.1);color:var(--muted);border:1px solid var(--border)}
+.color-dot{display:inline-block;width:18px;height:18px;border-radius:50%;border:2px solid var(--border);vertical-align:middle;margin-left:6px;}
 </style></head><body>
 <div class="topbar">
   <a href="/" class="back">← رجوع</a>
-  <h1>👥 إدارة المستخدمين</h1>
+  <h1>👥 {% if readonly %}عرض المستخدمين{% else %}إدارة المستخدمين{% endif %}</h1>
 </div>
 <div class="main">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for cat,msg in messages %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
   {% endwith %}
-  <div class="grid">
+  <div class="{% if not readonly %}grid{% endif %}">
+    {% if not readonly %}
     <div class="card">
       <h2>➕ إنشاء مستخدم جديد</h2>
       <form method="POST" action="/register">
-        <div class="field"><label>اسم المستخدم</label><input type="text" name="username" placeholder="username" required></div>
-        <div class="field"><label>كلمة المرور</label><input type="password" name="password" placeholder="••••••••" required></div>
+        <input type="hidden" name="action" value="create">
+        <div class="field"><label>اسم المستخدم</label><input type="text" name="username" required></div>
+        <div class="field"><label>كلمة المرور</label><input type="password" name="password" required></div>
         <div class="field"><label>الصلاحية</label>
           <select name="role">
             <option value="user">مستخدم عادي</option>
+            <option value="مدير">مدير</option>
             <option value="admin">مسؤول</option>
-          </select>
-        </div>
-        <button type="submit" class="btn-primary">✔ إنشاء المستخدم</button>
+          </select></div>
+        <div class="field"><label>لون Gantt</label>
+          <input type="color" name="color" value="#3d7a6a" style="height:36px;padding:2px;cursor:pointer;"></div>
+        <button type="submit" class="btn-primary">✔ إنشاء</button>
       </form>
     </div>
+    {% endif %}
+
     <div class="card">
       <h2>📋 قائمة المستخدمين ({{ users|length }})</h2>
       <table>
-        <thead><tr><th>#</th><th>اسم المستخدم</th><th>الصلاحية</th><th>الإجراء</th></tr></thead>
+        <thead><tr>
+          <th>#</th><th>اسم المستخدم</th><th>الصلاحية</th>
+          <th>لون Gantt</th>{% if not readonly %}<th>تغيير اللون</th><th>حذف</th>{% endif %}
+        </tr></thead>
         <tbody>
         {% for u in users %}
         <tr>
-          <td style="text-align:center;color:var(--muted);font-size:11px;">{{ u[0] }}</td>
+          <td style="color:var(--muted);font-size:11px;">{{ u[0] }}</td>
           <td><strong>{{ u[1] }}</strong></td>
-          <td><span class="badge {% if u[2]=='admin' %}badge-admin{% else %}badge-user{% endif %}">{{ 'مسؤول' if u[2]=='admin' else 'مستخدم' }}</span></td>
+          <td><span class="badge {% if u[2]=='admin' %}badge-admin{% elif u[2]=='مدير' %}badge-manager{% else %}badge-user{% endif %}">
+            {{ 'مسؤول' if u[2]=='admin' else ('مدير' if u[2]=='مدير' else 'مستخدم') }}
+          </span></td>
+          <td>
+            {% if u[4] %}
+            <span class="color-dot" style="background:{{ u[4] }};"></span>{{ u[4] }}
+            {% else %}<span style="color:var(--muted);font-size:11px;">افتراضي</span>{% endif %}
+          </td>
+          {% if not readonly %}
+          <td>
+            <form method="POST" action="/register" style="display:inline-flex;gap:4px;align-items:center;">
+              <input type="hidden" name="action" value="set_color">
+              <input type="hidden" name="username" value="{{ u[1] }}">
+              <input type="color" name="color" value="{{ u[4] or '#3d7a6a' }}" style="width:36px;height:28px;padding:1px;cursor:pointer;border-radius:4px;border:1px solid var(--border);">
+              <button type="submit" style="background:var(--accent);color:#fff;border:none;border-radius:5px;padding:4px 8px;cursor:pointer;font-size:11px;font-family:'Cairo',sans-serif;">حفظ</button>
+            </form>
+          </td>
           <td>{% if u[1] != 'admin' %}
-            <form method="POST" action="/delete_user" style="display:inline;" onsubmit="return confirm('حذف المستخدم {{ u[1] }}؟')">
+            <form method="POST" action="/delete_user" style="display:inline;" onsubmit="return confirm('حذف {{ u[1] }}؟')">
               <input type="hidden" name="id" value="{{ u[0] }}">
               <button type="submit" class="btn-danger">حذف</button>
             </form>
           {% else %}<span style="color:var(--muted);font-size:11px;">محمي</span>{% endif %}</td>
+          {% endif %}
         </tr>
         {% endfor %}
         </tbody>
@@ -863,16 +902,17 @@ tbody td:last-child{border-left:none}
     <button class="tab active" onclick="switchTab('reservations',this)">الحجوزات</button>
     <button class="tab" onclick="switchTab('calendar',this)">التقويم</button>
     {% if role == 'admin' %}<a href="/register" class="tab">المستخدمون</a>{% endif %}
+    {% if role == 'مدير' %}<a href="/users_view" class="tab">المستخدمون</a>{% endif %}
   </div>
   <div class="topbar-right">
     <button class="notif-btn" onclick="openNotifDrawer()">🔔<span class="notif-badge" id="notif-badge">0</span></button>
     <div class="user-chip">
       <span>{{ user }}</span>
-      <span class="role-badge">{{ 'مسؤول' if role=='admin' else 'مستخدم' }}</span>
+      <span class="role-badge">{{ 'مسؤول' if role=='admin' else ('مدير' if role=='مدير' else 'مستخدم') }}</span>
     </div>
     <a href="/profile" class="logout">👤 ملفي</a>
-    {% if role == 'admin' %}<a href="/dashboard" class="logout">📊 لوحة</a>{% endif %}
-    {% if role == 'admin' %}<a href="/report" class="logout">📋 تقرير</a>{% endif %}
+    {% if role in ('admin','مدير') %}<a href="/dashboard" class="logout">📊 لوحة</a>{% endif %}
+    {% if role in ('admin','مدير') %}<a href="/report" class="logout">📋 تقرير</a>{% endif %}
     <a href="/logout" class="logout">خروج</a>
   </div>
 </nav>
@@ -1056,12 +1096,14 @@ tbody td:last-child{border-left:none}
 
     <div style="margin-top:10px;padding-top:10px;border-top:1.5px solid var(--border);">
       <a href="/export" class="btn btn-green">📥 تصدير إكسل</a>
+      {% if role in ('admin', 'مدير') %}
       <div class="import-row">
         <form action="/import" method="POST" enctype="multipart/form-data">
           <input type="file" name="file" accept=".xlsx,.xls" class="file-input">
           <button type="submit" class="btn btn-import" style="margin-top:5px;">📤 استيراد إكسل</button>
         </form>
       </div>
+      {% endif %}
     </div>
 
   </div>
@@ -1430,28 +1472,35 @@ function renderGantt(){
 
                 // 9 distinct user colors — same user always gets same color
                 const USER_COLORS = [
-                  {base:'#1a3a5c', light:'#5b9bd5', dark:'#0f2240'},  // bleu
-                  {base:'#7d2e1e', light:'#e05a40', dark:'#4a1a10'},  // rouge
-                  {base:'#1e5e3a', light:'#4caf80', dark:'#0f3020'},  // vert
-                  {base:'#5a2d82', light:'#a06cc0', dark:'#3a1a58'},  // violet
-                  {base:'#7a5200', light:'#e8a020', dark:'#503600'},  // orange
-                  {base:'#1a5c5c', light:'#40b0b0', dark:'#0f3a3a'},  // teal
-                  {base:'#7a2060', light:'#d060a0', dark:'#501040'},  // rose
-                  {base:'#4a4a00', light:'#a8a820', dark:'#2e2e00'},  // olive
-                  {base:'#3a1a00', light:'#a06030', dark:'#201000'},  // brun
+                  {base:'#1a3a5c', light:'#5b9bd5', dark:'#0f2240'},
+                  {base:'#7d2e1e', light:'#e05a40', dark:'#4a1a10'},
+                  {base:'#1e5e3a', light:'#4caf80', dark:'#0f3020'},
+                  {base:'#5a2d82', light:'#a06cc0', dark:'#3a1a58'},
+                  {base:'#7a5200', light:'#e8a020', dark:'#503600'},
+                  {base:'#1a5c5c', light:'#40b0b0', dark:'#0f3a3a'},
+                  {base:'#7a2060', light:'#d060a0', dark:'#501040'},
+                  {base:'#4a4a00', light:'#a8a820', dark:'#2e2e00'},
+                  {base:'#3a1a00', light:'#a06030', dark:'#201000'},
                 ];
 
-                // Build user→color index from ganttEvents
-                let userList = [...new Set(ganttEvents.map(e=>e.created_by||e.organisateur||'').filter(Boolean))];
-                let creator = firstEv.created_by || firstEv.organisateur || '';
+                let creator = firstEv.created_by || '';
+                let userList = [...new Set(ganttEvents.map(e=>e.created_by||'').filter(Boolean))];
                 let idx = userList.indexOf(creator) % USER_COLORS.length;
                 if(idx < 0) idx = 0;
-                let uc = USER_COLORS[idx];
+
+                // Use admin-assigned color if set
+                let uc;
+                if(firstEv.user_color){
+                  let h = firstEv.user_color;
+                  uc = {base: h, light: h+'99', dark: h+'dd'};
+                } else {
+                  uc = USER_COLORS[idx];
+                }
 
                 let color, border;
                 if(hasMatin && hasSoir){ color=uc.dark;  border=uc.dark; }
-                else if(hasSoir)       { color=uc.base;  border=uc.dark; }
-                else                   { color=uc.light; border=uc.base; }
+                else if(hasSoir)       { color=uc.base;  border=uc.dark||uc.base; }
+                else                   { color=uc.light||uc.base; border=uc.base; }
 
                 return `<td style="background:${cellBg};border-bottom:1px solid var(--border);border-left:1px solid rgba(168,200,192,.3);padding:3px 2px;">
                   <div style="background:${color};border:1.5px solid ${border};border-radius:4px;height:20px;cursor:pointer;"
@@ -2099,8 +2148,16 @@ fetch('/heartbeat',{method:'POST'}); // immediate on load
 def hash_password(p):
     return hashlib.sha256(p.encode()).hexdigest()
 
-def init_db():
-    _bootstrap_db()
+def load_user_colors():
+    """Load user gantt colors from DB into memory."""
+    global USER_GANTT_COLORS
+    try:
+        conn = get_conn()
+        rows = fetchall(conn, "SELECT username, gantt_color FROM users WHERE gantt_color IS NOT NULL AND gantt_color != ''")
+        conn.close()
+        USER_GANTT_COLORS = {r[0]: r[1] for r in rows}
+    except Exception:
+        pass
 
 def add_notification(user, message):
     conn = get_conn()
@@ -2120,7 +2177,17 @@ def admin_required(f):
     def dec(*a, **kw):
         if "user" not in session: return redirect("/login")
         if session.get("role") != "admin":
-            flash("غير مصرح لك بهذه العملية", "error"); return redirect("/")
+            flash("هذه الصفحة للمسؤول فقط", "error"); return redirect("/")
+        return f(*a, **kw)
+    return dec
+
+def manager_required(f):
+    """Requires admin OR مدير role."""
+    @wraps(f)
+    def dec(*a, **kw):
+        if "user" not in session: return redirect("/login")
+        if session.get("role") not in ("admin", "مدير"):
+            flash("غير مصرح لك بهذه الصفحة", "error"); return redirect("/")
         return f(*a, **kw)
     return dec
 
@@ -2181,25 +2248,51 @@ def logout():
 @admin_required
 def register():
     if request.method == "POST":
+        action = request.form.get("action", "create")
+
+        if action == "set_color":
+            # Admin sets gantt color for a user
+            username = request.form.get("username", "")
+            color    = request.form.get("color", "#3d7a6a")
+            conn = get_conn()
+            execute(conn, "UPDATE users SET gantt_color=? WHERE username=?", (color, username))
+            conn.commit(); conn.close()
+            load_user_colors()
+            flash(f"✅ تم تحديث لون {username}", "success")
+            return redirect("/register")
+
+        # Create user
         u = request.form.get("username", "").strip()
         p = request.form.get("password", "")
         r = request.form.get("role", "user")
+        color = request.form.get("color", "")
         if not u or not p:
             flash("يرجى ملء جميع الحقول", "error"); return redirect("/register")
         conn = get_conn()
         try:
-            execute(conn, "INSERT INTO users (username,password,role) VALUES (?,?,?)",
-                    (u, hash_password(p), r))
+            execute(conn, "INSERT INTO users (username,password,role,gantt_color) VALUES (?,?,?,?)",
+                    (u, hash_password(p), r, color))
             conn.commit(); flash(f"تم إنشاء المستخدم {u} بنجاح", "success")
+            load_user_colors()
         except Exception:
             conn.rollback(); flash("اسم المستخدم موجود مسبقاً", "error")
         finally:
             conn.close()
         return redirect("/register")
+
     conn = get_conn()
-    users = fetchall(conn, "SELECT id,username,role,created_at FROM users ORDER BY id DESC")
+    users = fetchall(conn, "SELECT id,username,role,created_at,gantt_color FROM users ORDER BY id DESC")
     conn.close()
     return render_template_string(REGISTER_TEMPLATE, users=users)
+
+@app.route("/users_view")
+@manager_required
+def users_view():
+    """مدير can see users list (read-only)."""
+    conn = get_conn()
+    users = fetchall(conn, "SELECT id,username,role,created_at,gantt_color FROM users ORDER BY id DESC")
+    conn.close()
+    return render_template_string(REGISTER_TEMPLATE, users=users, readonly=True)
 
 @app.route("/delete_user", methods=["POST"])
 @admin_required
@@ -2266,7 +2359,8 @@ def calendar_events():
             "id": r[0], "course_code": r[1], "titre": r[2], "salle": r[3],
             "date_debut": r[4], "date_fin": r[5],
             "genre": r[6], "periode": r[7], "organisateur": r[8],
-            "type": r[9], "etage": r[10], "created_by": r[11] or ""
+            "type": r[9], "etage": r[10], "created_by": r[11] or "",
+            "user_color": USER_GANTT_COLORS.get(r[11] or "", "")
         })
     return jsonify(events)
 
@@ -2310,6 +2404,10 @@ def _fix_etage_type_all():
         print(f"Migration warning: {e}")
 
 _fix_etage_type_all()
+try:
+    load_user_colors()
+except Exception:
+    pass
 
 @app.route("/swap_salles", methods=["POST"])
 @login_required
@@ -2410,7 +2508,7 @@ def batch_update():
     return jsonify({"ok": True, "saved": saved, "errors": errors})
 
 @app.route("/report/export")
-@admin_required
+@manager_required
 def report_export():
     import io
     conn = get_conn()
@@ -2470,7 +2568,7 @@ def profile():
 
 
 @app.route("/dashboard")
-@admin_required
+@manager_required
 def dashboard():
     conn = get_conn()
     f_debut = request.args.get("f_debut", "")
@@ -2537,7 +2635,7 @@ def dashboard():
         user=session["user"], role=session["role"])
 
 @app.route("/report")
-@admin_required
+@manager_required
 def report():
     conn = get_conn()
     # Activity per user
@@ -2615,7 +2713,7 @@ def heartbeat():
     return jsonify({"ok": True})
 
 @app.route("/api/online_users")
-@admin_required
+@manager_required
 def online_users_api():
     now = datetime.now()
     result = []
@@ -2749,7 +2847,7 @@ def export_excel():
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 @app.route("/import", methods=["POST"])
-@login_required
+@manager_required
 def import_excel():
     file = request.files.get("file")
     if not file or file.filename == "":
