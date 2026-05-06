@@ -1004,11 +1004,11 @@ tbody td:last-child{border-left:none}
       <div style="font-size:12px;font-weight:700;color:#1a5276;margin-bottom:6px;">🔄 تبادل القاعات</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">اختر حجزين من نفس التاريخ لتبادل قاعتيهما</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
-        <div><label style="font-size:10px;color:var(--muted);">ID الحجز 1</label>
-          <input type="number" id="swap-id1" placeholder="ID" style="width:100%;border:1.5px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--white);">
+        <div><label style="font-size:10px;color:var(--muted);">رقم الدورة 1</label>
+          <input type="text" id="swap-id1" placeholder="مثال: 16035" style="width:100%;border:1.5px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--white);">
         </div>
-        <div><label style="font-size:10px;color:var(--muted);">ID الحجز 2</label>
-          <input type="number" id="swap-id2" placeholder="ID" style="width:100%;border:1.5px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--white);">
+        <div><label style="font-size:10px;color:var(--muted);">رقم الدورة 2</label>
+          <input type="text" id="swap-id2" placeholder="مثال: 16036" style="width:100%;border:1.5px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--white);">
         </div>
       </div>
       <button onclick="swapSalles()" style="background:#2471a3;color:#fff;border:none;border-radius:6px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;padding:7px;width:100%;cursor:pointer;">🔄 تبادل القاعتين</button>
@@ -1480,23 +1480,21 @@ function renderGantt(){
       <span><span style="display:inline-block;width:14px;height:14px;background:#a8d5cb;opacity:.4;border-radius:3px;vertical-align:middle;margin-left:4px;"></span>متاح</span>
       <span><span style="display:inline-block;width:14px;height:14px;background:repeating-linear-gradient(45deg,#ccc,#ccc 2px,#ddd 2px,#ddd 8px);border-radius:3px;vertical-align:middle;margin-left:4px;"></span>عطلة</span>
     </div>
-    <script>
-    (function(){
-      const UC=[
-        {base:'#1a3a5c'},{base:'#7d2e1e'},{base:'#1e5e3a'},{base:'#5a2d82'},
-        {base:'#7a5200'},{base:'#1a5c5c'},{base:'#7a2060'},{base:'#4a4a00'},{base:'#3a1a00'}
-      ];
-      let users=[...new Set((ganttEvents||[]).map(e=>e.created_by||'').filter(Boolean))];
-      let leg=document.getElementById('gantt-user-legend');
-      if(leg) leg.innerHTML=users.slice(0,9).map((u,i)=>
-        `<span style="margin-left:8px;"><span style="display:inline-block;width:14px;height:14px;background:${UC[i%9].base};border-radius:3px;vertical-align:middle;margin-left:4px;"></span>${u}</span>`
-      ).join('');
-    })();
-    </script>
     `}
   </div>`;
 
   document.getElementById('gantt-root').innerHTML = html;
+
+  // Build user legend AFTER innerHTML is set (avoids </script> inside template literal)
+  const UC=[
+    {base:'#1a3a5c'},{base:'#7d2e1e'},{base:'#1e5e3a'},{base:'#5a2d82'},
+    {base:'#7a5200'},{base:'#1a5c5c'},{base:'#7a2060'},{base:'#4a4a00'},{base:'#3a1a00'}
+  ];
+  let users=[...new Set(ganttEvents.map(e=>e.created_by||'').filter(Boolean))];
+  let leg=document.getElementById('gantt-user-legend');
+  if(leg) leg.innerHTML=users.slice(0,9).map((u,i)=>
+    `<span style="margin-left:8px;"><span style="display:inline-block;width:14px;height:14px;background:${UC[i%9].base};border-radius:3px;vertical-align:middle;margin-left:4px;"></span>${u}</span>`
+  ).join('');
 }
 
 function renderGanttList(events){
@@ -1998,12 +1996,13 @@ function resetForm(){
 
 // ── SWAP SALLES ───────────────────────────────────────────────────
 async function swapSalles(){
-  let id1 = document.getElementById('swap-id1').value;
-  let id2 = document.getElementById('swap-id2').value;
+  let cc1 = document.getElementById('swap-id1').value.trim();
+  let cc2 = document.getElementById('swap-id2').value.trim();
   let res = document.getElementById('swap-result');
-  if(!id1 || !id2){ res.style.display='block';res.style.color='#c0392b';res.textContent='يرجى إدخال ID حجزين';return;}
+  if(!cc1 || !cc2){ res.style.display='block';res.style.color='#c0392b';res.textContent='يرجى إدخال رقمي الدورة';return;}
+  if(cc1===cc2){ res.style.display='block';res.style.color='#c0392b';res.textContent='رقما الدورة متطابقان';return;}
   try{
-    let r = await (await fetch('/swap_salles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id1:+id1,id2:+id2})})).json();
+    let r = await (await fetch('/swap_salles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cc1,cc2})})).json();
     res.style.display='block';
     res.style.color = r.ok ? '#27ae60' : '#c0392b';
     res.textContent = r.ok ? r.msg : '⚠️ '+r.error;
@@ -2316,19 +2315,21 @@ _fix_etage_type_all()
 @login_required
 def swap_salles():
     data = request.get_json()
-    id1, id2 = data.get("id1"), data.get("id2")
-    if not id1 or not id2 or str(id1)==str(id2):
-        return jsonify({"ok": False, "error": "يرجى إدخال ID حجزين مختلفين"})
+    cc1, cc2 = str(data.get("cc1","")).strip(), str(data.get("cc2","")).strip()
+    if not cc1 or not cc2 or cc1 == cc2:
+        return jsonify({"ok": False, "error": "يرجى إدخال رقمي دورة مختلفين"})
     conn = get_conn()
-    r1 = fetchone(conn, "SELECT id,salle,etage,type,date_debut,date_fin FROM reservations WHERE id=?", (id1,))
-    r2 = fetchone(conn, "SELECT id,salle,etage,type,date_debut,date_fin FROM reservations WHERE id=?", (id2,))
-    if not r1 or not r2:
-        conn.close(); return jsonify({"ok": False, "error": "أحد الحجزين غير موجود"})
-    execute(conn, "UPDATE reservations SET salle=?, etage=?, type=? WHERE id=?", (r2[1],r2[2],r2[3],id1))
-    execute(conn, "UPDATE reservations SET salle=?, etage=?, type=? WHERE id=?", (r1[1],r1[2],r1[3],id2))
+    r1 = fetchone(conn, "SELECT id,salle,etage,type,date_debut,date_fin FROM reservations WHERE course_code=?", (cc1,))
+    r2 = fetchone(conn, "SELECT id,salle,etage,type,date_debut,date_fin FROM reservations WHERE course_code=?", (cc2,))
+    if not r1:
+        conn.close(); return jsonify({"ok": False, "error": f"رقم الدورة {cc1} غير موجود"})
+    if not r2:
+        conn.close(); return jsonify({"ok": False, "error": f"رقم الدورة {cc2} غير موجود"})
+    execute(conn, "UPDATE reservations SET salle=?, etage=?, type=? WHERE id=?", (r2[1],r2[2],r2[3],r1[0]))
+    execute(conn, "UPDATE reservations SET salle=?, etage=?, type=? WHERE id=?", (r1[1],r1[2],r1[3],r2[0]))
     conn.commit(); conn.close()
-    add_notification(session["user"], f"تم تبادل القاعتين: #{id1}({r1[1]}) ↔ #{id2}({r2[1]})")
-    return jsonify({"ok": True, "msg": f"✅ #{id1} ← {r2[1]}  |  #{id2} ← {r1[1]}"})
+    add_notification(session["user"], f"تم تبادل القاعتين: {cc1}({r1[1]}) ↔ {cc2}({r2[1]})")
+    return jsonify({"ok": True, "msg": f"✅ {cc1} ← {r2[1]}  |  {cc2} ← {r1[1]}"})
 
 @app.route("/clear_salle", methods=["POST"])
 @login_required
