@@ -2159,6 +2159,9 @@ def load_user_colors():
     except Exception:
         pass
 
+def init_db():
+    _bootstrap_db()
+
 def add_notification(user, message):
     conn = get_conn()
     execute(conn, "INSERT INTO notifications (\"user\",message) VALUES (?,?)", (user, message))
